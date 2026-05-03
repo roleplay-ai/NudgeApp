@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { ArrowRight, ChevronRight, ExternalLink, Play } from "lucide-react";
-import type { TrendingTopic, NewsItem, VideoOfDay, ProductOfDay, ApplyTask } from "@/lib/types";
+import type { TrendingTopic, NewsItem, VideoOfDay, ProductOfDay, ApplyVideo } from "@/lib/types";
 import { resolveVideoThumbnailUrl } from "@/lib/videoThumbnails";
 import TrendingHero from "@/components/user/TrendingHero";
 
@@ -10,21 +10,16 @@ export const dynamic = "force-dynamic";
 export default async function Home() {
   const supabase = await createClient();
 
-  const [
-    { data: trending },
-    { data: news },
-    { data: videoOfDay },
-    { data: productOfDay },
-    { data: featuredTask },
-  ] = await Promise.all([
-    supabase.from("trending_topics").select("*").eq("is_active", true).maybeSingle(),
-    supabase.from("news_items").select("*").eq("is_published", true).order("published_at", { ascending: false }).limit(4),
-    supabase.from("video_of_day").select("*").eq("is_active", true).maybeSingle(),
-    supabase.from("product_of_day").select("*").eq("is_active", true).maybeSingle(),
-    supabase.from("apply_tasks").select("*").eq("is_published", true).eq("is_daily", true).order("order_index").limit(1),
-  ]);
+  const [{ data: trending }, { data: news }, { data: videoOfDay }, { data: productOfDay }, { data: applySpotlight }] =
+    await Promise.all([
+      supabase.from("trending_topics").select("*").eq("is_active", true).maybeSingle(),
+      supabase.from("news_items").select("*").eq("is_published", true).order("published_at", { ascending: false }).limit(4),
+      supabase.from("video_of_day").select("*").eq("is_active", true).maybeSingle(),
+      supabase.from("product_of_day").select("*").eq("is_active", true).maybeSingle(),
+      supabase.from("apply_videos").select("title, thumbnail_url").eq("is_published", true).order("order_index").limit(1).maybeSingle(),
+    ]);
 
-  const featuredApplyTask = (featuredTask as ApplyTask[] | null)?.[0] ?? null;
+  const applyWalkthroughTeaser = applySpotlight as Pick<ApplyVideo, "title" | "thumbnail_url"> | null;
 
   return (
     <div className="space-y-6">
@@ -115,23 +110,27 @@ export default async function Home() {
         </section>
       )}
 
-      {/* Featured Apply task */}
-      {featuredApplyTask && (
+      {/* Apply walkthroughs teaser */}
+      {applyWalkthroughTeaser && (
         <section>
-          <SectionHeader title="🎯 Today's task" href="/apply" />
-          <Link href={`/apply/${featuredApplyTask.id}`}
-            className="block rounded-2xl p-4 hover:opacity-95 transition border-2 border-white/20"
-            style={{ background: featuredApplyTask.color }}>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white/20 text-white font-black flex items-center justify-center flex-shrink-0 text-lg">
-                {featuredApplyTask.icon_letter || featuredApplyTask.title[0]}
+          <SectionHeader title="🎯 Apply walkthroughs" href="/apply" />
+          <Link
+            href="/apply"
+            className="flex gap-3 bg-white rounded-2xl p-3 shadow-sm hover:shadow-md transition border border-nborder"
+          >
+            <div className="w-28 h-20 rounded-xl overflow-hidden flex-shrink-0 relative bg-shadow flex items-center justify-center">
+              {applyWalkthroughTeaser.thumbnail_url ? (
+                <img src={applyWalkthroughTeaser.thumbnail_url} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <Play size={28} className="text-amber" fill="currentColor" />
+              )}
+            </div>
+            <div className="flex-1 py-1 min-w-0">
+              <div className="text-sm font-bold text-shadow leading-tight mb-1 line-clamp-2">
+                {applyWalkthroughTeaser.title}
               </div>
-              <div className="flex-1">
-                <div className="text-sm font-bold text-white">{featuredApplyTask.title}</div>
-                <div className="text-[11px] text-white/70">{featuredApplyTask.subtitle}</div>
-              </div>
-              <span className="bg-white/20 text-white px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1">
-                Try it <ArrowRight size={10} />
+              <span className="text-[11px] text-dodger font-bold inline-flex items-center gap-1">
+                Watch on Apply <ArrowRight size={10} />
               </span>
             </div>
           </Link>

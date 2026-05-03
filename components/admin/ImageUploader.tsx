@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { storageUploadErrorMessage } from "@/lib/supabase/storageUploadError";
 import { Upload, X } from "lucide-react";
 
 export default function ImageUploader({
@@ -23,7 +24,7 @@ export default function ImageUploader({
     const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
     const { error } = await supabase.storage.from("content").upload(path, file);
     if (error) {
-      alert("Upload failed: " + error.message);
+      alert("Upload failed:\n\n" + storageUploadErrorMessage(error.message));
     } else {
       const { data } = supabase.storage.from("content").getPublicUrl(path);
       onChange(data.publicUrl);

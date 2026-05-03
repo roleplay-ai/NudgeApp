@@ -200,6 +200,20 @@ export type GlossaryTerm = {
   is_published: boolean;
 };
 
+// --- Apply Videos ---
+
+export type ApplyVideo = {
+  id: string;
+  task_id: string | null;
+  title: string;
+  description: string | null;
+  video_url: string;
+  thumbnail_url: string | null;
+  duration: string | null;
+  order_index: number;
+  is_published: boolean;
+};
+
 // --- Resources ---
 
 export type Resource = {

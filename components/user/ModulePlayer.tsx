@@ -85,12 +85,14 @@ export default function ModulePlayer({ module: mod, screens }: { module: Module;
                     <div className="mt-2">
                       {tokens.map((tk, j) => (
                         <span key={j}
-                          className={`inline-block rounded px-2 py-0.5 mr-1.5 mb-1 font-mono text-xs
+                          className={`inline-block rounded px-2 py-0.5 mr-1.5 mb-1 text-xs font-semibold tracking-tight
                             ${tk.style === "highlight" ? "bg-[#EEEDFE] text-[#3C3489]" : tk.style === "dimmed" ? "bg-black/10 text-shadow/40" : "bg-[#e8e6e0] text-shadow"}`}>
                           {tk.text}
                         </span>
                       ))}
-                      <div className="text-sm font-medium mt-1">{tokens.length} tokens</div>
+                      <div className="text-[11px] text-muted mt-2 font-medium">
+                        Phrases worth noticing in this example
+                      </div>
                     </div>
                   )}
                 </div>

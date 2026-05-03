@@ -3,20 +3,20 @@ import { createClient } from "@/lib/supabase/server";
 export default async function AdminDashboard() {
   const supabase = await createClient();
 
-  const [news, watchVideos, videoOfDay, productOfDay, tools, glossary, worlds, modules, applyTasks, applySlides, resources, users] = await Promise.all([
-    supabase.from("news_items").select("id", { count: "exact", head: true }),
-    supabase.from("watch_videos").select("id", { count: "exact", head: true }),
-    supabase.from("video_of_day").select("id", { count: "exact", head: true }),
-    supabase.from("product_of_day").select("id", { count: "exact", head: true }),
-    supabase.from("tools").select("id", { count: "exact", head: true }),
-    supabase.from("glossary_terms").select("id", { count: "exact", head: true }),
-    supabase.from("worlds").select("id", { count: "exact", head: true }),
-    supabase.from("modules").select("id", { count: "exact", head: true }),
-    supabase.from("apply_tasks").select("id", { count: "exact", head: true }),
-    supabase.from("apply_slides").select("id", { count: "exact", head: true }),
-    supabase.from("resources").select("id", { count: "exact", head: true }),
-    supabase.from("profiles").select("id", { count: "exact", head: true }),
-  ]);
+  const [news, watchVideos, videoOfDay, productOfDay, tools, glossary, worlds, modules, applyVideos, resources, users] =
+    await Promise.all([
+      supabase.from("news_items").select("id", { count: "exact", head: true }),
+      supabase.from("watch_videos").select("id", { count: "exact", head: true }),
+      supabase.from("video_of_day").select("id", { count: "exact", head: true }),
+      supabase.from("product_of_day").select("id", { count: "exact", head: true }),
+      supabase.from("tools").select("id", { count: "exact", head: true }),
+      supabase.from("glossary_terms").select("id", { count: "exact", head: true }),
+      supabase.from("worlds").select("id", { count: "exact", head: true }),
+      supabase.from("modules").select("id", { count: "exact", head: true }),
+      supabase.from("apply_videos").select("id", { count: "exact", head: true }),
+      supabase.from("resources").select("id", { count: "exact", head: true }),
+      supabase.from("profiles").select("id", { count: "exact", head: true }),
+    ]);
 
   const stats = [
     { label: "News items", count: news.count ?? 0, color: "bg-amber" },
@@ -27,8 +27,7 @@ export default async function AdminDashboard() {
     { label: "Glossary terms", count: glossary.count ?? 0, color: "bg-emerald" },
     { label: "Worlds", count: worlds.count ?? 0, color: "bg-nblue" },
     { label: "Modules", count: modules.count ?? 0, color: "bg-norange" },
-    { label: "Apply tasks", count: applyTasks.count ?? 0, color: "bg-shadow" },
-    { label: "Apply slides", count: applySlides.count ?? 0, color: "bg-amber" },
+    { label: "Apply videos", count: applyVideos.count ?? 0, color: "bg-shadow" },
     { label: "Resources", count: resources.count ?? 0, color: "bg-fuchsia" },
     { label: "Users", count: users.count ?? 0, color: "bg-emerald" },
   ];
