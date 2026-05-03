@@ -36,6 +36,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const sections = [
     { href: "/admin", label: "Dashboard" },
     { href: "/admin/trending", label: "Trending" },
+    { href: "/admin/video-of-day", label: "Video of day" },
+    { href: "/admin/product-of-day", label: "Product of day" },
     { href: "/admin/news", label: "News" },
     { href: "/admin/videos", label: "Videos" },
     { href: "/admin/tools", label: "Tools" },

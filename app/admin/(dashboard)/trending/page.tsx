@@ -78,6 +78,9 @@ export default function TrendingAdmin() {
           <Textarea label="Body (full description)" value={editing.body || ""} onChange={(e) => setEditing({ ...editing, body: e.target.value })} rows={4} />
           <Textarea label="Why this matters" value={editing.why_matters || ""}
             onChange={(e) => setEditing({ ...editing, why_matters: e.target.value })} rows={2} />
+          <Checkbox label="Show on Home (active trend — run Save to apply; only one can be active)"
+            checked={!!editing.is_active}
+            onChange={(e) => setEditing({ ...editing, is_active: e.target.checked })} />
           <div className="flex gap-2 pt-2">
             <Button onClick={save}>Save</Button>
             <Button variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
