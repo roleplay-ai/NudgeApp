@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { ArrowRight, ChevronRight, ExternalLink, Play } from "lucide-react";
 import type { TrendingTopic, NewsItem, VideoOfDay, ProductOfDay, ApplyTask } from "@/lib/types";
+import { resolveVideoThumbnailUrl } from "@/lib/videoThumbnails";
 import TrendingHero from "@/components/user/TrendingHero";
 
 export const dynamic = "force-dynamic";
@@ -60,29 +61,37 @@ export default async function Home() {
       </section>
 
       {/* Video of day */}
-      {videoOfDay && (
+      {videoOfDay && (() => {
+        const vod = videoOfDay as VideoOfDay;
+        const vodThumb = resolveVideoThumbnailUrl(vod.thumbnail_url, vod.url);
+        return (
         <section>
           <SectionHeader title="🎥 Video of the day" href="/today" />
-          <a href={(videoOfDay as VideoOfDay).url} target="_blank" rel="noopener noreferrer"
-            className="block bg-white rounded-2xl p-3 shadow-sm hover:shadow-md transition flex gap-3">
-            <div className="w-28 h-20 rounded-xl bg-fuchsia flex items-center justify-center flex-shrink-0 relative">
-              <Play size={28} className="text-white" fill="white" />
-              {(videoOfDay as VideoOfDay).duration && (
+          <a href={vod.url} target="_blank" rel="noopener noreferrer"
+            className="flex gap-3 bg-white rounded-2xl p-3 shadow-sm hover:shadow-md transition">
+            <div className="w-28 h-20 rounded-xl overflow-hidden flex-shrink-0 relative bg-fuchsia flex items-center justify-center">
+              {vodThumb ? (
+                <img src={vodThumb} alt={vod.title} className="w-full h-full object-cover" />
+              ) : (
+                <Play size={28} className="text-white" fill="white" />
+              )}
+              {vod.duration && (
                 <span className="absolute bottom-1 right-1 text-[9px] bg-black/70 text-white px-1.5 py-0.5 rounded font-semibold">
-                  {(videoOfDay as VideoOfDay).duration}
+                  {vod.duration}
                 </span>
               )}
             </div>
             <div className="flex-1 py-1">
-              <div className="text-sm font-bold text-shadow leading-tight mb-1">{(videoOfDay as VideoOfDay).title}</div>
-              <div className="text-[11px] text-muted mb-1">{(videoOfDay as VideoOfDay).creator}</div>
+              <div className="text-sm font-bold text-shadow leading-tight mb-1">{vod.title}</div>
+              <div className="text-[11px] text-muted mb-1">{vod.creator}</div>
               <span className="text-[11px] text-dodger font-bold inline-flex items-center gap-1">
                 Watch <ExternalLink size={10} />
               </span>
             </div>
           </a>
         </section>
-      )}
+        );
+      })()}
 
       {/* Product of day */}
       {productOfDay && (

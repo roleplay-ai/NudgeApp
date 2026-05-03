@@ -6,7 +6,7 @@ import type { GlossaryTerm } from "@/lib/types";
 import { Trash2, Edit2, Plus } from "lucide-react";
 
 const empty = (): Partial<GlossaryTerm> => ({
-  term: "", definition: "", color: "#623CEA", is_published: true, order_index: 0,
+  term: "", definition: "", example: null, color: "#623CEA", is_published: true, order_index: 0,
 });
 
 export default function GlossaryAdmin() {
@@ -54,6 +54,7 @@ export default function GlossaryAdmin() {
           <h2 className="font-bold">{editing.id ? "Edit term" : "New term"}</h2>
           <Input label="Term" value={editing.term || ""} onChange={(e) => setEditing({ ...editing, term: e.target.value })} />
           <Textarea label="Definition" value={editing.definition || ""} onChange={(e) => setEditing({ ...editing, definition: e.target.value })} />
+          <Input label="Example usage (optional)" value={editing.example || ""} onChange={(e) => setEditing({ ...editing, example: e.target.value || null })} />
           <div className="grid grid-cols-2 gap-3">
             <Input label="Color (hex for avatar)" value={editing.color || "#623CEA"} onChange={(e) => setEditing({ ...editing, color: e.target.value })} />
             <Input label="Order" type="number" value={editing.order_index ?? 0} onChange={(e) => setEditing({ ...editing, order_index: parseInt(e.target.value) || 0 })} />

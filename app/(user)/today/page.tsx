@@ -13,7 +13,8 @@ export default async function TodayPage() {
   return (
     <div>
       <div className="text-[11px] font-bold tracking-[2px] text-norange">STAY UPDATED</div>
-      <h1 className="text-2xl font-extrabold text-shadow mb-5">What's new</h1>
+      <h1 className="text-2xl font-extrabold text-shadow mb-1">What's new in AI</h1>
+      <p className="text-sm text-muted mb-5">Videos, news and launches — all in one feed.</p>
       <TodayTabs news={(news || []) as NewsItem[]} videos={(videos || []) as WatchVideo[]} />
     </div>
   );

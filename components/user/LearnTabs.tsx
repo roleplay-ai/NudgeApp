@@ -85,32 +85,76 @@ function WorldsView({ worlds, modules }: { worlds: World[]; modules: Module[] })
 
 function GlossaryView({ glossary }: { glossary: GlossaryTerm[] }) {
   const [search, setSearch] = useState("");
-  const filtered = glossary.filter((t) =>
-    t.term.toLowerCase().includes(search.toLowerCase()) ||
-    t.definition.toLowerCase().includes(search.toLowerCase())
-  );
+  const [letter, setLetter] = useState("All");
+
+  const availableLetters = Array.from(
+    new Set(glossary.map((t) => t.term[0].toUpperCase()))
+  ).sort();
+
+  const filtered = glossary.filter((t) => {
+    const matchesLetter = letter === "All" || t.term[0].toUpperCase() === letter;
+    const matchesSearch =
+      !search ||
+      t.term.toLowerCase().includes(search.toLowerCase()) ||
+      t.definition.toLowerCase().includes(search.toLowerCase());
+    return matchesLetter && matchesSearch;
+  });
+
   return (
     <div>
       <div className="relative mb-3">
         <Search size={16} className="absolute left-3 top-3.5 text-muted" />
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search Vector, MCP, Token…"
-          className="w-full pl-10 pr-4 py-3 bg-chiffon border-0 rounded-xl text-sm" />
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search any AI term..."
+          className="w-full pl-10 pr-4 py-3 bg-chiffon border-0 rounded-xl text-sm"
+        />
       </div>
-      <div className="text-[11px] text-muted font-semibold mb-2">{filtered.length} terms</div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+
+      <div className="flex gap-1.5 flex-wrap mb-4">
+        {["All", ...availableLetters].map((l) => (
+          <button
+            key={l}
+            onClick={() => setLetter(l)}
+            className={`px-3 py-1.5 rounded-full text-xs font-bold transition
+              ${letter === l ? "bg-shadow text-amber" : "bg-white text-shadow border border-nborder hover:border-shadow"}`}
+          >
+            {l}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
         {filtered.map((t) => (
-          <div key={t.id} className="bg-white rounded-xl p-3 shadow-sm flex gap-3">
-            <div className="w-9 h-9 rounded-lg text-white font-extrabold text-base flex items-center justify-center flex-shrink-0"
-              style={{ background: t.color || "#623CEA" }}>
-              {t.term[0].toUpperCase()}
+          <div key={t.id} className="bg-white rounded-xl p-3.5 shadow-sm flex flex-col gap-2">
+            <div className="flex gap-3">
+              <div
+                className="w-9 h-9 rounded-lg text-white font-extrabold text-base flex items-center justify-center flex-shrink-0"
+                style={{ background: t.color || "#623CEA" }}
+              >
+                {t.term[0].toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-bold text-shadow">{t.term}</div>
+                <div className="text-[12px] text-muted mt-0.5 leading-snug">{t.definition}</div>
+              </div>
             </div>
-            <div className="flex-1">
-              <div className="text-sm font-bold text-shadow">{t.term}</div>
-              <div className="text-[12px] text-muted mt-0.5 leading-snug">{t.definition}</div>
-            </div>
+            {t.example && (
+              <div
+                className="text-[11px] italic leading-snug"
+                style={{ color: t.color || "#623CEA" }}
+              >
+                e.g. &lsquo;{t.example}&rsquo;
+              </div>
+            )}
           </div>
         ))}
       </div>
+
+      {filtered.length === 0 && (
+        <div className="text-muted text-sm py-4">No terms found.</div>
+      )}
     </div>
   );
 }
@@ -157,7 +201,7 @@ function ResourcesView({ resources }: { resources: Resource[] }) {
 function ResourceCard({ r, large }: { r: Resource; large?: boolean }) {
   return (
     <a href={r.url} target="_blank" rel="noopener noreferrer"
-      className="block bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition flex gap-3"
+      className="flex gap-3 bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition"
       style={large ? { borderLeft: "4px solid #F68A29" } : {}}>
       <div className={`${large ? "w-12 h-12 text-xl" : "w-10 h-10 text-base"} rounded-xl bg-norange text-white font-black flex items-center justify-center flex-shrink-0`}>
         {r.thumbnail_url

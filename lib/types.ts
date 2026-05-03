@@ -194,6 +194,7 @@ export type GlossaryTerm = {
   category_id: string | null;
   term: string;
   definition: string;
+  example: string | null;
   color: string;
   order_index: number;
   is_published: boolean;
