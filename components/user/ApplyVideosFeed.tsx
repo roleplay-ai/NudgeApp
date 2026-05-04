@@ -48,6 +48,21 @@ function stripVideoSeedFooter(description: string | null | undefined): string | 
   return description.replace(/\n*\[seed:ai-features-guide-v1]\s*$/i, "").trim() || null;
 }
 
+/** Split admin "platforms" field: pipe or comma separated. */
+function parsePlatformsField(raw: string | null | undefined): string[] {
+  if (!raw?.trim()) return [];
+  if (raw.includes("|")) {
+    return raw
+      .split("|")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 /** Tagline + body + platform names from seeded description blocks. */
 function parseApplyVideoDescription(description: string | null | undefined) {
   const raw = stripVideoSeedFooter(description);
@@ -83,7 +98,10 @@ function ApplyVideoDetailModal({ video, onClose }: { video: ApplyVideo; onClose:
   const cat = formatCategoryLabel(video.category_tag);
   const embed = youtubeEmbedSrc(video.video_url);
   const mp4 = !embed && isDirectVideoUrl(video.video_url);
-  const { tagline, whatBody, platformNames } = parseApplyVideoDescription(video.description);
+  const { tagline, whatBody, platformNames: platformsFromDescription } = parseApplyVideoDescription(video.description);
+  const platformNamesFromColumn = parsePlatformsField(video.platforms);
+  const platformNames =
+    platformNamesFromColumn.length > 0 ? platformNamesFromColumn : platformsFromDescription;
   const what =
     whatBody.trim() ||
     stripVideoSeedFooter(video.description)?.replace(/^[^\n]+\n\n?/, "").trim() ||

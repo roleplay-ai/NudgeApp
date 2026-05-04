@@ -13,6 +13,7 @@ WHERE description LIKE '%[seed:ai-features-guide-v1]%';
 -- Card filter + pill (same as migration_013_apply_videos_display.sql — duplicated here so seed is self-contained)
 ALTER TABLE public.apply_videos ADD COLUMN IF NOT EXISTS group_name text DEFAULT 'Features';
 ALTER TABLE public.apply_videos ADD COLUMN IF NOT EXISTS category_tag text;
+ALTER TABLE public.apply_videos ADD COLUMN IF NOT EXISTS platforms text;
 
 INSERT INTO public.apply_videos
   (title, description, video_url, thumbnail_url, duration, order_index, is_published, task_id)

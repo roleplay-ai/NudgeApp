@@ -12,6 +12,7 @@ const GROUPS = ["Features", "Apps", "Workflows", "Skills"] as const;
 const emptyVideo = (): Partial<ApplyVideo> => ({
   title: "",
   description: "",
+  platforms: "",
   video_url: "",
   thumbnail_url: null,
   duration: "",
@@ -61,6 +62,7 @@ export default function ApplyVideosAdmin() {
       task_id: editingVideo.task_id ?? null,
       group_name: (editingVideo.group_name as string) || "Features",
       category_tag: editingVideo.category_tag?.trim() || null,
+      platforms: editingVideo.platforms?.trim() || null,
     };
     if (editingVideo.id) {
       const { error } = await supabase.from("apply_videos").update(payload).eq("id", editingVideo.id);
@@ -126,6 +128,17 @@ export default function ApplyVideosAdmin() {
               onChange={(e) => setEditingVideo({ ...editingVideo, category_tag: e.target.value })}
             />
           </div>
+          <Input
+            label="Platforms (optional)"
+            value={editingVideo.platforms || ""}
+            onChange={(e) => setEditingVideo({ ...editingVideo, platforms: e.target.value })}
+            placeholder="e.g. ChatGPT | Claude | Gemini"
+          />
+          <p className="text-[10px] text-muted -mt-2">
+            Shown in the video detail modal under &quot;Available in&quot;. Use <span className="font-mono">|</span> or
+            commas between names. Overrides a <span className="font-mono">Platforms:</span> line in the description when
+            filled.
+          </p>
           <Textarea
             label="Description (shown under the title on Apply)"
             value={editingVideo.description || ""}

@@ -256,6 +256,8 @@ export type ApplyVideo = {
   group_name?: string | null;
   /** Card pill, e.g. EDITING */
   category_tag?: string | null;
+  /** Pipe- or comma-separated names for "Available in" (e.g. ChatGPT | Claude) */
+  platforms?: string | null;
 };
 
 // --- Resources ---
