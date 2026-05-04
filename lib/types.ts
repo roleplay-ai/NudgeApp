@@ -84,10 +84,13 @@ export type ApplyTile = {
   what_it_does?: string | null;
   /** YouTube (or embeddable) watch URL for modal player. */
   video_url?: string | null;
+  /** Shown on the card over the preview strip, e.g. ~1 min. */
+  estimated_duration?: string | null;
   /** Platforms where the feature exists, e.g. [{ "name": "ChatGPT", "color": "#23CE68" }]. */
   available_in?: ApplyPlatform[] | null;
 };
 
+/** Row in public.apply_tile_slides (tile gallery; legacy task UI uses public.apply_slides). */
 export type ApplyTileSlide = {
   id: string;
   tile_id: string;

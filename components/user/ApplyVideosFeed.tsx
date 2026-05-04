@@ -6,6 +6,20 @@ import type { ApplyVideo } from "@/lib/types";
 
 const ACCENTS = ["#A855F7", "#EC4899", "#F59E0B", "#3B82F6", "#23CE68", "#ED4551"];
 
+/** First paragraph of description (tagline) for compact cards; modal still uses full description. */
+function walkthroughCaption(description: string | null | undefined): string | null {
+  if (!description?.trim()) return null;
+  const head = description.split(/\n\n+/)[0]?.trim();
+  if (!head) return null;
+  const oneLine = head.replace(/\s+/g, " ").trim();
+  return oneLine.length > 0 ? oneLine : null;
+}
+
+function stripVideoSeedFooter(description: string | null | undefined): string | null {
+  if (!description?.trim()) return null;
+  return description.replace(/\n*\[seed:ai-features-guide-v1]\s*$/i, "").trim() || null;
+}
+
 export default function ApplyVideosFeed({
   videos,
   variant = "light",
@@ -43,6 +57,7 @@ export default function ApplyVideosFeed({
           {videos.map((v, i) => {
             const accent = ACCENTS[i % ACCENTS.length];
             const letter = (v.title || "V").replace(/[^A-Za-z]/g, "").slice(0, 1) || "V";
+            const caption = walkthroughCaption(v.description);
             return (
               <button
                 key={v.id}
@@ -65,8 +80,8 @@ export default function ApplyVideosFeed({
                 </div>
                 <div className="relative px-4 pb-2">
                   <h2 className="font-extrabold text-sm text-amber leading-snug line-clamp-2 mb-1">{v.title}</h2>
-                  {v.description ? (
-                    <p className="text-[11px] text-white/80 leading-relaxed line-clamp-2">{v.description}</p>
+                  {caption ? (
+                    <p className="text-[11px] text-white/80 leading-relaxed line-clamp-2">{caption}</p>
                   ) : null}
                 </div>
                 <div className="relative flex-1 min-h-[120px] mt-auto bg-black">
@@ -103,8 +118,10 @@ export default function ApplyVideosFeed({
               <div className="flex items-start justify-between gap-3 px-5 pt-4 pb-3 border-b border-nborder shrink-0">
                 <div className="min-w-0">
                   <h2 className="text-lg font-extrabold text-shadow leading-tight">{modalVideo.title}</h2>
-                  {modalVideo.description ? (
-                    <p className="text-sm text-muted mt-1 leading-snug">{modalVideo.description}</p>
+                  {stripVideoSeedFooter(modalVideo.description) ? (
+                    <p className="text-sm text-muted mt-1 leading-snug whitespace-pre-wrap">
+                      {stripVideoSeedFooter(modalVideo.description)}
+                    </p>
                   ) : null}
                 </div>
                 <button

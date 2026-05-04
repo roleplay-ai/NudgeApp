@@ -19,6 +19,7 @@ const empty = (): Partial<ApplyTile> => ({
   category_tag: "",
   what_it_does: "",
   video_url: "",
+  estimated_duration: "",
   available_in: [],
 });
 
@@ -89,6 +90,7 @@ export default function ApplyTilesAdmin() {
       category_tag: editing.category_tag?.trim() || null,
       what_it_does: editing.what_it_does?.trim() || null,
       video_url: editing.video_url?.trim() || null,
+      estimated_duration: editing.estimated_duration?.trim() || null,
       available_in,
     };
 
@@ -164,6 +166,11 @@ export default function ApplyTilesAdmin() {
             label="YouTube / video URL (optional)"
             value={editing.video_url || ""}
             onChange={(e) => setEditing({ ...editing, video_url: e.target.value || null })}
+          />
+          <Input
+            label="Card duration hint (optional, e.g. ~1 min)"
+            value={editing.estimated_duration || ""}
+            onChange={(e) => setEditing({ ...editing, estimated_duration: e.target.value || null })}
           />
           <Textarea
             label="What it does (modal body)"

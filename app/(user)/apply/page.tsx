@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function ApplyPage() {
   const supabase = await createClient();
   const [{ data: tiles }, { data: videos }] = await Promise.all([
-    supabase.from("apply_tiles").select("*"),
+    supabase.from("apply_tiles").select("*").order("order_index"),
     supabase.from("apply_videos").select("*").eq("is_published", true).order("order_index"),
   ]);
 
@@ -28,8 +28,10 @@ export default async function ApplyPage() {
           <p>
             This block reads from the <code className="text-xs bg-chiffon px-1 rounded">apply_tiles</code> table. If the
             table is missing, run <code className="text-xs bg-chiffon px-1 rounded">migration_010_apply_tiles_bootstrap.sql</code>{" "}
-            in Supabase. If the table exists but is empty, run <code className="text-xs bg-chiffon px-1 rounded">seed_004_apply_tiles.sql</code>{" "}
-            or add rows in <strong className="text-shadow">Admin → Apply tiles</strong>.
+            in Supabase. If the table exists but is empty, run{" "}
+            <code className="text-xs bg-chiffon px-1 rounded">seed_012_apply_tiles_ai_features_guide.sql</code>,{" "}
+            <code className="text-xs bg-chiffon px-1 rounded">seed_004_apply_tiles.sql</code>, or add rows in{" "}
+            <strong className="text-shadow">Admin → Apply tiles</strong>.
           </p>
           <p className="text-xs">
             Clicking a card opens a popup with details and video (when configured). Walkthrough videos below use the same

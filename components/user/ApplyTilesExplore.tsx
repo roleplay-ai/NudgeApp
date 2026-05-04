@@ -1,9 +1,18 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, X } from "lucide-react";
+import { Check, Play, X } from "lucide-react";
 import type { ApplyPlatform, ApplyTile } from "@/lib/types";
 import { youtubeEmbedSrc } from "@/lib/youtubeEmbed";
+
+function isDirectVideoUrl(url: string | null | undefined): boolean {
+  if (!url?.trim()) return false;
+  return /\.(mp4|webm|ogg)(\?|$)/i.test(url.trim());
+}
+
+function stripTileSeedMarker(text: string): string {
+  return text.replace(/\n*\[seed:ai-features-guide-tiles-v1]\s*$/i, "").trim();
+}
 
 const GROUP_ORDER = ["Features", "Apps", "Workflows", "Skills"] as const;
 
@@ -13,8 +22,6 @@ const GROUP_ACCENT: Record<string, string> = {
   Workflows: "#F59E0B",
   Skills: "#3B82F6",
 };
-
-const FALLBACK_DOTS = ["#A855F7", "#FFCE00", "#23CE68"];
 
 function sortTiles(tiles: ApplyTile[]) {
   return [...tiles].sort((a, b) => {
@@ -44,18 +51,6 @@ function parsePlatforms(tile: ApplyTile): ApplyPlatform[] {
       .filter((p) => p.name.length > 0);
   }
   return [];
-}
-
-function dotColors(tile: ApplyTile, accent: string): string[] {
-  const pl = parsePlatforms(tile);
-  if (pl.length >= 3) return pl.slice(0, 3).map((p) => p.color || "#888");
-  if (pl.length === 2) return [pl[0].color || accent, pl[1].color || "#FFCE00", accent];
-  if (pl.length === 1) return [pl[0].color || accent, "#FFCE00", "#23CE68"];
-  return [accent, FALLBACK_DOTS[1], FALLBACK_DOTS[2]];
-}
-
-function cardCategoryLabel(t: ApplyTile): string {
-  return (t.category_tag || t.group_name || "").toUpperCase();
 }
 
 function iconLetter(title: string) {
@@ -98,22 +93,20 @@ export default function ApplyTilesExplore({ tiles }: { tiles: ApplyTile[] }) {
         {filtered.map((t) => {
           const accent = tileAccent(t);
           const letter = iconLetter(t.title);
-          const dots = dotColors(t, accent);
           return (
             <button
               key={t.id}
               type="button"
               onClick={() => setOpen(t)}
-              className="relative text-left rounded-2xl overflow-hidden border border-white/10
-                shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] min-h-[158px] p-4 pt-5 text-white
-                hover:border-amber/40 transition group"
+              className="relative text-left rounded-2xl overflow-hidden border border-white/10 min-h-[260px] flex flex-col
+                shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] text-white hover:border-amber/40 transition group w-full"
               style={{ backgroundColor: "#121212" }}
             >
               <div
                 className="pointer-events-none absolute -right-10 -bottom-10 h-32 w-32 rounded-full opacity-45 blur-2xl"
                 style={{ background: accent }}
               />
-              <div className="relative flex justify-start items-start mb-3">
+              <div className="relative flex justify-start items-start px-4 pt-4 mb-2">
                 <div
                   className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-black shadow-lg overflow-hidden shrink-0"
                   style={{ background: accent }}
@@ -125,22 +118,24 @@ export default function ApplyTilesExplore({ tiles }: { tiles: ApplyTile[] }) {
                   )}
                 </div>
               </div>
-              <div className="relative font-extrabold text-amber text-[14px] leading-snug mb-1 line-clamp-2 tracking-tight">
-                {t.title}
+              <div className="relative px-4 pb-2 flex-1 min-w-0">
+                <div className="font-extrabold text-amber text-[14px] leading-snug mb-1 line-clamp-2 tracking-tight">
+                  {t.title}
+                </div>
+                <p className="text-[12px] text-white/88 leading-snug line-clamp-3">{t.subtitle}</p>
               </div>
-              <p className="relative text-[12px] text-white/88 leading-snug line-clamp-2 mb-4 min-h-[2.5rem]">{t.subtitle}</p>
-              <div className="relative flex items-end justify-between gap-2 mt-auto pt-1">
-                <span
-                  className="text-[9px] font-bold tracking-wider px-2 py-0.5 rounded-full border bg-black/30 max-w-[70%] truncate"
-                  style={{ borderColor: `${accent}88`, color: accent }}
-                >
-                  {cardCategoryLabel(t)}
-                </span>
-                <span className="flex gap-0.5 shrink-0">
-                  {dots.map((c, i) => (
-                    <span key={i} className="w-1.5 h-1.5 rounded-full" style={{ background: c }} />
-                  ))}
-                </span>
+              <div className="relative flex-1 min-h-[120px] mt-auto bg-black">
+                <div className="absolute inset-0 bg-gradient-to-br from-black to-zinc-900" />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                  <span className="w-14 h-14 rounded-full bg-white/95 flex items-center justify-center shadow-lg">
+                    <Play size={26} className="text-shadow ml-1" fill="currentColor" />
+                  </span>
+                </div>
+                {t.estimated_duration ? (
+                  <span className="absolute bottom-2 right-2 text-[10px] font-bold bg-black/75 text-white px-1.5 py-0.5 rounded">
+                    {t.estimated_duration}
+                  </span>
+                ) : null}
               </div>
             </button>
           );
@@ -155,7 +150,8 @@ export default function ApplyTilesExplore({ tiles }: { tiles: ApplyTile[] }) {
 function TileDetailModal({ tile, accent, onClose }: { tile: ApplyTile; accent: string; onClose: () => void }) {
   const embed = youtubeEmbedSrc(tile.video_url);
   const platforms = parsePlatforms(tile);
-  const what = (tile.what_it_does || "").trim() || tile.subtitle;
+  const whatRaw = (tile.what_it_does || "").trim();
+  const what = stripTileSeedMarker(whatRaw) || tile.subtitle;
   const groupPill = tile.group_name || "Features";
   const cat = (tile.category_tag || "").trim();
 
@@ -215,9 +211,21 @@ function TileDetailModal({ tile, accent, onClose }: { tile: ApplyTile; accent: s
                 allowFullScreen
               />
             </div>
+          ) : isDirectVideoUrl(tile.video_url) ? (
+            <div className="aspect-video bg-black w-full">
+              <video
+                src={tile.video_url ?? undefined}
+                controls
+                controlsList="nodownload"
+                playsInline
+                className="w-full h-full object-contain"
+              >
+                Your browser does not support embedded video.
+              </video>
+            </div>
           ) : (
             <div className="aspect-video bg-[#2a2a2a] flex items-center justify-center text-white/50 text-sm px-6 text-center">
-              Add a YouTube URL in Admin → Apply tiles to show a video here.
+              Add a YouTube or direct video URL in Admin → Apply tiles to show a video here.
             </div>
           )}
 

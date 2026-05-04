@@ -64,31 +64,31 @@ export default async function Home() {
         const vod = videoOfDay as VideoOfDay;
         const vodThumb = resolveVideoThumbnailUrl(vod.thumbnail_url, vod.url);
         return (
-        <section>
-          <SectionHeader title="Video of the day" dot="#ED4551" href="/library" />
-          <a href={vod.url} target="_blank" rel="noopener noreferrer"
-            className="flex gap-3 bg-white rounded-2xl p-3 border border-nborder shadow-sm hover:shadow-md transition">
-            <div className="w-28 h-20 rounded-xl overflow-hidden flex-shrink-0 relative bg-fuchsia flex items-center justify-center">
-              {vodThumb ? (
-                <img src={vodThumb} alt={vod.title} className="w-full h-full object-cover" />
-              ) : (
-                <Play size={28} className="text-white" fill="white" />
-              )}
-              {vod.duration && (
-                <span className="absolute bottom-1 right-1 text-[9px] bg-black/70 text-white px-1.5 py-0.5 rounded font-semibold">
-                  {vod.duration}
+          <section>
+            <SectionHeader title="Video of the day" dot="#ED4551" href="/library" />
+            <a href={vod.url} target="_blank" rel="noopener noreferrer"
+              className="flex gap-3 bg-white rounded-2xl p-3 border border-nborder shadow-sm hover:shadow-md transition">
+              <div className="w-28 h-20 rounded-xl overflow-hidden flex-shrink-0 relative bg-fuchsia flex items-center justify-center">
+                {vodThumb ? (
+                  <img src={vodThumb} alt={vod.title} className="w-full h-full object-cover" />
+                ) : (
+                  <Play size={28} className="text-white" fill="white" />
+                )}
+                {vod.duration && (
+                  <span className="absolute bottom-1 right-1 text-[9px] bg-black/70 text-white px-1.5 py-0.5 rounded font-semibold">
+                    {vod.duration}
+                  </span>
+                )}
+              </div>
+              <div className="flex-1 py-1">
+                <div className="text-sm font-bold text-shadow leading-tight mb-1">{vod.title}</div>
+                <div className="text-[11px] text-muted mb-1">{vod.creator}</div>
+                <span className="text-[11px] text-dodger font-bold inline-flex items-center gap-1">
+                  Watch <ExternalLink size={10} />
                 </span>
-              )}
-            </div>
-            <div className="flex-1 py-1">
-              <div className="text-sm font-bold text-shadow leading-tight mb-1">{vod.title}</div>
-              <div className="text-[11px] text-muted mb-1">{vod.creator}</div>
-              <span className="text-[11px] text-dodger font-bold inline-flex items-center gap-1">
-                Watch <ExternalLink size={10} />
-              </span>
-            </div>
-          </a>
-        </section>
+              </div>
+            </a>
+          </section>
         );
       })()}
 
