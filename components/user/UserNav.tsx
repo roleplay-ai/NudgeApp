@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   Crosshair,
   // Flame, // future: streak row in sidebar footer
@@ -9,11 +9,11 @@ import {
   Home,
   Library,
   // LogIn, // future: sidebar login link
-  LogOut,
+  // LogOut, // sidebar sign out (commented out)
   // UserRound, // future: profile link
   Wrench,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+// import { createClient } from "@/lib/supabase/client"; // with sidebar sign out
 // import { masteryFromScore } from "@/lib/masteryUi"; // future: mastery card in sidebar
 
 const items = [
@@ -27,7 +27,7 @@ const items = [
 export default function UserNav({
   masteryScore: _masteryScore = 0,
   streakDays: _streakDays = 0,
-  isLoggedIn = false,
+  isLoggedIn: _isLoggedIn = false,
 }: {
   /** Reserved for future sidebar mastery widget */
   masteryScore?: number;
@@ -36,15 +36,14 @@ export default function UserNav({
   isLoggedIn?: boolean;
 }) {
   const path = usePathname();
-  const router = useRouter();
   // const { displayScore, subline, barPct } = masteryFromScore(masteryScore); // future: mastery card
 
-  async function signOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.refresh();
-    router.push("/");
-  }
+  // async function signOut() {
+  //   const supabase = createClient();
+  //   await supabase.auth.signOut();
+  //   router.refresh();
+  //   router.push("/");
+  // }
 
   return (
     <>
@@ -91,7 +90,7 @@ export default function UserNav({
             (Keep Sign out below live when re-enabling the full block, or fold it into that branch.)
           */}
 
-          {isLoggedIn ? (
+          {/* {isLoggedIn ? (
             <button
               type="button"
               onClick={() => signOut()}
@@ -101,7 +100,7 @@ export default function UserNav({
               <LogOut size={17} className="shrink-0" style={{ color: "#bdbdbd" }} />
               Sign out
             </button>
-          ) : null}
+          ) : null} */}
         </div>
       </aside>
 
