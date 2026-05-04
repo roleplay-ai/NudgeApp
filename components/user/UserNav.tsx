@@ -4,17 +4,17 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Crosshair,
-  Flame,
+  // Flame, // future: streak row in sidebar footer
   GraduationCap,
   Home,
   Library,
-  LogIn,
+  // LogIn, // future: sidebar login link
   LogOut,
-  UserRound,
+  // UserRound, // future: profile link
   Wrench,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { masteryFromScore } from "@/lib/masteryUi";
+// import { masteryFromScore } from "@/lib/masteryUi"; // future: mastery card in sidebar
 
 const items = [
   { href: "/", label: "Home", icon: Home },
@@ -25,17 +25,19 @@ const items = [
 ];
 
 export default function UserNav({
-  masteryScore = 0,
-  streakDays = 0,
+  masteryScore: _masteryScore = 0,
+  streakDays: _streakDays = 0,
   isLoggedIn = false,
 }: {
+  /** Reserved for future sidebar mastery widget */
   masteryScore?: number;
+  /** Reserved for future sidebar streak row */
   streakDays?: number;
   isLoggedIn?: boolean;
 }) {
   const path = usePathname();
   const router = useRouter();
-  const { displayScore, subline, barPct } = masteryFromScore(masteryScore);
+  // const { displayScore, subline, barPct } = masteryFromScore(masteryScore); // future: mastery card
 
   async function signOut() {
     const supabase = createClient();
@@ -80,51 +82,26 @@ export default function UserNav({
         </nav>
 
         <div className="mt-auto space-y-3 pt-4 border-t border-white/10">
-          <div className="rounded-xl bg-black/35 border border-white/10 px-3 py-2.5">
-            <div className="flex items-baseline justify-between gap-2 mb-1.5">
-              <span className="text-[9px] font-bold tracking-[0.18em] text-norange">MASTERY</span>
-              <span className="text-lg font-black tabular-nums leading-none text-[#ffffff]">{displayScore}</span>
-            </div>
-            <div className="h-1.5 rounded-full bg-black/50 overflow-hidden mb-1.5">
-              <div className="h-full rounded-full bg-[#FFCE00] transition-all" style={{ width: `${barPct}%` }} />
-            </div>
-            <p className="text-[10px] leading-snug text-[#b0b0b0]">{subline}</p>
-          </div>
-          <div className="flex items-center justify-center gap-1.5 rounded-xl bg-black/35 border border-white/10 py-2 text-[11px] font-bold text-[#f0f0f0]">
-            <Flame size={14} className="text-norange shrink-0" />
-            <span>{streakDays} day streak</span>
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <Link
-              href="/profile"
-              className={`flex items-center gap-2.5 px-2 py-2 rounded-lg text-[13px] font-semibold transition no-underline
-                ${path === "/profile" ? "bg-white/[0.06] text-[#FFCE00]" : "text-[#e0e0e0] hover:text-[#ffffff] hover:bg-white/[0.04]"}`}
-              style={{ color: path === "/profile" ? "#FFCE00" : "#e0e0e0" }}
+          {/*
+            FUTURE: sidebar footer — restore imports (Flame, LogIn, UserRound, masteryFromScore),
+            uncomment masteryFromScore(...) above, rename props from _masteryScore/_streakDays, then paste back:
+            — Mastery card (displayScore, barPct, subline)
+            — Streak row (Flame + streakDays)
+            — Profile Link + branch: Sign out when isLoggedIn else Log in
+            (Keep Sign out below live when re-enabling the full block, or fold it into that branch.)
+          */}
+
+          {isLoggedIn ? (
+            <button
+              type="button"
+              onClick={() => signOut()}
+              className="flex items-center gap-2.5 px-2 py-2 rounded-lg text-[13px] font-semibold text-[#e0e0e0] hover:text-[#ffffff] hover:bg-white/[0.04] w-full text-left"
+              style={{ color: "#e0e0e0" }}
             >
-              <UserRound size={17} className="shrink-0" style={{ color: "#bdbdbd" }} />
-              Profile
-            </Link>
-            {isLoggedIn ? (
-              <button
-                type="button"
-                onClick={() => signOut()}
-                className="flex items-center gap-2.5 px-2 py-2 rounded-lg text-[13px] font-semibold text-[#e0e0e0] hover:text-[#ffffff] hover:bg-white/[0.04] w-full text-left"
-                style={{ color: "#e0e0e0" }}
-              >
-                <LogOut size={17} className="shrink-0" style={{ color: "#bdbdbd" }} />
-                Sign out
-              </button>
-            ) : (
-              <Link
-                href="/login"
-                className="flex items-center gap-2.5 px-2 py-2 rounded-lg text-[13px] font-semibold text-[#e0e0e0] hover:text-[#ffffff] hover:bg-white/[0.04] no-underline"
-                style={{ color: "#e0e0e0" }}
-              >
-                <LogIn size={17} className="shrink-0" style={{ color: "#bdbdbd" }} />
-                Log in
-              </Link>
-            )}
-          </div>
+              <LogOut size={17} className="shrink-0" style={{ color: "#bdbdbd" }} />
+              Sign out
+            </button>
+          ) : null}
         </div>
       </aside>
 
