@@ -60,6 +60,46 @@ export type Tool = {
   cons?: string[];
 };
 
+// --- Apply tiles (browse grid + slide decks) ---
+
+export type ApplyPlatform = {
+  name: string;
+  color?: string | null;
+};
+
+export type ApplyTile = {
+  id: string;
+  title: string;
+  subtitle: string;
+  group_name: "Features" | "Apps" | "Workflows" | "Skills" | string;
+  is_featured: boolean;
+  order_index: number;
+  /** Card + modal icon (optional); otherwise first letter of title is used. */
+  icon_url?: string | null;
+  /** Hex background for letter icon when no icon_url. */
+  icon_color?: string | null;
+  /** Small pill on card, e.g. EDITING (optional). */
+  category_tag?: string | null;
+  /** Long copy for modal “What it does”. */
+  what_it_does?: string | null;
+  /** YouTube (or embeddable) watch URL for modal player. */
+  video_url?: string | null;
+  /** Shown on the card over the preview strip, e.g. ~1 min. */
+  estimated_duration?: string | null;
+  /** Platforms where the feature exists, e.g. [{ "name": "ChatGPT", "color": "#23CE68" }]. */
+  available_in?: ApplyPlatform[] | null;
+};
+
+/** Row in public.apply_tile_slides (tile gallery; legacy task UI uses public.apply_slides). */
+export type ApplyTileSlide = {
+  id: string;
+  tile_id: string;
+  title: string;
+  body: string;
+  image_url: string | null;
+  order_index: number;
+};
+
 // --- Apply ---
 
 export type ApplyTask = {
@@ -212,6 +252,12 @@ export type ApplyVideo = {
   duration: string | null;
   order_index: number;
   is_published: boolean;
+  /** Filter chip: Features | Apps | Workflows | Skills */
+  group_name?: string | null;
+  /** Card pill, e.g. EDITING */
+  category_tag?: string | null;
+  /** Pipe- or comma-separated names for "Available in" (e.g. ChatGPT | Claude) */
+  platforms?: string | null;
 };
 
 // --- Resources ---

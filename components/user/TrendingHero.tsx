@@ -10,7 +10,7 @@ export default function TrendingHero({ trending }: { trending: TrendingTopic }) 
   return (
     <>
       <section onClick={() => setOpen(true)}
-        className="rounded-2xl p-5 cursor-pointer relative overflow-hidden text-white"
+        className="rounded-2xl p-5 cursor-pointer relative overflow-hidden text-white border border-white/10 shadow-lg"
         style={{ background: color }}>
         <div className="absolute -right-5 -top-3 text-[130px] opacity-15 leading-none select-none">
           {trending.emoji}

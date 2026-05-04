@@ -5,5 +5,11 @@
 
 html, body { background: #FFFDF5; color: #221D23; font-family: Inter, sans-serif; }
 
+/* Sidebar: keep links readable (body color is dark; avoid inheriting onto dark rail). */
+aside[data-user-sidebar] a,
+aside[data-user-sidebar] button {
+  text-decoration: none;
+}
+
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-thumb { background: #E8E6DC; border-radius: 999px; }

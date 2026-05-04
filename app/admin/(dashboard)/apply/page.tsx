@@ -1,21 +1,26 @@
 "use client";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Input, Textarea, Checkbox, Button, Toast, useToast } from "@/components/admin/Form";
+import { Input, Textarea, Checkbox, Button, Toast, useToast, Select } from "@/components/admin/Form";
 import ImageUploader from "@/components/admin/ImageUploader";
 import VideoUploader from "@/components/admin/VideoUploader";
 import type { ApplyVideo } from "@/lib/types";
 import { Edit2, Plus, Trash2, Film } from "lucide-react";
 
+const GROUPS = ["Features", "Apps", "Workflows", "Skills"] as const;
+
 const emptyVideo = (): Partial<ApplyVideo> => ({
   title: "",
   description: "",
+  platforms: "",
   video_url: "",
   thumbnail_url: null,
   duration: "",
   order_index: 0,
   is_published: true,
   task_id: null,
+  group_name: "Features",
+  category_tag: "",
 });
 
 export default function ApplyVideosAdmin() {
@@ -55,6 +60,9 @@ export default function ApplyVideosAdmin() {
       order_index: editingVideo.order_index ?? 0,
       is_published: editingVideo.is_published ?? true,
       task_id: editingVideo.task_id ?? null,
+      group_name: (editingVideo.group_name as string) || "Features",
+      category_tag: editingVideo.category_tag?.trim() || null,
+      platforms: editingVideo.platforms?.trim() || null,
     };
     if (editingVideo.id) {
       const { error } = await supabase.from("apply_videos").update(payload).eq("id", editingVideo.id);
@@ -107,6 +115,30 @@ export default function ApplyVideosAdmin() {
             value={editingVideo.title || ""}
             onChange={(e) => setEditingVideo({ ...editingVideo, title: e.target.value })}
           />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <Select
+              label="Group (Apply filter chip)"
+              value={(editingVideo.group_name as string) || "Features"}
+              options={[...GROUPS]}
+              onChange={(e) => setEditingVideo({ ...editingVideo, group_name: e.target.value })}
+            />
+            <Input
+              label="Category pill (e.g. EDITING, optional)"
+              value={editingVideo.category_tag || ""}
+              onChange={(e) => setEditingVideo({ ...editingVideo, category_tag: e.target.value })}
+            />
+          </div>
+          <Input
+            label="Platforms (optional)"
+            value={editingVideo.platforms || ""}
+            onChange={(e) => setEditingVideo({ ...editingVideo, platforms: e.target.value })}
+            placeholder="e.g. ChatGPT | Claude | Gemini"
+          />
+          <p className="text-[10px] text-muted -mt-2">
+            Shown in the video detail modal under &quot;Available in&quot;. Use <span className="font-mono">|</span> or
+            commas between names. Overrides a <span className="font-mono">Platforms:</span> line in the description when
+            filled.
+          </p>
           <Textarea
             label="Description (shown under the title on Apply)"
             value={editingVideo.description || ""}
