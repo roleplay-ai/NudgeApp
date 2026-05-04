@@ -3,13 +3,16 @@
 -- ============================================
 -- Source: structured sections (title → tagline → body → platforms line).
 -- video_url: placeholder sample MP4s (replace in Admin with your Supabase Storage or YouTube URLs).
--- is_published defaults to false so the same topics stay in "What can AI do?" (apply_tiles via seed_012)
---   without duplicating a full grid under Walkthroughs. Publish selected rows in Admin when you have real clips.
+-- Apply page reads only apply_videos (published). Set is_published false in Admin to hide a row.
 -- Safe re-run: deletes rows seeded by this script (matched by marker in description footer) then inserts.
 -- ============================================
 
 DELETE FROM public.apply_videos
 WHERE description LIKE '%[seed:ai-features-guide-v1]%';
+
+-- Card filter + pill (same as migration_013_apply_videos_display.sql — duplicated here so seed is self-contained)
+ALTER TABLE public.apply_videos ADD COLUMN IF NOT EXISTS group_name text DEFAULT 'Features';
+ALTER TABLE public.apply_videos ADD COLUMN IF NOT EXISTS category_tag text;
 
 INSERT INTO public.apply_videos
   (title, description, video_url, thumbnail_url, duration, order_index, is_published, task_id)
@@ -26,7 +29,7 @@ Platforms: ChatGPT | Claude | Gemini
   NULL,
   '~1 min',
   0,
-  false,
+  true,
   NULL
 ),
 (
@@ -41,7 +44,7 @@ Platforms: Gemini | Copilot
   NULL,
   '~1 min',
   1,
-  false,
+  true,
   NULL
 ),
 (
@@ -56,7 +59,7 @@ Platforms: Copilot | ChatGPT | Claude
   NULL,
   '~1 min',
   2,
-  false,
+  true,
   NULL
 ),
 (
@@ -71,7 +74,7 @@ Platforms: Gemini | Copilot | ChatGPT | Claude
   NULL,
   '~1 min',
   3,
-  false,
+  true,
   NULL
 ),
 (
@@ -86,7 +89,7 @@ Platforms: Gemini | Copilot | ChatGPT | Claude
   NULL,
   '~1 min',
   4,
-  false,
+  true,
   NULL
 ),
 (
@@ -101,7 +104,7 @@ Platforms: Gemini | Copilot | ChatGPT | Claude
   NULL,
   '~1 min',
   5,
-  false,
+  true,
   NULL
 ),
 (
@@ -116,7 +119,7 @@ Platforms: Gemini | Copilot | ChatGPT | Claude
   NULL,
   '~1 min',
   6,
-  false,
+  true,
   NULL
 ),
 (
@@ -131,7 +134,7 @@ Platforms: Gemini | Copilot | ChatGPT | Claude
   NULL,
   '~1 min',
   7,
-  false,
+  true,
   NULL
 ),
 (
@@ -146,7 +149,7 @@ Platforms: Gemini | Copilot | ChatGPT
   NULL,
   '~1 min',
   8,
-  false,
+  true,
   NULL
 ),
 (
@@ -161,7 +164,7 @@ Platforms: Gemini | Copilot | ChatGPT | Claude
   NULL,
   '~1 min',
   9,
-  false,
+  true,
   NULL
 ),
 (
@@ -176,7 +179,7 @@ Platforms: Gemini | Copilot | ChatGPT
   NULL,
   '~1 min',
   10,
-  false,
+  true,
   NULL
 ),
 (
@@ -191,7 +194,7 @@ Platforms: Gemini
   NULL,
   '~1 min',
   11,
-  false,
+  true,
   NULL
 ),
 (
@@ -206,7 +209,7 @@ Platforms: Gemini | Copilot
   NULL,
   '~1 min',
   12,
-  false,
+  true,
   NULL
 ),
 (
@@ -221,7 +224,7 @@ Platforms: Gemini | Copilot | ChatGPT | Claude
   NULL,
   '~1 min',
   13,
-  false,
+  true,
   NULL
 ),
 (
@@ -236,7 +239,7 @@ Platforms: Gemini | Copilot | ChatGPT | Claude
   NULL,
   '~1 min',
   14,
-  false,
+  true,
   NULL
 ),
 (
@@ -251,7 +254,7 @@ Platforms: Gemini | Copilot | ChatGPT | Claude
   NULL,
   '~1 min',
   15,
-  false,
+  true,
   NULL
 ),
 (
@@ -266,7 +269,7 @@ Platforms: Gemini | Copilot | ChatGPT | Claude
   NULL,
   '~1 min',
   16,
-  false,
+  true,
   NULL
 ),
 (
@@ -281,7 +284,7 @@ Platforms: Comet (Perplexity) | Operator/Atlas (OpenAI)
   NULL,
   '~1 min',
   17,
-  false,
+  true,
   NULL
 ),
 (
@@ -296,7 +299,7 @@ Platforms: Gemini | Copilot | ChatGPT | Claude
   NULL,
   '~1 min',
   18,
-  false,
+  true,
   NULL
 ),
 (
@@ -311,7 +314,7 @@ Platforms: Gemini | Copilot | ChatGPT | Claude
   NULL,
   '~1 min',
   19,
-  false,
+  true,
   NULL
 ),
 (
@@ -326,7 +329,7 @@ Platforms: Google AI Studio | Copilot Studio
   NULL,
   '~1 min',
   20,
-  false,
+  true,
   NULL
 ),
 (
@@ -341,6 +344,29 @@ Platforms: Codex (OpenAI) | Claude Code | Google AI Studio
   NULL,
   '~1 min',
   21,
-  false,
+  true,
   NULL
 );
+
+UPDATE public.apply_videos SET group_name = 'Features', category_tag = 'EDITING' WHERE title = 'Canvas' AND description LIKE '%[seed:ai-features-guide-v1]%';
+UPDATE public.apply_videos SET group_name = 'Features', category_tag = 'KNOWLEDGE' WHERE title = 'Notebook' AND description LIKE '%[seed:ai-features-guide-v1]%';
+UPDATE public.apply_videos SET group_name = 'Features', category_tag = 'PRODUCTIVITY' WHERE title = 'Projects' AND description LIKE '%[seed:ai-features-guide-v1]%';
+UPDATE public.apply_videos SET group_name = 'Features', category_tag = 'PRODUCTIVITY' WHERE title = 'Connect apps' AND description LIKE '%[seed:ai-features-guide-v1]%';
+UPDATE public.apply_videos SET group_name = 'Features', category_tag = 'PERSONAL' WHERE title = 'Custom instructions' AND description LIKE '%[seed:ai-features-guide-v1]%';
+UPDATE public.apply_videos SET group_name = 'Features', category_tag = 'PERSONAL' WHERE title = 'Memories' AND description LIKE '%[seed:ai-features-guide-v1]%';
+UPDATE public.apply_videos SET group_name = 'Features', category_tag = 'PERSONAL' WHERE title = 'Temporary chats' AND description LIKE '%[seed:ai-features-guide-v1]%';
+UPDATE public.apply_videos SET group_name = 'Features', category_tag = 'PRODUCTIVITY' WHERE title = 'Thinking models' AND description LIKE '%[seed:ai-features-guide-v1]%';
+UPDATE public.apply_videos SET group_name = 'Workflows', category_tag = 'CREATIVE' WHERE title = 'Design images' AND description LIKE '%[seed:ai-features-guide-v1]%';
+UPDATE public.apply_videos SET group_name = 'Features', category_tag = 'KNOWLEDGE' WHERE title = 'Deep research' AND description LIKE '%[seed:ai-features-guide-v1]%';
+UPDATE public.apply_videos SET group_name = 'Features', category_tag = 'PRODUCTIVITY' WHERE title = 'Scheduled actions' AND description LIKE '%[seed:ai-features-guide-v1]%';
+UPDATE public.apply_videos SET group_name = 'Workflows', category_tag = 'CREATIVE' WHERE title = 'Design videos' AND description LIKE '%[seed:ai-features-guide-v1]%';
+UPDATE public.apply_videos SET group_name = 'Workflows', category_tag = 'ANALYTICS' WHERE title = 'AI in Excel' AND description LIKE '%[seed:ai-features-guide-v1]%';
+UPDATE public.apply_videos SET group_name = 'Features', category_tag = 'PERSONAL' WHERE title = 'Gems (custom chatbots)' AND description LIKE '%[seed:ai-features-guide-v1]%';
+UPDATE public.apply_videos SET group_name = 'Features', category_tag = 'KNOWLEDGE' WHERE title = 'Guided learning & quizzes' AND description LIKE '%[seed:ai-features-guide-v1]%';
+UPDATE public.apply_videos SET group_name = 'Workflows', category_tag = 'CREATIVE' WHERE title = 'Design infographics' AND description LIKE '%[seed:ai-features-guide-v1]%';
+UPDATE public.apply_videos SET group_name = 'Workflows', category_tag = 'ANALYTICS' WHERE title = 'Design dashboards' AND description LIKE '%[seed:ai-features-guide-v1]%';
+UPDATE public.apply_videos SET group_name = 'Apps', category_tag = 'EXPLORATION' WHERE title = 'AI browsers' AND description LIKE '%[seed:ai-features-guide-v1]%';
+UPDATE public.apply_videos SET group_name = 'Workflows', category_tag = 'PRODUCTIVITY' WHERE title = 'Design slides (PPT)' AND description LIKE '%[seed:ai-features-guide-v1]%';
+UPDATE public.apply_videos SET group_name = 'Workflows', category_tag = 'ANALYTICS' WHERE title = 'Data analytics' AND description LIKE '%[seed:ai-features-guide-v1]%';
+UPDATE public.apply_videos SET group_name = 'Skills', category_tag = 'AUTOMATION' WHERE title = 'Create agents & automation' AND description LIKE '%[seed:ai-features-guide-v1]%';
+UPDATE public.apply_videos SET group_name = 'Skills', category_tag = 'CREATIVE' WHERE title = 'Vibe coding' AND description LIKE '%[seed:ai-features-guide-v1]%';

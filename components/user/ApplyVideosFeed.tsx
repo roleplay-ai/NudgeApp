@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
-import { Film, Play, X } from "lucide-react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { Film, X } from "lucide-react";
 import type { ApplyVideo } from "@/lib/types";
 
 const ACCENTS = ["#A855F7", "#EC4899", "#F59E0B", "#3B82F6", "#23CE68", "#ED4551"];
+const DOT_FALLBACK = ["#FFCE00", "#23CE68"];
+const GROUP_ORDER = ["Features", "Apps", "Workflows", "Skills"] as const;
 
 /** First paragraph of description (tagline) for compact cards; modal still uses full description. */
 function walkthroughCaption(description: string | null | undefined): string | null {
@@ -29,6 +31,7 @@ export default function ApplyVideosFeed({
 }) {
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
   const [modalVideo, setModalVideo] = useState<ApplyVideo | null>(null);
+  const [groupFilter, setGroupFilter] = useState<string>("All");
 
   const registerRef = useCallback((id: string, el: HTMLVideoElement | null) => {
     if (el) videoRefs.current.set(id, el);
@@ -41,70 +44,105 @@ export default function ApplyVideosFeed({
     });
   }, []);
 
+  const filteredDarkVideos = useMemo(() => {
+    if (variant !== "dark") return videos;
+    if (groupFilter === "All") return videos;
+    return videos.filter((v) => (v.group_name || "Features") === groupFilter);
+  }, [videos, groupFilter, variant]);
+
   if (videos.length === 0) {
     return (
-      <div className="text-center py-16">
+      <div className="rounded-2xl border border-nborder bg-white p-8 text-center">
         <Film size={32} className="text-muted mx-auto mb-3" />
-        <p className="text-muted text-sm">Walkthrough videos will appear here when they are published.</p>
+        <p className="font-semibold text-shadow text-sm mb-2">No published videos yet</p>
+        <p className="text-muted text-sm max-w-md mx-auto leading-relaxed">
+          This page reads from <code className="text-xs bg-chiffon px-1 rounded">apply_videos</code> where{" "}
+          <strong className="text-shadow">is_published</strong> is true. Add clips in{" "}
+          <strong className="text-shadow">Admin → Apply videos</strong>, or run your SQL seeds, then publish the rows you
+          want visible.
+        </p>
       </div>
     );
   }
 
   if (variant === "dark") {
+    const chips = ["All", ...GROUP_ORDER];
+
     return (
       <>
+        <div className="flex gap-2 flex-wrap mb-3">
+          {chips.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setGroupFilter(c)}
+              className={`px-4 py-2 rounded-full text-xs font-semibold transition
+                ${groupFilter === c ? "bg-shadow text-amber" : "bg-white text-shadow border border-nborder hover:border-shadow"}`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+        <p className="text-[11px] font-bold text-muted mb-4">{filteredDarkVideos.length} items</p>
+        {filteredDarkVideos.length === 0 ? (
+          <p className="text-sm text-muted py-8 text-center">No cards in this category. Try &quot;All&quot; or pick another filter.</p>
+        ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-          {videos.map((v, i) => {
+          {filteredDarkVideos.map((v, i) => {
             const accent = ACCENTS[i % ACCENTS.length];
             const letter = (v.title || "V").replace(/[^A-Za-z]/g, "").slice(0, 1) || "V";
             const caption = walkthroughCaption(v.description);
+            const dots = [accent, DOT_FALLBACK[0], DOT_FALLBACK[1]];
+            const tag = (v.category_tag || "").trim();
+            const dur = (v.duration || "").trim();
+            const pillRaw = tag || dur || "Guide";
+            const pill = tag ? tag.toUpperCase() : /\d/.test(pillRaw) ? pillRaw : pillRaw.toUpperCase();
             return (
               <button
                 key={v.id}
                 type="button"
                 onClick={() => setModalVideo(v)}
-                className="relative text-left rounded-2xl overflow-hidden border border-white/10 min-h-[180px] flex flex-col shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] cursor-pointer hover:border-amber/35 transition w-full"
+                className="relative text-left rounded-2xl overflow-hidden border border-white/10 min-h-[158px] p-4 pt-5 flex flex-col shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] cursor-pointer hover:border-amber/40 transition w-full text-white"
                 style={{ backgroundColor: "#121212" }}
               >
                 <div
-                  className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-30 blur-2xl"
+                  className="pointer-events-none absolute -right-10 -bottom-10 h-32 w-32 rounded-full opacity-45 blur-2xl"
                   style={{ background: accent }}
                 />
-                <div className="relative flex justify-start items-start gap-2 px-4 pt-3 mb-2">
+                <div className="relative flex justify-start items-start mb-3">
                   <div
-                    className="w-9 h-9 rounded-lg flex items-center justify-center text-white text-xs font-black shrink-0"
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-black shadow-lg shrink-0"
                     style={{ background: accent }}
                   >
-                    {letter}
+                    {letter.toUpperCase()}
                   </div>
                 </div>
-                <div className="relative px-4 pb-2">
-                  <h2 className="font-extrabold text-sm text-amber leading-snug line-clamp-2 mb-1">{v.title}</h2>
-                  {caption ? (
-                    <p className="text-[11px] text-white/80 leading-relaxed line-clamp-2">{caption}</p>
-                  ) : null}
+                <div className="relative font-extrabold text-amber text-[14px] leading-snug mb-1 line-clamp-2 tracking-tight">
+                  {v.title}
                 </div>
-                <div className="relative flex-1 min-h-[120px] mt-auto bg-black">
-                  {v.thumbnail_url ? (
-                    <img src={v.thumbnail_url} alt="" className="absolute inset-0 w-full h-full object-cover opacity-90" />
-                  ) : (
-                    <div className="absolute inset-0 bg-gradient-to-br from-black to-zinc-900" />
-                  )}
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/25">
-                    <span className="w-14 h-14 rounded-full bg-white/95 flex items-center justify-center shadow-lg">
-                      <Play size={26} className="text-shadow ml-1" fill="currentColor" />
-                    </span>
-                  </div>
-                  {v.duration ? (
-                    <span className="absolute bottom-2 right-2 text-[10px] font-bold bg-black/75 text-white px-1.5 py-0.5 rounded">
-                      {v.duration}
-                    </span>
-                  ) : null}
+                {caption ? (
+                  <p className="relative text-[12px] text-white/88 leading-snug line-clamp-2 mb-4 min-h-[2.5rem]">{caption}</p>
+                ) : (
+                  <div className="mb-4 min-h-[2.5rem]" />
+                )}
+                <div className="relative flex items-end justify-between gap-2 mt-auto pt-1">
+                  <span
+                    className="text-[9px] font-bold tracking-wider px-2 py-0.5 rounded-full border bg-black/30 max-w-[70%] truncate"
+                    style={{ borderColor: `${accent}88`, color: accent }}
+                  >
+                    {pill}
+                  </span>
+                  <span className="flex gap-0.5 shrink-0">
+                    {dots.map((c, j) => (
+                      <span key={j} className="w-1.5 h-1.5 rounded-full" style={{ background: c }} />
+                    ))}
+                  </span>
                 </div>
               </button>
             );
           })}
         </div>
+        )}
 
         {modalVideo && (
           <div

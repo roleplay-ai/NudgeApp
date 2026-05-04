@@ -252,6 +252,10 @@ export type ApplyVideo = {
   duration: string | null;
   order_index: number;
   is_published: boolean;
+  /** Filter chip: Features | Apps | Workflows | Skills */
+  group_name?: string | null;
+  /** Card pill, e.g. EDITING */
+  category_tag?: string | null;
 };
 
 // --- Resources ---
