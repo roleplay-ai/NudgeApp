@@ -16,7 +16,10 @@ export default async function LearnPage() {
   return (
     <div>
       <div className="text-[11px] font-bold tracking-[2px] text-norange">LEARN</div>
-      <h1 className="text-2xl font-extrabold text-shadow mb-5">Build your AI fluency</h1>
+      <h1 className="text-2xl md:text-3xl font-extrabold text-shadow mb-2 tracking-tight">Build your AI fluency</h1>
+      <p className="text-sm text-muted mb-6 max-w-2xl">
+        Structured lessons, a searchable glossary, and hand-picked external resources.
+      </p>
       <LearnTabs
         worlds={(worlds || []) as World[]}
         modules={(modules || []) as Module[]}

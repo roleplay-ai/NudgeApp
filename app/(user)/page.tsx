@@ -22,24 +22,28 @@ export default async function Home() {
   const applyWalkthroughTeaser = applySpotlight as Pick<ApplyVideo, "title" | "thumbnail_url"> | null;
 
   return (
-    <div className="space-y-6">
-      <header className="mb-2">
-        <div className="text-[10px] font-bold tracking-[2px] text-norange">NUDGEABLE.AI</div>
-        <h1 className="text-xl md:text-2xl font-extrabold text-shadow">
-          Your daily AI boost 🚀
-        </h1>
+    <div className="space-y-8">
+      <header className="mb-1">
+        <div className="text-[11px] font-bold tracking-[2px] text-norange">HOME</div>
+        <h1 className="text-2xl md:text-3xl font-extrabold text-shadow tracking-tight">Your daily AI boost</h1>
+        <p className="text-sm text-muted mt-2 max-w-xl">Curated news, a featured video, tools, and apply walkthroughs.</p>
       </header>
 
       {trending && <TrendingHero trending={trending as TrendingTopic} />}
 
       {/* Top news */}
       <section>
-        <SectionHeader title="🔥 Top news today" href="/today" />
-        <div className="space-y-2.5">
+        <SectionHeader title="Top news" dot="#F68A29" href="/library" />
+        <div className="space-y-3">
           {(news as NewsItem[] | null)?.map((n) => (
-            <a key={n.id} href={n.url || "#"} target="_blank" rel="noopener noreferrer"
-              className="block bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition border-l-4"
-              style={{ borderLeftColor: n.tag_color || "#623CEA" }}>
+            <a
+              key={n.id}
+              href={n.url || "#"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block bg-white rounded-2xl p-4 border border-nborder shadow-sm hover:shadow-md transition"
+              style={{ borderLeft: `4px solid ${n.tag_color || "#623CEA"}` }}
+            >
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
                   style={{ background: n.tag_color || "#623CEA" }}>
@@ -61,9 +65,9 @@ export default async function Home() {
         const vodThumb = resolveVideoThumbnailUrl(vod.thumbnail_url, vod.url);
         return (
         <section>
-          <SectionHeader title="🎥 Video of the day" href="/today" />
+          <SectionHeader title="Video of the day" dot="#ED4551" href="/library" />
           <a href={vod.url} target="_blank" rel="noopener noreferrer"
-            className="flex gap-3 bg-white rounded-2xl p-3 shadow-sm hover:shadow-md transition">
+            className="flex gap-3 bg-white rounded-2xl p-3 border border-nborder shadow-sm hover:shadow-md transition">
             <div className="w-28 h-20 rounded-xl overflow-hidden flex-shrink-0 relative bg-fuchsia flex items-center justify-center">
               {vodThumb ? (
                 <img src={vodThumb} alt={vod.title} className="w-full h-full object-cover" />
@@ -91,8 +95,8 @@ export default async function Home() {
       {/* Product of day */}
       {productOfDay && (
         <section>
-          <SectionHeader title="✨ Product of the day" href="/tools" />
-          <Link href="/tools" className="block bg-shadow rounded-2xl p-4 hover:opacity-95 transition">
+          <SectionHeader title="Product of the day" dot="#FFCE00" href="/tools" />
+          <Link href="/tools" className="block bg-shadow rounded-2xl p-4 border border-white/10 hover:opacity-95 transition shadow-md">
             <div className="flex gap-3 items-center text-white">
               <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 bg-nblue text-2xl font-black">
                 {(productOfDay as ProductOfDay).name[0]}
@@ -113,7 +117,7 @@ export default async function Home() {
       {/* Apply walkthroughs teaser */}
       {applyWalkthroughTeaser && (
         <section>
-          <SectionHeader title="🎯 Apply walkthroughs" href="/apply" />
+          <SectionHeader title="Apply walkthroughs" dot="#623CEA" href="/apply" />
           <Link
             href="/apply"
             className="flex gap-3 bg-white rounded-2xl p-3 shadow-sm hover:shadow-md transition border border-nborder"
@@ -140,12 +144,15 @@ export default async function Home() {
   );
 }
 
-function SectionHeader({ title, href }: { title: string; href?: string }) {
+function SectionHeader({ title, dot, href }: { title: string; dot?: string; href?: string }) {
   return (
-    <div className="flex justify-between items-center mb-2.5">
-      <div className="text-sm font-bold text-shadow">{title}</div>
+    <div className="flex justify-between items-center mb-3">
+      <div className="flex items-center gap-2">
+        {dot && <span className="w-2 h-2 rounded-full shrink-0" style={{ background: dot }} aria-hidden />}
+        <div className="text-sm font-extrabold text-shadow">{title}</div>
+      </div>
       {href && (
-        <Link href={href} className="text-xs text-muted font-semibold hover:text-shadow flex items-center">
+        <Link href={href} className="text-xs font-semibold text-norange hover:underline flex items-center gap-0.5">
           See all <ChevronRight size={12} />
         </Link>
       )}
