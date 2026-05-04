@@ -292,7 +292,7 @@ export default function ApplyVideosFeed({
         {filteredDarkVideos.length === 0 ? (
           <p className="text-sm text-muted py-8 text-center">No cards in this category. Try &quot;All&quot; or pick another filter.</p>
         ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 items-stretch">
           {filteredDarkVideos.map((v, i) => {
             const accent = ACCENTS[i % ACCENTS.length];
             const letter = (v.title || "V").replace(/[^A-Za-z]/g, "").slice(0, 1) || "V";
@@ -300,42 +300,60 @@ export default function ApplyVideosFeed({
             const tag = (v.category_tag || "").trim();
             const dur = (v.duration || "").trim();
             const pill = tag ? tag.toUpperCase() : "Guide";
+            /** Fixed line boxes so line-clamp ellipsis lines up; avoids flex-1 “dead air” above the footer. */
+            const titleBox = "h-[2.7rem] text-[15px] leading-[1.35]";
+            /** Integer line metrics + outer clip: avoids 4th-line subpixel bleed from -webkit-line-clamp. */
+            const captionClip = "h-[51px] overflow-hidden min-w-0 shrink-0 [contain:paint]";
+            const captionText = "text-[13px] leading-[17px] text-white/88 line-clamp-3 m-0 p-0";
             return (
               <button
                 key={v.id}
                 type="button"
                 onClick={() => setModalVideo(v)}
-                className="relative text-left rounded-2xl overflow-hidden border border-white/10 min-h-[158px] p-4 pt-5 flex flex-col shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] cursor-pointer hover:border-amber/40 transition w-full text-white"
+                className="relative text-left rounded-2xl overflow-hidden border border-white/10 min-h-[220px] h-full p-5 pt-6 flex flex-col shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] cursor-pointer hover:border-amber/40 transition w-full min-w-0 text-white"
                 style={{ backgroundColor: "#121212" }}
               >
                 <div
-                  className="pointer-events-none absolute -right-10 -bottom-10 h-32 w-32 rounded-full opacity-45 blur-2xl"
+                  className="pointer-events-none absolute -right-10 -bottom-10 h-36 w-36 rounded-full opacity-45 blur-2xl"
                   style={{ background: accent }}
                 />
-                <div className="relative flex justify-start items-start mb-3">
+                <div className="relative flex justify-start items-start mb-3 shrink-0">
                   <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-black shadow-lg shrink-0"
+                    className="w-11 h-11 rounded-xl flex items-center justify-center text-white text-[15px] font-black shadow-lg shrink-0"
                     style={{ background: accent }}
                   >
                     {letter.toUpperCase()}
                   </div>
                 </div>
-                <div className="relative font-extrabold text-amber text-[14px] leading-snug mb-1 line-clamp-2 tracking-tight">
-                  {v.title}
+                <div className="relative mb-3 min-w-0 shrink-0 space-y-1.5">
+                  <div
+                    className={`font-extrabold text-amber tracking-tight line-clamp-2 overflow-hidden ${titleBox}`}
+                    title={v.title}
+                  >
+                    {v.title}
+                  </div>
+                  {caption ? (
+                    <div className={captionClip}>
+                      <p className={captionText} title={caption}>
+                        {caption}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className={captionClip} aria-hidden />
+                  )}
                 </div>
-                {caption ? (
-                  <p className="relative text-[12px] text-white/88 leading-snug line-clamp-2 mb-4 min-h-[2.5rem]">{caption}</p>
-                ) : (
-                  <div className="mb-4 min-h-[2.5rem]" />
-                )}
-                <div className="relative flex items-end justify-between gap-2 mt-auto pt-1">
+                <div className="relative flex items-end justify-between gap-2 mt-auto pt-1 min-w-0 shrink-0">
                   <span
-                    className="text-[9px] font-bold tracking-wider px-2 py-0.5 rounded-full border bg-black/30 max-w-[70%] truncate"
+                    className="text-[10px] font-bold tracking-wider px-2.5 py-0.5 rounded-full border bg-black/30 min-w-0 max-w-[72%] truncate"
                     style={{ borderColor: `${accent}88`, color: accent }}
+                    title={pill}
                   >
                     {pill}
                   </span>
-                  <span className="text-[10px] font-bold tabular-nums text-white/90 shrink-0">
+                  <span
+                    className="text-[11px] font-bold tabular-nums text-white/90 shrink-0 truncate max-w-[28%]"
+                    title={dur || undefined}
+                  >
                     {dur || "—"}
                   </span>
                 </div>
@@ -375,7 +393,9 @@ export default function ApplyVideosFeed({
           <div className="p-3 sm:p-4 space-y-1.5 flex-1 flex flex-col min-w-0">
             <h2 className="font-bold text-sm text-shadow leading-snug line-clamp-2">{v.title}</h2>
             {v.description ? (
-              <p className="text-xs text-muted leading-relaxed line-clamp-4 flex-1">{v.description}</p>
+              <p className="text-xs text-muted leading-relaxed line-clamp-3 overflow-hidden min-w-0 flex-1">
+                {v.description}
+              </p>
             ) : null}
             {v.duration ? <p className="text-[10px] font-bold text-norange">{v.duration}</p> : null}
           </div>
