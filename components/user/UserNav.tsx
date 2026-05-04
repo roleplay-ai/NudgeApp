@@ -1,7 +1,8 @@
 "use client";
+import InstallAppSection from "@/components/user/InstallAppSection";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, GraduationCap, Briefcase, Wrench, Newspaper } from "lucide-react";
+import { Home, GraduationCap, Briefcase, Wrench, Newspaper, UserCircle } from "lucide-react";
 
 const items = [
   { href: "/", label: "Home", icon: Home },
@@ -9,6 +10,7 @@ const items = [
   { href: "/apply", label: "Apply", icon: Briefcase },
   { href: "/tools", label: "Tools", icon: Wrench },
   { href: "/today", label: "Today", icon: Newspaper },
+  { href: "/profile", label: "Profile", icon: UserCircle },
 ];
 
 export default function UserNav() {
@@ -35,6 +37,7 @@ export default function UserNav() {
             );
           })}
         </nav>
+        <InstallAppSection variant="compact" />
       </aside>
 
       {/* Mobile bottom nav */}

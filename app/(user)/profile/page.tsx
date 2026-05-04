@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import InstallAppSection from "@/components/user/InstallAppSection";
 import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 
@@ -32,6 +33,10 @@ export default async function ProfilePage() {
           </div>
         </Link>
       )}
+
+      <div className="mt-8">
+        <InstallAppSection variant="full" />
+      </div>
     </div>
   );
 }
