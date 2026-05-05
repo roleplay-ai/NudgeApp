@@ -1,12 +1,15 @@
 import Link from "next/link";
-import { ArrowRight, ChevronRight, ExternalLink } from "lucide-react";
-import type { NewsItem, ProductOfDay, Resource, Tool, TrendingTopic, WatchVideo } from "@/lib/types";
+import { ArrowRight } from "lucide-react";
+import type {
+  ApplyVideo,
+  HomeBriefHero,
+  Module,
+  NewsItem,
+  ProductOfDay,
+  WatchVideo,
+  World,
+} from "@/lib/types";
 import { resolveVideoThumbnailUrl } from "@/lib/videoThumbnails";
-import FeatureOfWeekCard from "@/components/user/FeatureOfWeekCard";
-
-function resourceTitle(r: Resource & { name?: string }) {
-  return r.title || r.name || "Untitled";
-}
 
 function formatBriefDate(iso: string | undefined) {
   if (!iso) return "";
@@ -17,76 +20,89 @@ function formatBriefDate(iso: string | undefined) {
   }
 }
 
-function firstLine(text: string | null | undefined, max = 140): string {
-  if (!text?.trim()) return "";
-  const line = text.split(/\n+/)[0]?.replace(/\s+/g, " ").trim() ?? "";
-  return line.length > max ? `${line.slice(0, max)}…` : line;
-}
-
 const VIDEO_AVATAR_COLORS = ["#ED4551", "#623CEA", "#F68A29", "#3696FC", "#23CE68", "#FFCE00"];
 
 const HOME_CLAY = "#C07B3A";
-const HOME_NAVY = "#1e3a5f";
+
+const HERO_FALLBACK = {
+  badge_label: "NUDGEABLE BRIEF",
+  title: "What changed in AI — fast",
+  subtitle:
+    "Three headlines worth your attention — curated, plain English, links when you want more.",
+  byline_suffix: "Nudgeable Editorial",
+};
 
 export default function HomeContent({
   briefNews,
+  briefHero,
   productOfWeek,
-  featureTrending,
-  researchResource,
-  researchTool,
   libraryVideos,
-  topResources,
+  worlds,
+  modules,
+  applyMidVideos,
 }: {
   briefNews: NewsItem[];
+  briefHero: HomeBriefHero | null;
   productOfWeek: ProductOfDay | null;
-  featureTrending: TrendingTopic | null;
-  researchResource: Resource | null;
-  researchTool: Tool | null;
   libraryVideos: WatchVideo[];
-  topResources: Resource[];
+  worlds: World[];
+  modules: Module[];
+  applyMidVideos: ApplyVideo[];
 }) {
   const briefDate =
     briefNews[0]?.published_at && formatBriefDate(briefNews[0].published_at as unknown as string);
-  const ourTake =
-    featureTrending?.why_matters?.trim() ||
-    "One hour a week on AI fluency is no longer optional.";
+  const learnWorlds = worlds.slice(0, 3);
+
+  const showBriefHero = briefNews.length > 0 || !!briefHero;
+  const heroBadge = briefHero?.badge_label?.trim() || HERO_FALLBACK.badge_label;
+  const heroTitle = briefHero?.title?.trim() || HERO_FALLBACK.title;
+  const heroSubtitle = briefHero?.subtitle?.trim() || HERO_FALLBACK.subtitle;
+  const bylineSuffix = briefHero?.byline_suffix?.trim() || HERO_FALLBACK.byline_suffix;
+  const bylineOverride = briefHero?.byline_override?.trim();
+  const heroByline = bylineOverride
+    ? bylineOverride
+    : briefDate
+      ? `${briefDate} · ${bylineSuffix}`
+      : bylineSuffix;
 
   return (
     <div className="space-y-10 md:space-y-12">
-      <header className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-        <div>
+      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-2">
           <h1 className="text-2xl md:text-[1.65rem] font-extrabold text-homeInk tracking-tight">
             Welcome back
           </h1>
-          <p className="text-sm text-homeSubtle mt-2 max-w-xl leading-relaxed">
-            60 seconds to know what matters in AI this week.
+          <p className="text-[15px] leading-relaxed text-homeBodyMuted max-w-xl text-pretty">
+            {"Here's what's happening in AI — and everything you need to get fluent."}
           </p>
         </div>
       </header>
 
-      {/* Nudgeable Brief — dark hero strip + white digest (reference layout) */}
-      {briefNews.length > 0 && (
-        <section>
-          <div className="rounded-2xl border border-homeInk/10 shadow-md overflow-hidden bg-white">
-            <div className="bg-homeInk px-5 pt-6 pb-6 md:px-8 md:pt-8 md:pb-7">
-              <div className="flex flex-wrap items-center gap-2 mb-3">
-                <span className="text-[10px] font-bold tracking-[0.2em] px-3 py-1.5 rounded-md bg-homeClay text-white">
-                  NUDGEABLE BRIEF
-                </span>
-                {briefDate ? (
-                  <span className="text-[12px] text-homeWarmGray">{briefDate} · Nudgeable Editorial</span>
-                ) : (
-                  <span className="text-[12px] text-homeWarmGray">Nudgeable Editorial</span>
-                )}
-              </div>
-              <h2 className="text-xl md:text-2xl font-extrabold text-white leading-tight tracking-tight">
-                What changed in AI — fast
-              </h2>
-              <p className="text-sm text-homeWarmGray mt-3 max-w-2xl leading-relaxed">
-                Three headlines worth your attention — curated, plain English, links when you want more.
-              </p>
+      {/* Nudgeable Brief hero — copy from Admin → Brief hero */}
+      {showBriefHero && (
+        <section aria-labelledby="brief-hero-heading">
+          <div className="rounded-2xl border border-homeInk/10 shadow-md overflow-hidden bg-homeInk px-5 pt-6 pb-6 md:px-8 md:pt-8 md:pb-7">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="text-[10px] font-bold tracking-[0.2em] px-3 py-1.5 rounded-md bg-homeClay text-white">
+                {heroBadge}
+              </span>
+              <span className="text-[12px] text-homeWarmGray">{heroByline}</span>
             </div>
+            <h2
+              id="brief-hero-heading"
+              className="text-xl md:text-2xl font-extrabold text-white leading-tight tracking-tight"
+            >
+              {heroTitle}
+            </h2>
+            <p className="text-sm text-homeWarmGray mt-3 max-w-2xl leading-relaxed">{heroSubtitle}</p>
+          </div>
+        </section>
+      )}
 
+      {/* Nudgeable Brief — this week's headlines */}
+      {briefNews.length > 0 && (
+        <section aria-label="This week in the brief">
+          <div className="rounded-2xl border border-homeInk/10 shadow-md overflow-hidden bg-white">
             <div className="px-5 md:px-8 pt-6 pb-2">
               <div className="text-[11px] font-bold tracking-[0.14em] text-homeInk/80 mb-3">THIS WEEK</div>
               <div className="h-px bg-homeDivider mb-5" />
@@ -121,34 +137,19 @@ export default function HomeContent({
                 );
               })}
             </div>
-
-            <div className="px-5 md:px-8 py-5 bg-homeCanvas/70 border-t border-homeDivider flex gap-3 items-start">
-              <span className="text-lg shrink-0 leading-none" aria-hidden>
-                💡
-              </span>
-              <div>
-                <div className="text-[10px] font-bold tracking-[0.18em] text-homeClay mb-1">OUR TAKE</div>
-                <p className="text-sm text-homeInk leading-relaxed">{ourTake}</p>
-              </div>
-            </div>
           </div>
         </section>
       )}
 
-      {/* This week&apos;s picks */}
-      {(productOfWeek || featureTrending || researchResource || researchTool) && (
+      {/* Middle row — matches reference: product, learn fundamentals, AI features */}
+      {(productOfWeek || learnWorlds.length > 0 || applyMidVideos.length > 0) && (
         <section>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-sm font-extrabold text-homeInk">This week&apos;s picks</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
-            {productOfWeek && (
-              <PickProductCard product={productOfWeek} />
-            )}
-            {featureTrending && <FeatureOfWeekCard trending={featureTrending} hideTopAccentBar />}
-            {(researchResource || researchTool) && (
-              <PickResearchCard resource={researchResource} tool={researchTool} />
-            )}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-4">
+            {productOfWeek ? <HomeMidProductCard product={productOfWeek} /> : null}
+            {learnWorlds.length > 0 ? (
+              <HomeMidLearnCard worlds={learnWorlds} modules={modules} />
+            ) : null}
+            {applyMidVideos.length > 0 ? <HomeMidFeaturesCard videos={applyMidVideos} /> : null}
           </div>
         </section>
       )}
@@ -171,75 +172,6 @@ export default function HomeContent({
                 <WatchWeekThumb key={v.id} video={v} />
               ))}
             </div>
-          </div>
-        </section>
-      )}
-
-      {/* Top 3 resources of the week */}
-      {topResources.length > 0 && (
-        <section>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-sm font-extrabold text-homeInk">Top resources this week</h2>
-            <Link
-              href="/learn"
-              className="text-xs font-semibold text-homeClay hover:underline inline-flex items-center gap-0.5"
-            >
-              Full list <ChevronRight size={12} />
-            </Link>
-          </div>
-          <div className="space-y-3">
-            {topResources.map((r) => {
-              const title = resourceTitle(r);
-              const type = (r.resource_type || r.category || "Resource").toUpperCase();
-              const metaBits = [r.author, r.duration_mins != null ? `${r.duration_mins} min` : null].filter(Boolean);
-              const meta = metaBits.length ? metaBits.join(" · ") : "Nudgeable";
-              const tagColor =
-                type.includes("GUIDE") || type.includes("COURSE")
-                  ? "#623CEA"
-                  : type.includes("ESSAY") || type.includes("TUTORIAL")
-                    ? "#F59E0B"
-                    : "#3696FC";
-              return (
-                <a
-                  key={r.id}
-                  href={r.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4 bg-white rounded-2xl border border-homeDivider p-4 shadow-sm hover:shadow-md transition"
-                >
-                  <div className="flex flex-wrap items-center gap-2 text-[11px] text-homeBodyMuted sm:hidden w-full justify-between">
-                    <span
-                      className="text-[9px] font-bold tracking-wider px-2 py-0.5 rounded-full text-white"
-                      style={{ background: tagColor }}
-                    >
-                      {type}
-                    </span>
-                    <ExternalLink size={14} className="text-homeClay shrink-0" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="hidden sm:flex items-center gap-2 flex-wrap mb-1">
-                      <span
-                        className="text-[9px] font-bold tracking-wider px-2 py-0.5 rounded-full text-white"
-                        style={{ background: tagColor }}
-                      >
-                        {type}
-                      </span>
-                      <span className="text-[11px] text-homeBodyMuted">{meta}</span>
-                    </div>
-                    <div className="text-sm font-extrabold text-homeInk leading-snug mb-1">{title}</div>
-                    <p className="text-xs text-homeBodyMuted line-clamp-2 leading-relaxed sm:pr-8">
-                      {r.description || "Open to explore this pick on the provider site."}
-                    </p>
-                    <div className="mt-2 text-[11px] text-homeBodyMuted sm:hidden">{meta}</div>
-                  </div>
-                  <div className="hidden sm:flex shrink-0 items-start pt-0.5">
-                    <span className="text-xs font-bold text-homeClay inline-flex items-center gap-1">
-                      Open <ExternalLink size={12} />
-                    </span>
-                  </div>
-                </a>
-              );
-            })}
           </div>
         </section>
       )}
@@ -369,109 +301,132 @@ function HomeDiscoveryCard({
   );
 }
 
-function PickProductCard({ product }: { product: ProductOfDay }) {
-  const accent = HOME_CLAY;
+function HomeMidProductCard({ product }: { product: ProductOfDay }) {
   const href = product.url || "/tools";
   return (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="bg-white rounded-2xl border border-homeDivider shadow-sm hover:shadow-md transition overflow-hidden flex flex-col h-full min-h-[280px]"
+      className="flex h-full cursor-pointer flex-col rounded-xl border border-homeShellLine bg-white px-5 py-[18px] shadow-none transition-[box-shadow] hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] no-underline"
     >
-      <div className="h-1 w-full shrink-0" style={{ background: accent }} />
-      <div className="p-5 flex flex-col flex-1">
-        <div className="text-[10px] font-bold tracking-[0.14em] mb-2" style={{ color: accent }}>
+      <div className="mb-3">
+        <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-homeClay">
           PRODUCT OF THE WEEK
-        </div>
-        <div className="text-lg font-extrabold text-homeInk leading-snug mb-0.5">{product.name}</div>
-        {product.tagline ? (
-          <div className="text-[11px] text-homeBodyMuted mb-2">{product.tagline}</div>
-        ) : null}
-        <p className="text-xs text-homeBodyMuted leading-relaxed line-clamp-3 mb-4 flex-1">{product.description}</p>
-        <div className="rounded-xl p-3 mb-3 text-xs leading-relaxed mt-auto" style={{ background: `${accent}14` }}>
-          <div className="text-[10px] font-bold tracking-wider mb-1" style={{ color: accent }}>
-            WHY IT MATTERS
-          </div>
-          <p className="text-homeInk line-clamp-3">{product.tagline || product.description}</p>
-        </div>
-        <span className="text-xs font-bold inline-flex items-center gap-1" style={{ color: accent }}>
-          Learn more <ArrowRight size={12} />
         </span>
+        <div className="mt-1.5 h-px w-full" style={{ background: `${HOME_CLAY}4d` }} />
       </div>
+      <div className="mb-3 flex items-center gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-homeInk text-[22px] leading-none">
+          🤖
+        </div>
+        <div className="min-w-0">
+          <div className="text-[18px] font-bold leading-tight text-homeInk">{product.name}</div>
+          {product.tagline ? <div className="text-[11px] text-homeSubtle">{product.tagline}</div> : null}
+        </div>
+      </div>
+      <p className="flex-1 text-pretty text-[13px] leading-relaxed text-homeBodyMuted">{product.description}</p>
+      <span className="mt-3.5 inline-block text-xs font-semibold text-homeClay">Learn more →</span>
     </a>
   );
 }
 
-function PickResearchCard({ resource, tool }: { resource: Resource | null; tool: Tool | null }) {
-  const accent = HOME_NAVY;
-  if (resource) {
-    const title = resourceTitle(resource);
-    const byline = resource.author || resource.category || "Curated read";
-    const href = resource.url;
-    return (
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="bg-white rounded-2xl border border-homeDivider shadow-sm hover:shadow-md transition overflow-hidden flex flex-col h-full min-h-[280px]"
-      >
-        <div className="p-5 flex flex-col flex-1">
-          <div className="text-[10px] font-bold tracking-[0.14em] mb-2" style={{ color: accent }}>
-            RESEARCH OF THE WEEK
-          </div>
-          <div className="text-lg font-extrabold text-homeInk leading-snug mb-0.5">{title}</div>
-          <div className="text-[11px] text-homeBodyMuted mb-2">{byline}</div>
-          <p className="text-xs text-homeBodyMuted leading-relaxed line-clamp-3 mb-4 flex-1">
-            {resource.description || "Deep dive worth your attention this week."}
-          </p>
-          <div className="rounded-xl p-3 mb-3 text-xs leading-relaxed mt-auto" style={{ background: `${accent}22` }}>
-            <div className="text-[10px] font-bold tracking-wider mb-1" style={{ color: accent }}>
-              WHY IT MATTERS
-            </div>
-            <p className="text-homeInk line-clamp-3">
-              {firstLine(resource.description, 200) || "Staying current on research shapes how you use models."}
-            </p>
-          </div>
-          <span className="text-xs font-bold inline-flex items-center gap-1" style={{ color: accent }}>
-            Open <ExternalLink size={12} />
-          </span>
-        </div>
-      </a>
-    );
-  }
-  if (tool) {
-    const href = tool.url || "#";
-    return (
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="bg-white rounded-2xl border border-homeDivider shadow-sm hover:shadow-md transition overflow-hidden flex flex-col h-full min-h-[280px]"
-      >
-        <div className="p-5 flex flex-col flex-1">
-          <div className="text-[10px] font-bold tracking-[0.14em] mb-2" style={{ color: accent }}>
-            RESEARCH OF THE WEEK
-          </div>
-          <div className="text-lg font-extrabold text-homeInk leading-snug mb-0.5">{tool.name}</div>
-          <div className="text-[11px] text-homeBodyMuted mb-2">{tool.company || tool.category}</div>
-          <p className="text-xs text-homeBodyMuted leading-relaxed line-clamp-3 mb-4 flex-1">
-            {tool.description || tool.best_for || "Tool pick for research-style workflows."}
-          </p>
-          <div className="rounded-xl p-3 mb-3 text-xs leading-relaxed mt-auto" style={{ background: `${accent}22` }}>
-            <div className="text-[10px] font-bold tracking-wider mb-1" style={{ color: accent }}>
-              WHY IT MATTERS
-            </div>
-            <p className="text-homeInk line-clamp-3">
-              {tool.best_for || tool.description || "Explore capabilities on the vendor site."}
-            </p>
-          </div>
-          <span className="text-xs font-bold inline-flex items-center gap-1" style={{ color: accent }}>
-            Learn more <ArrowRight size={12} />
-          </span>
-        </div>
-      </a>
-    );
-  }
-  return null;
+function HomeMidLearnCard({ worlds, modules }: { worlds: World[]; modules: Module[] }) {
+  return (
+    <div className="flex h-full flex-col rounded-xl border border-homeShellLine bg-white px-5 py-[18px]">
+      <div className="mb-3.5 flex items-center justify-between gap-2">
+        <span className="text-[11px] font-bold text-homeInk">Learn AI fundamentals</span>
+        <Link href="/learn" className="shrink-0 text-xs font-semibold text-homeClay hover:underline">
+          Start learning →
+        </Link>
+      </div>
+      <div className="flex flex-col gap-2">
+        {worlds.map((w) => {
+          const wMods = modules.filter((m) => m.world_id === w.id);
+          const href = wMods[0]?.id ? `/learn/${wMods[0].id}` : "/learn";
+          return (
+            <Link
+              key={w.id}
+              href={href}
+              className="flex cursor-pointer items-center gap-3 rounded-lg border border-[#ece8e0] bg-[#faf8f4] px-3 py-2.5 transition-colors hover:bg-homeCanvas no-underline"
+            >
+              <span className="shrink-0 text-xl leading-none" aria-hidden>
+                {w.emoji}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[13px] font-semibold text-homeInk">{w.title}</span>
+                </div>
+                <span className="text-[11px] text-homeSubtle">
+                  {wMods.length} module{wMods.length === 1 ? "" : "s"}
+                </span>
+              </div>
+              <span className="shrink-0 text-sm text-[#c0b0a0]" aria-hidden>
+                ›
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function applyVideoEmoji(group: string | null | undefined): string {
+  const g = (group || "").toLowerCase();
+  if (g.includes("workflow")) return "⚙️";
+  if (g.includes("app")) return "📱";
+  if (g.includes("skill")) return "🎯";
+  return "✨";
+}
+
+function applyVideoBlurb(description: string | null | undefined): string {
+  if (!description?.trim()) return "";
+  const cleaned = description.replace(/\n*\[seed:ai-features-guide-v1]\s*$/i, "").trim();
+  const line = cleaned.split(/\n+/)[0]?.replace(/\s+/g, " ").trim() ?? "";
+  return line.length > 96 ? `${line.slice(0, 94)}…` : line;
+}
+
+function HomeMidFeaturesCard({ videos }: { videos: ApplyVideo[] }) {
+  return (
+    <div className="flex h-full flex-col rounded-xl border border-homeShellLine bg-white px-5 py-[18px]">
+      <div className="mb-3.5 flex items-center justify-between gap-2">
+        <span className="text-[11px] font-bold text-homeInk">Explore common AI features</span>
+        <Link href="/apply" className="shrink-0 text-xs font-semibold text-homeClay hover:underline">
+          See all →
+        </Link>
+      </div>
+      <div className="flex flex-col gap-2">
+        {videos.map((v) => {
+          const tag = v.category_tag?.trim();
+          const blurb = applyVideoBlurb(v.description);
+          return (
+            <Link
+              key={v.id}
+              href="/apply"
+              className="flex cursor-pointer items-center gap-3 rounded-lg border border-[#ece8e0] bg-[#faf8f4] px-3 py-2.5 transition-colors hover:bg-homeCanvas no-underline"
+            >
+              <span className="shrink-0 text-xl leading-none" aria-hidden>
+                {applyVideoEmoji(v.group_name)}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="block text-[13px] font-semibold text-homeInk">{v.title}</span>
+                  {tag ? (
+                    <span className="rounded bg-homeClay px-1.5 py-0.5 font-mono text-[8px] font-semibold uppercase tracking-[0.07em] text-white">
+                      {tag}
+                    </span>
+                  ) : null}
+                </div>
+                {blurb ? <span className="text-[11px] text-homeSubtle">{blurb}</span> : null}
+              </div>
+              <span className="shrink-0 rounded px-[7px] py-0.5 font-mono text-[10px] text-homeNavMuted bg-homeDivider">
+                {v.duration?.trim() || "~2 min"}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
