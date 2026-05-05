@@ -163,6 +163,13 @@ export type VideoOfDay = {
   active_date: string;
 };
 
+export type HomeWeeklyWatchVideo = {
+  id: string;
+  slot: number;
+  watch_video_id: string;
+  updated_at?: string;
+};
+
 export type ProductOfDay = {
   id: string;
   name: string;
