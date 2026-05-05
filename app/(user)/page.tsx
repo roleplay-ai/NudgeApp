@@ -37,7 +37,7 @@ export default async function Home() {
     supabase.from("news_items").select("*").eq("is_published", true).order("published_at", { ascending: false }).limit(3),
     supabase.from("trending_topics").select("*").eq("is_active", true).maybeSingle(),
     supabase.from("product_of_day").select("*").eq("is_active", true).maybeSingle(),
-    supabase.from("watch_videos").select("*").eq("is_published", true).order("order_index", { ascending: true }).limit(3),
+    supabase.from("watch_videos").select("*").eq("is_published", true).order("order_index", { ascending: true }).limit(4),
     supabase.from("resources").select("*").eq("is_published", true).order("order_index", { ascending: true }).limit(40),
     supabase.from("tools").select("*").eq("is_published", true).ilike("category", "%Research%").order("order_index", { ascending: true }).limit(1).maybeSingle(),
   ]);

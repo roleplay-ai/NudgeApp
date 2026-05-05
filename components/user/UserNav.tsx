@@ -50,12 +50,11 @@ export default function UserNav({
       {/* Desktop sidebar */}
       <aside
         data-user-sidebar
-        className="hidden sm:flex flex-col w-64 min-w-64 min-h-0 overflow-y-auto border-r border-white/10 fixed inset-y-0 left-0 z-50 px-4 py-6 text-[#ececec]"
-        style={{ backgroundColor: "#121212", color: "#ececec" }}
+        className="hidden sm:flex flex-col w-64 min-w-64 min-h-0 overflow-y-auto border-r border-homeInk/20 fixed inset-y-0 left-0 z-50 px-4 py-6 bg-homeSidebar text-homeCanvas/95"
       >
         <div className="mb-7 px-1">
-          <div className="text-[10px] font-bold tracking-[2px] text-norange">NUDGEABLE.AI</div>
-          <div className="text-xl font-extrabold tracking-tight text-[#ffffff]">AI Fluency</div>
+          <div className="text-[10px] font-bold tracking-[2px] text-homeClay">NUDGEABLE.AI</div>
+          <div className="text-xl font-extrabold tracking-tight text-white">AI Fluency</div>
         </div>
         <nav className="flex flex-col gap-1 flex-1 min-h-0">
           {items.map((it) => {
@@ -68,19 +67,22 @@ export default function UserNav({
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition border no-underline
                   ${
                     active
-                      ? "bg-white/[0.07] border-amber text-[#FFCE00] shadow-[0_0_0_1px_rgba(255,206,0,0.25)]"
-                      : "border-transparent text-[#e4e4e4] hover:bg-white/[0.06] hover:text-[#ffffff]"
+                      ? "bg-homeClay/15 border-homeClay/70 text-homeCanvas shadow-[0_0_0_1px_rgba(192,123,58,0.35)]"
+                      : "border-transparent text-homeNavMuted hover:bg-white/[0.06] hover:text-homeCanvas"
                   }`}
-                style={{ color: active ? "#FFCE00" : "#e4e4e4" }}
               >
-                <Ic size={18} strokeWidth={2} className="shrink-0" style={{ color: active ? "#FFCE00" : "#cfcfcf" }} />
+                <Ic
+                  size={18}
+                  strokeWidth={2}
+                  className={`shrink-0 ${active ? "text-homeClay" : "text-homeNavMuted"}`}
+                />
                 <span className="truncate">{it.label}</span>
               </Link>
             );
           })}
         </nav>
 
-        <div className="mt-auto space-y-3 pt-4 border-t border-white/10">
+        <div className="mt-auto space-y-3 pt-4 border-t border-homeInk/35">
           {/*
             FUTURE: sidebar footer — restore imports (Flame, LogIn, UserRound, masteryFromScore),
             uncomment masteryFromScore(...) above, rename props from _masteryScore/_streakDays, then paste back:
@@ -105,10 +107,7 @@ export default function UserNav({
       </aside>
 
       {/* Mobile bottom nav */}
-      <nav
-        className="sm:hidden fixed bottom-0 left-0 right-0 border-t border-white/10 flex justify-around py-2 px-1 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-50"
-        style={{ backgroundColor: "#121212", color: "#e8e8e8" }}
-      >
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 border-t border-homeInk/30 bg-homeSidebar flex justify-around py-2 px-1 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-50 text-homeCanvas/90">
         {items.map((it) => {
           const Ic = it.icon;
           const active = path === it.href || (it.href !== "/" && path.startsWith(it.href));
@@ -117,12 +116,12 @@ export default function UserNav({
               key={it.href}
               href={it.href}
               className="flex flex-col items-center gap-0.5 px-1 py-0.5 min-w-0 flex-1 max-w-[4.5rem] no-underline"
-              style={{ color: active ? "#FFCE00" : "#c8c8c8" }}
+              style={{ color: active ? "#f5f0e8" : "#9e948a" }}
             >
               <div
-                className={`px-2 py-1 rounded-lg border ${active ? "bg-white/[0.08] border-amber" : "border-transparent"}`}
+                className={`px-2 py-1 rounded-lg border ${active ? "bg-homeClay/20 border-homeClay/60" : "border-transparent"}`}
               >
-                <Ic size={17} strokeWidth={2} style={{ color: active ? "#FFCE00" : "#c8c8c8" }} />
+                <Ic size={17} strokeWidth={2} style={{ color: active ? "#C07B3A" : "#9e948a" }} />
               </div>
               <span className="text-[8.5px] font-semibold truncate w-full text-center leading-tight">{it.label}</span>
             </Link>
