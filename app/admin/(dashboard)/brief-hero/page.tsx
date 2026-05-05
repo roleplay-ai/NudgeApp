@@ -116,12 +116,8 @@ export default function BriefHeroAdmin() {
     <div>
       <h1 className="text-3xl font-extrabold mb-2">Brief hero</h1>
       <p className="text-sm text-muted mb-6 max-w-2xl leading-relaxed">
-        Edits the dark card above the weekly headlines on Home. Leave{" "}
-        <strong>Byline override</strong> empty to show{" "}
-        <code className="text-xs bg-chiffon px-1 rounded">
-          {"{latest news date} · {suffix}"}
-        </code>
-        .
+        Edits the dark card above the weekly headlines on Home. The date shown on the right is
+        today&apos;s date by default; use <strong>Byline override</strong> only if you want to replace it.
       </p>
 
       <div className="bg-white rounded-2xl p-6 shadow-sm space-y-4 border border-black/5 max-w-2xl">
@@ -141,13 +137,8 @@ export default function BriefHeroAdmin() {
           onChange={(e) => setDraft({ ...draft, subtitle: e.target.value })}
           rows={3}
         />
-        <Input
-          label="Byline suffix (after date, when override is empty)"
-          value={draft.byline_suffix || ""}
-          onChange={(e) => setDraft({ ...draft, byline_suffix: e.target.value })}
-        />
         <Textarea
-          label="Byline override (optional — replaces date · suffix entirely)"
+          label="Byline override (optional — replaces the date entirely)"
           value={draft.byline_override ?? ""}
           onChange={(e) =>
             setDraft({

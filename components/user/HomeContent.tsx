@@ -29,7 +29,6 @@ const HERO_FALLBACK = {
   title: "What changed in AI — fast",
   subtitle:
     "Three headlines worth your attention — curated, plain English, links when you want more.",
-  byline_suffix: "Nudgeable Editorial",
 };
 
 export default function HomeContent({
@@ -49,21 +48,15 @@ export default function HomeContent({
   modules: Module[];
   applyMidVideos: ApplyVideo[];
 }) {
-  const briefDate =
-    briefNews[0]?.published_at && formatBriefDate(briefNews[0].published_at as unknown as string);
   const learnWorlds = worlds.slice(0, 3);
 
   const showBriefHero = briefNews.length > 0 || !!briefHero;
   const heroBadge = briefHero?.badge_label?.trim() || HERO_FALLBACK.badge_label;
   const heroTitle = briefHero?.title?.trim() || HERO_FALLBACK.title;
   const heroSubtitle = briefHero?.subtitle?.trim() || HERO_FALLBACK.subtitle;
-  const bylineSuffix = briefHero?.byline_suffix?.trim() || HERO_FALLBACK.byline_suffix;
   const bylineOverride = briefHero?.byline_override?.trim();
-  const heroByline = bylineOverride
-    ? bylineOverride
-    : briefDate
-      ? `${briefDate} · ${bylineSuffix}`
-      : bylineSuffix;
+  const todayByline = formatBriefDate(new Date().toISOString());
+  const heroByline = bylineOverride || todayByline;
 
   return (
     <div className="space-y-10 md:space-y-12">
