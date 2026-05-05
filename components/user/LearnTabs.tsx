@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import {
-  ArrowRight,
   BookMarked,
   BookOpen,
   ChevronRight,
@@ -12,9 +11,6 @@ import {
   Lock,
   Map,
   Search,
-  Sparkles,
-  X,
-  Zap,
 } from "lucide-react";
 import type { World, Module, GlossaryTerm, Resource, ModuleScreen } from "@/lib/types";
 import { getModuleWithScreens } from "@/app/actions/getModule";
@@ -34,182 +30,6 @@ function parseLearnTab(tab: string | undefined | null): "worlds" | "glossary" | 
   const t = tab?.toLowerCase().trim();
   if (t === "glossary" || t === "resources" || t === "worlds") return t;
   return "worlds";
-}
-
-// ─── Dark glass module popup ───────────────────────────────────────────────
-
-function ModulePopup({
-  module,
-  world,
-  onClose,
-  onStart,
-  isStarting,
-}: {
-  module: Module;
-  world: World | null;
-  onClose: () => void;
-  onStart: () => void;
-  isStarting: boolean;
-}) {
-  const accent = world?.color || "#FFCE00";
-
-  return (
-    <div
-      className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-6 bg-black/60 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className="w-full md:max-w-lg md:rounded-2xl rounded-t-3xl max-h-[90vh] overflow-hidden flex flex-col"
-        style={{
-          background: "rgba(24, 20, 26, 0.97)",
-          backdropFilter: "blur(24px)",
-          WebkitBackdropFilter: "blur(24px)",
-          border: "1px solid rgba(255,255,255,0.08)",
-          boxShadow: "0 24px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04)",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Colored accent strip at top */}
-        <div
-          className="h-1 w-full flex-shrink-0"
-          style={{ background: `linear-gradient(90deg, ${accent}, ${accent}60, transparent)` }}
-        />
-
-        {/* Handle bar (mobile) */}
-        <div className="flex justify-center pt-3 pb-0 md:hidden">
-          <div className="w-10 h-1 rounded-full bg-white/15" />
-        </div>
-
-        {/* Header */}
-        <div className="relative px-5 pt-4 pb-4 flex-shrink-0">
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute right-3 top-3 rounded-full p-2 text-white/40 hover:bg-white/10 hover:text-white/80 transition"
-            aria-label="Close"
-          >
-            <X size={18} />
-          </button>
-
-          <div className="flex gap-3 pr-10">
-            {/* World emoji badge */}
-            <div
-              className="w-13 h-13 w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-              style={{
-                background: `${accent}20`,
-                border: `1.5px solid ${accent}50`,
-                boxShadow: `0 0 16px ${accent}20`,
-              }}
-            >
-              {world?.emoji || "📚"}
-            </div>
-
-            <div className="min-w-0 flex-1">
-              {world && (
-                <div
-                  className="text-[10px] font-black tracking-[0.2em] mb-1 uppercase"
-                  style={{ color: accent }}
-                >
-                  {world.title}
-                </div>
-              )}
-              <h2 className="text-lg font-extrabold text-white leading-tight">{module.title}</h2>
-            </div>
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="h-px bg-white/8 flex-shrink-0" />
-
-        {/* Body */}
-        <div className="overflow-y-auto flex-1 px-5 py-5 space-y-5">
-          {/* XP reward */}
-          {module.xp_reward > 0 && (
-            <div className="flex items-center gap-2">
-              <div
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
-                style={{ background: `${accent}18`, color: accent, border: `1px solid ${accent}35` }}
-              >
-                <Zap size={12} strokeWidth={2.5} />
-                {module.xp_reward} XP on completion
-              </div>
-            </div>
-          )}
-
-          {/* Concepts */}
-          {module.concepts && module.concepts.length > 0 && (
-            <div>
-              <div className="text-[10px] font-bold tracking-[0.2em] text-white/35 mb-3 flex items-center gap-1.5">
-                <Sparkles size={10} />
-                CONCEPTS COVERED
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {module.concepts.map((c, i) => (
-                  <span
-                    key={i}
-                    className="px-3 py-1.5 rounded-full text-[12px] font-semibold text-white/75"
-                    style={{
-                      background: "rgba(255,255,255,0.07)",
-                      border: "1px solid rgba(255,255,255,0.10)",
-                    }}
-                  >
-                    {c}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Decorative info panel */}
-          <div
-            className="rounded-xl p-4"
-            style={{
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.07)",
-            }}
-          >
-            <p className="text-[13px] text-white/45 leading-relaxed">
-              Interactive lesson with quizzes and examples. Complete the module to earn XP and level
-              up your AI fluency.
-            </p>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div
-          className="flex gap-3 px-5 py-4 flex-shrink-0"
-          style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}
-        >
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white/50 hover:text-white/70 transition"
-            style={{ border: "1.5px solid rgba(255,255,255,0.12)" }}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={onStart}
-            disabled={isStarting}
-            className="flex-1 py-2.5 rounded-full text-sm font-bold text-shadow flex items-center justify-center gap-2 transition-opacity hover:opacity-90 active:scale-95 disabled:opacity-60"
-            style={{ background: accent }}
-          >
-            {isStarting ? (
-              <>
-                <Loader2 size={14} className="animate-spin" />
-                Loading…
-              </>
-            ) : (
-              <>
-                Start Module <ArrowRight size={14} strokeWidth={2.5} />
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 // ─── Main exported component ──────────────────────────────────────────────
@@ -278,24 +98,18 @@ export default function LearnTabs({
 
 function WorldsView({ worlds, modules }: { worlds: World[]; modules: Module[] }) {
   const [openId, setOpenId] = useState<string | null>(worlds[0]?.id || null);
-  const [selectedModule, setSelectedModule] = useState<{ module: Module; world: World } | null>(
-    null
-  );
-  const [isStarting, setIsStarting] = useState(false);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
   const [playerData, setPlayerData] = useState<{
     module: Module;
     screens: ModuleScreen[];
   } | null>(null);
 
-  async function handleStartModule() {
-    if (!selectedModule || isStarting) return;
-    setIsStarting(true);
-    const data = await getModuleWithScreens(selectedModule.module.id);
-    setIsStarting(false);
-    if (data) {
-      setSelectedModule(null);
-      setPlayerData(data);
-    }
+  async function handleOpenModule(m: Module) {
+    if (m.is_locked || loadingId) return;
+    setLoadingId(m.id);
+    const data = await getModuleWithScreens(m.id);
+    setLoadingId(null);
+    if (data) setPlayerData(data);
   }
 
   return (
@@ -358,13 +172,15 @@ function WorldsView({ worlds, modules }: { worlds: World[]; modules: Module[] })
                 >
                   {wMods.map((m, idx) => {
                     const locked = m.is_locked;
+                    const loading = loadingId === m.id;
                     return (
                       <button
                         key={m.id}
                         type="button"
-                        onClick={() => !locked && setSelectedModule({ module: m, world: w })}
+                        onClick={() => handleOpenModule(m)}
+                        disabled={locked || !!loadingId}
                         className={`w-full flex gap-3 items-start py-3 rounded-xl px-2 -mx-2 text-left transition group
-                          ${locked ? "cursor-not-allowed opacity-55" : "hover:bg-white/80 cursor-pointer"}`}
+                          ${locked ? "cursor-not-allowed opacity-55" : loading ? "cursor-wait" : "hover:bg-white/80 cursor-pointer"}`}
                       >
                         {/* Badge: number or lock */}
                         <div
@@ -410,6 +226,8 @@ function WorldsView({ worlds, modules }: { worlds: World[]; modules: Module[] })
 
                         {locked ? (
                           <Lock size={13} className="text-muted/40 shrink-0 mt-1" />
+                        ) : loading ? (
+                          <Loader2 size={14} className="shrink-0 mt-1 animate-spin" style={{ color: w.color }} />
                         ) : (
                           <ChevronRight
                             size={14}
@@ -430,18 +248,7 @@ function WorldsView({ worlds, modules }: { worlds: World[]; modules: Module[] })
         {worlds.length === 0 && <div className="text-muted text-sm">No worlds published yet.</div>}
       </div>
 
-      {/* Module detail popup */}
-      {selectedModule && (
-        <ModulePopup
-          module={selectedModule.module}
-          world={selectedModule.world}
-          onClose={() => setSelectedModule(null)}
-          onStart={handleStartModule}
-          isStarting={isStarting}
-        />
-      )}
-
-      {/* Inline module player (full-screen overlay) */}
+      {/* Inline module player */}
       {playerData && (
         <ModulePlayer
           module={playerData.module}

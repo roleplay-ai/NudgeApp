@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, use } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Input, Checkbox, Button, Toast, useToast } from "@/components/admin/Form";
@@ -10,8 +10,8 @@ const empty = (world_id: string): Partial<Module> => ({
   world_id, slug: "", title: "", concepts: [], xp_reward: 10, order_index: 0, is_published: false,
 });
 
-export default function WorldDetail({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function WorldDetail({ params }: { params: { id: string } }) {
+  const { id } = params;
   const supabase = createClient();
   const toast = useToast();
   const [world, setWorld] = useState<World | null>(null);

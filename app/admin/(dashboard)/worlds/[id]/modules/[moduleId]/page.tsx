@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, use } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Input, Textarea, Select, Button, Toast, useToast } from "@/components/admin/Form";
@@ -24,8 +24,8 @@ function emptyEditing(module_id: string): EditingScreen {
   };
 }
 
-export default function ModuleDetail({ params }: { params: Promise<{ id: string; moduleId: string }> }) {
-  const { id, moduleId } = use(params);
+export default function ModuleDetail({ params }: { params: { id: string; moduleId: string } }) {
+  const { id, moduleId } = params;
   const supabase = createClient();
   const toast = useToast();
   const [mod, setMod] = useState<Module | null>(null);

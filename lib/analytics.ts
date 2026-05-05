@@ -9,11 +9,26 @@ import { createClient } from "@/lib/supabase/client";
 
 const VISITOR_KEY = "nv_id";
 
+function generateUUID(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  // Fallback for older mobile browsers / non-secure contexts
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r =
+      typeof crypto !== "undefined" && crypto.getRandomValues
+        ? (crypto.getRandomValues(new Uint8Array(1))[0] & 15) >> (c === "x" ? 0 : 1)
+        : (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 function getVisitorId(): string {
-  if (typeof sessionStorage === "undefined") return crypto.randomUUID();
+  if (typeof sessionStorage === "undefined") return generateUUID();
   let id = sessionStorage.getItem(VISITOR_KEY);
   if (!id) {
-    id = crypto.randomUUID();
+    id = generateUUID();
     try {
       sessionStorage.setItem(VISITOR_KEY, id);
     } catch {
