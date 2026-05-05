@@ -4,7 +4,11 @@ import LearnTabs from "@/components/user/LearnTabs";
 
 export const dynamic = "force-dynamic";
 
-export default async function LearnPage() {
+export default async function LearnPage({
+  searchParams,
+}: {
+  searchParams?: { tab?: string };
+}) {
   const supabase = await createClient();
   const [{ data: worlds }, { data: modules }, { data: glossary }, { data: resources }] = await Promise.all([
     supabase.from("worlds").select("*").eq("is_published", true).order("order_index"),
@@ -25,6 +29,7 @@ export default async function LearnPage() {
         modules={(modules || []) as Module[]}
         glossary={(glossary || []) as GlossaryTerm[]}
         resources={(resources || []) as Resource[]}
+        initialTab={searchParams?.tab}
       />
     </div>
   );

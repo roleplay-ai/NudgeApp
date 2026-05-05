@@ -6,7 +6,14 @@ import type { TrendingTopic } from "@/lib/types";
 
 const ACCENT = "#F59E0B";
 
-export default function FeatureOfWeekCard({ trending }: { trending: TrendingTopic }) {
+export default function FeatureOfWeekCard({
+  trending,
+  hideTopAccentBar,
+}: {
+  trending: TrendingTopic;
+  /** Match editorial home layout: no colored stripe on middle pick card */
+  hideTopAccentBar?: boolean;
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -14,9 +21,9 @@ export default function FeatureOfWeekCard({ trending }: { trending: TrendingTopi
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="text-left w-full bg-white rounded-2xl border border-nborder shadow-sm hover:shadow-md transition overflow-hidden flex flex-col h-full min-h-[280px]"
+        className="text-left w-full bg-white rounded-2xl border border-homeDivider shadow-sm hover:shadow-md transition overflow-hidden flex flex-col h-full min-h-[280px]"
       >
-        <div className="h-1 w-full shrink-0" style={{ background: ACCENT }} />
+        {hideTopAccentBar ? null : <div className="h-1 w-full shrink-0" style={{ background: ACCENT }} />}
         <div className="p-5 flex flex-col flex-1">
           <div className="text-[10px] font-bold tracking-[0.14em] mb-2" style={{ color: ACCENT }}>
             FEATURE OF THE WEEK

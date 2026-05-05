@@ -21,9 +21,9 @@ export default async function UserLayout({ children }: { children: React.ReactNo
   }
 
   return (
-    <div className="min-h-screen bg-bg">
+    <div className="min-h-screen bg-homeCanvas">
       <UserNav masteryScore={masteryScore} streakDays={streakDays} isLoggedIn={!!user} />
-      <main className="sm:ml-64 pb-24 sm:pb-8 min-h-screen">
+      <main className="sm:ml-64 pb-24 sm:pb-8 min-h-screen bg-homeCanvas">
         <div className="max-w-6xl mx-auto px-4 py-6 md:px-8 md:py-10">{children}</div>
       </main>
     </div>

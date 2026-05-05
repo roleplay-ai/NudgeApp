@@ -24,18 +24,27 @@ function resourceTitle(r: Resource & { name?: string }) {
   return r.title || (r as { name?: string }).name || "Untitled";
 }
 
+function parseLearnTab(tab: string | undefined | null): "worlds" | "glossary" | "resources" {
+  const t = tab?.toLowerCase().trim();
+  if (t === "glossary" || t === "resources" || t === "worlds") return t;
+  return "worlds";
+}
+
 export default function LearnTabs({
   worlds,
   modules,
   glossary,
   resources,
+  /** Deep-link from home cards: `?tab=resources` | `?tab=glossary` | `?tab=worlds` */
+  initialTab,
 }: {
   worlds: World[];
   modules: Module[];
   glossary: GlossaryTerm[];
   resources: Resource[];
+  initialTab?: string | null;
 }) {
-  const [view, setView] = useState<"worlds" | "glossary" | "resources">("worlds");
+  const [view, setView] = useState<"worlds" | "glossary" | "resources">(() => parseLearnTab(initialTab));
 
   return (
     <>
