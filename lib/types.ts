@@ -204,6 +204,7 @@ export type Module = {
   order_index: number;
   xp_reward: number;
   is_published: boolean;
+  is_locked: boolean;
 };
 
 export type ScreenType = "hook" | "idea" | "example" | "why" | "check" | "unlocked";

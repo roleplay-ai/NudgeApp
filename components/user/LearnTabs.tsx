@@ -1,18 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import {
+  ArrowRight,
   BookMarked,
   BookOpen,
   ChevronRight,
   Clock,
   ExternalLink,
-  GraduationCap,
+  Loader2,
+  Lock,
   Map,
   Search,
+  Sparkles,
+  X,
+  Zap,
 } from "lucide-react";
-import type { World, Module, GlossaryTerm, Resource } from "@/lib/types";
+import type { World, Module, GlossaryTerm, Resource, ModuleScreen } from "@/lib/types";
+import { getModuleWithScreens } from "@/app/actions/getModule";
+import ModulePlayer from "@/components/user/ModulePlayer";
 
 const LEVEL_STYLES: Record<string, string> = {
   beginner: "bg-emerald/15 text-emerald border border-emerald/30",
@@ -30,12 +36,189 @@ function parseLearnTab(tab: string | undefined | null): "worlds" | "glossary" | 
   return "worlds";
 }
 
+// ─── Dark glass module popup ───────────────────────────────────────────────
+
+function ModulePopup({
+  module,
+  world,
+  onClose,
+  onStart,
+  isStarting,
+}: {
+  module: Module;
+  world: World | null;
+  onClose: () => void;
+  onStart: () => void;
+  isStarting: boolean;
+}) {
+  const accent = world?.color || "#FFCE00";
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-6 bg-black/60 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="w-full md:max-w-lg md:rounded-2xl rounded-t-3xl max-h-[90vh] overflow-hidden flex flex-col"
+        style={{
+          background: "rgba(24, 20, 26, 0.97)",
+          backdropFilter: "blur(24px)",
+          WebkitBackdropFilter: "blur(24px)",
+          border: "1px solid rgba(255,255,255,0.08)",
+          boxShadow: "0 24px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04)",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Colored accent strip at top */}
+        <div
+          className="h-1 w-full flex-shrink-0"
+          style={{ background: `linear-gradient(90deg, ${accent}, ${accent}60, transparent)` }}
+        />
+
+        {/* Handle bar (mobile) */}
+        <div className="flex justify-center pt-3 pb-0 md:hidden">
+          <div className="w-10 h-1 rounded-full bg-white/15" />
+        </div>
+
+        {/* Header */}
+        <div className="relative px-5 pt-4 pb-4 flex-shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute right-3 top-3 rounded-full p-2 text-white/40 hover:bg-white/10 hover:text-white/80 transition"
+            aria-label="Close"
+          >
+            <X size={18} />
+          </button>
+
+          <div className="flex gap-3 pr-10">
+            {/* World emoji badge */}
+            <div
+              className="w-13 h-13 w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+              style={{
+                background: `${accent}20`,
+                border: `1.5px solid ${accent}50`,
+                boxShadow: `0 0 16px ${accent}20`,
+              }}
+            >
+              {world?.emoji || "📚"}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              {world && (
+                <div
+                  className="text-[10px] font-black tracking-[0.2em] mb-1 uppercase"
+                  style={{ color: accent }}
+                >
+                  {world.title}
+                </div>
+              )}
+              <h2 className="text-lg font-extrabold text-white leading-tight">{module.title}</h2>
+            </div>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="h-px bg-white/8 flex-shrink-0" />
+
+        {/* Body */}
+        <div className="overflow-y-auto flex-1 px-5 py-5 space-y-5">
+          {/* XP reward */}
+          {module.xp_reward > 0 && (
+            <div className="flex items-center gap-2">
+              <div
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
+                style={{ background: `${accent}18`, color: accent, border: `1px solid ${accent}35` }}
+              >
+                <Zap size={12} strokeWidth={2.5} />
+                {module.xp_reward} XP on completion
+              </div>
+            </div>
+          )}
+
+          {/* Concepts */}
+          {module.concepts && module.concepts.length > 0 && (
+            <div>
+              <div className="text-[10px] font-bold tracking-[0.2em] text-white/35 mb-3 flex items-center gap-1.5">
+                <Sparkles size={10} />
+                CONCEPTS COVERED
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {module.concepts.map((c, i) => (
+                  <span
+                    key={i}
+                    className="px-3 py-1.5 rounded-full text-[12px] font-semibold text-white/75"
+                    style={{
+                      background: "rgba(255,255,255,0.07)",
+                      border: "1px solid rgba(255,255,255,0.10)",
+                    }}
+                  >
+                    {c}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Decorative info panel */}
+          <div
+            className="rounded-xl p-4"
+            style={{
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.07)",
+            }}
+          >
+            <p className="text-[13px] text-white/45 leading-relaxed">
+              Interactive lesson with quizzes and examples. Complete the module to earn XP and level
+              up your AI fluency.
+            </p>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div
+          className="flex gap-3 px-5 py-4 flex-shrink-0"
+          style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}
+        >
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white/50 hover:text-white/70 transition"
+            style={{ border: "1.5px solid rgba(255,255,255,0.12)" }}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onStart}
+            disabled={isStarting}
+            className="flex-1 py-2.5 rounded-full text-sm font-bold text-shadow flex items-center justify-center gap-2 transition-opacity hover:opacity-90 active:scale-95 disabled:opacity-60"
+            style={{ background: accent }}
+          >
+            {isStarting ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                Loading…
+              </>
+            ) : (
+              <>
+                Start Module <ArrowRight size={14} strokeWidth={2.5} />
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main exported component ──────────────────────────────────────────────
+
 export default function LearnTabs({
   worlds,
   modules,
   glossary,
   resources,
-  /** Deep-link from home cards: `?tab=resources` | `?tab=glossary` | `?tab=worlds` */
   initialTab,
 }: {
   worlds: World[];
@@ -44,19 +227,28 @@ export default function LearnTabs({
   resources: Resource[];
   initialTab?: string | null;
 }) {
-  const [view, setView] = useState<"worlds" | "glossary" | "resources">(() => parseLearnTab(initialTab));
+  const [view, setView] = useState<"worlds" | "glossary" | "resources">(() =>
+    parseLearnTab(initialTab)
+  );
+
+  const TABS = [
+    { id: "worlds" as const, label: "Worlds", icon: Map },
+    { id: "glossary" as const, label: "Glossary", icon: BookOpen },
+    { id: "resources" as const, label: "Resources", icon: BookMarked },
+  ] as const;
 
   return (
     <>
-      <div className="flex justify-center mb-6">
-        <div className="flex gap-1 bg-white rounded-xl p-1 shadow-sm border border-nborder max-w-xl w-full">
-          {(
-            [
-              { id: "worlds" as const, label: "Worlds", icon: Map },
-              { id: "glossary" as const, label: "Glossary", icon: BookOpen },
-              { id: "resources" as const, label: "Resources", icon: BookMarked },
-            ] as const
-          ).map((it) => {
+      {/* Tab switcher */}
+      <div className="flex justify-center mb-7">
+        <div
+          className="flex gap-1 rounded-xl p-1 max-w-xl w-full"
+          style={{
+            background: "rgba(34,29,35,0.06)",
+            border: "1px solid rgba(34,29,35,0.09)",
+          }}
+        >
+          {TABS.map((it) => {
             const Ic = it.icon;
             const on = view === it.id;
             return (
@@ -64,10 +256,10 @@ export default function LearnTabs({
                 key={it.id}
                 type="button"
                 onClick={() => setView(it.id)}
-                className={`flex-1 py-2.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition
-                  ${on ? "bg-shadow text-amber shadow-sm" : "text-muted hover:text-shadow"}`}
+                className={`flex-1 py-2.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all duration-150
+                  ${on ? "bg-shadow text-amber shadow-md" : "text-muted hover:text-shadow hover:bg-white/60"}`}
               >
-                <Ic size={14} strokeWidth={2} className={on ? "text-amber" : ""} />
+                <Ic size={14} strokeWidth={2} />
                 {it.label}
               </button>
             );
@@ -82,67 +274,194 @@ export default function LearnTabs({
   );
 }
 
+// ─── Worlds view ──────────────────────────────────────────────────────────
+
 function WorldsView({ worlds, modules }: { worlds: World[]; modules: Module[] }) {
   const [openId, setOpenId] = useState<string | null>(worlds[0]?.id || null);
+  const [selectedModule, setSelectedModule] = useState<{ module: Module; world: World } | null>(
+    null
+  );
+  const [isStarting, setIsStarting] = useState(false);
+  const [playerData, setPlayerData] = useState<{
+    module: Module;
+    screens: ModuleScreen[];
+  } | null>(null);
+
+  async function handleStartModule() {
+    if (!selectedModule || isStarting) return;
+    setIsStarting(true);
+    const data = await getModuleWithScreens(selectedModule.module.id);
+    setIsStarting(false);
+    if (data) {
+      setSelectedModule(null);
+      setPlayerData(data);
+    }
+  }
+
   return (
-    <div className="space-y-3">
-      {worlds.map((w) => {
-        const wMods = modules.filter((m) => m.world_id === w.id);
-        const isOpen = openId === w.id;
-        return (
-          <div key={w.id} className="bg-white rounded-2xl border border-nborder shadow-sm overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setOpenId(isOpen ? null : w.id)}
-              className="w-full p-4 flex gap-3 items-center text-left hover:bg-chiffon/30 transition"
+    <>
+      <div className="space-y-3">
+        {worlds.map((w) => {
+          const wMods = modules.filter((m) => m.world_id === w.id);
+          const isOpen = openId === w.id;
+          return (
+            <div
+              key={w.id}
+              className="rounded-2xl border border-nborder shadow-sm overflow-hidden bg-white transition-shadow hover:shadow-md"
+              style={{ borderLeft: `3.5px solid ${w.color}` }}
             >
-              <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-xl border border-nborder"
-                style={{ background: `${w.color}18` }}
+              {/* World header row */}
+              <button
+                type="button"
+                onClick={() => setOpenId(isOpen ? null : w.id)}
+                className="w-full p-4 flex gap-3 items-center text-left transition"
+                style={{ background: isOpen ? `${w.color}06` : undefined }}
               >
-                {w.emoji}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-extrabold text-shadow">{w.title}</div>
-                <div className="text-[11px] text-muted font-medium">{wMods.length} modules</div>
-              </div>
-              <ChevronRight size={18} className={`text-muted transition-transform shrink-0 ${isOpen ? "rotate-90" : ""}`} />
-            </button>
-            {isOpen && (
-              <div className="px-4 pb-4 border-t border-nborder pt-3 bg-bg/50">
-                {wMods.map((m) => (
-                  <Link
-                    key={m.id}
-                    href={`/learn/${m.id}`}
-                    className="flex gap-3 items-start py-2.5 hover:bg-chiffon/50 rounded-xl px-2 -mx-2"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-chiffon border border-nborder flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-[10px] font-bold text-shadow">▶</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[13px] font-bold text-shadow">{m.title}</div>
-                      {m.concepts && m.concepts.length > 0 && (
-                        <div className="text-[10px] text-muted mt-0.5">{m.concepts.join(" · ")}</div>
-                      )}
-                    </div>
-                  </Link>
-                ))}
-                {wMods.length === 0 && <div className="text-xs text-muted py-2">No modules yet.</div>}
-              </div>
-            )}
-          </div>
-        );
-      })}
-      {worlds.length === 0 && <div className="text-muted text-sm">No worlds published yet.</div>}
-    </div>
+                <div
+                  className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-xl"
+                  style={{
+                    background: `${w.color}18`,
+                    border: `1.5px solid ${w.color}40`,
+                    boxShadow: `0 2px 8px ${w.color}20`,
+                  }}
+                >
+                  {w.emoji}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-extrabold text-shadow">{w.title}</div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span
+                      className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                      style={{ background: `${w.color}18`, color: w.color }}
+                    >
+                      {wMods.length} module{wMods.length !== 1 ? "s" : ""}
+                    </span>
+                    {w.description && (
+                      <span className="text-[11px] text-muted truncate">{w.description}</span>
+                    )}
+                  </div>
+                </div>
+                <ChevronRight
+                  size={18}
+                  className={`text-muted transition-transform duration-200 shrink-0 ${isOpen ? "rotate-90" : ""}`}
+                />
+              </button>
+
+              {/* Module list */}
+              {isOpen && (
+                <div
+                  className="px-4 pb-4 border-t pt-3"
+                  style={{
+                    borderColor: `${w.color}20`,
+                    background: `${w.color}05`,
+                  }}
+                >
+                  {wMods.map((m, idx) => {
+                    const locked = m.is_locked;
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => !locked && setSelectedModule({ module: m, world: w })}
+                        className={`w-full flex gap-3 items-start py-3 rounded-xl px-2 -mx-2 text-left transition group
+                          ${locked ? "cursor-not-allowed opacity-55" : "hover:bg-white/80 cursor-pointer"}`}
+                      >
+                        {/* Badge: number or lock */}
+                        <div
+                          className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 text-[11px] font-black transition-transform"
+                          style={
+                            locked
+                              ? { background: "rgba(34,29,35,0.07)", color: "#9e8e7a", border: "1.5px solid rgba(34,29,35,0.12)" }
+                              : { background: `${w.color}18`, color: w.color, border: `1.5px solid ${w.color}35` }
+                          }
+                        >
+                          {locked ? <Lock size={12} strokeWidth={2.5} /> : idx + 1}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`text-[13px] font-bold leading-tight ${locked ? "text-muted" : "text-shadow"}`}
+                            >
+                              {m.title}
+                            </span>
+                            {locked && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-shadow/8 text-muted border border-shadow/10 uppercase tracking-wide">
+                                Locked
+                              </span>
+                            )}
+                          </div>
+                          {m.concepts && m.concepts.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {m.concepts.slice(0, 3).map((c, ci) => (
+                                <span
+                                  key={ci}
+                                  className="text-[10px] text-muted/80 bg-shadow/5 px-1.5 py-0.5 rounded-md font-medium"
+                                >
+                                  {c}
+                                </span>
+                              ))}
+                              {m.concepts.length > 3 && (
+                                <span className="text-[10px] text-muted">+{m.concepts.length - 3}</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {locked ? (
+                          <Lock size={13} className="text-muted/40 shrink-0 mt-1" />
+                        ) : (
+                          <ChevronRight
+                            size={14}
+                            className="text-muted/50 shrink-0 mt-1 group-hover:text-shadow group-hover:translate-x-0.5 transition"
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+                  {wMods.length === 0 && (
+                    <div className="text-xs text-muted py-2 px-2">No modules yet.</div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+        {worlds.length === 0 && <div className="text-muted text-sm">No worlds published yet.</div>}
+      </div>
+
+      {/* Module detail popup */}
+      {selectedModule && (
+        <ModulePopup
+          module={selectedModule.module}
+          world={selectedModule.world}
+          onClose={() => setSelectedModule(null)}
+          onStart={handleStartModule}
+          isStarting={isStarting}
+        />
+      )}
+
+      {/* Inline module player (full-screen overlay) */}
+      {playerData && (
+        <ModulePlayer
+          module={playerData.module}
+          screens={playerData.screens}
+          onClose={() => setPlayerData(null)}
+        />
+      )}
+    </>
   );
 }
+
+// ─── Glossary view ────────────────────────────────────────────────────────
 
 function GlossaryView({ glossary }: { glossary: GlossaryTerm[] }) {
   const [search, setSearch] = useState("");
   const [letter, setLetter] = useState("All");
 
-  const availableLetters = Array.from(new Set(glossary.map((t) => t.term[0].toUpperCase()))).sort();
+  const availableLetters = Array.from(
+    new Set(glossary.map((t) => t.term[0].toUpperCase()))
+  ).sort();
 
   const filtered = glossary.filter((t) => {
     const matchesLetter = letter === "All" || t.term[0].toUpperCase() === letter;
@@ -155,17 +474,22 @@ function GlossaryView({ glossary }: { glossary: GlossaryTerm[] }) {
 
   return (
     <div>
+      {/* Search input */}
       <div className="relative mb-4">
-        <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
+        <Search
+          size={17}
+          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none"
+        />
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search any AI term..."
           className="w-full pl-11 pr-4 py-3.5 bg-white border border-nborder rounded-2xl text-sm shadow-sm
-            focus:outline-none focus:ring-2 focus:ring-shadow/12 focus:border-shadow"
+            focus:outline-none focus:ring-2 focus:ring-amber/30 focus:border-amber/60 transition"
         />
       </div>
 
+      {/* Letter filter */}
       <div className="flex gap-2 flex-wrap mb-5 justify-center sm:justify-start">
         {["All", ...availableLetters].map((l) => (
           <button
@@ -175,8 +499,8 @@ function GlossaryView({ glossary }: { glossary: GlossaryTerm[] }) {
             className={`min-w-[2.25rem] h-9 px-2.5 rounded-full text-xs font-bold transition flex items-center justify-center
               ${
                 letter === l
-                  ? "bg-shadow text-amber min-w-[2.75rem]"
-                  : "bg-white text-shadow border border-nborder hover:border-shadow"
+                  ? "bg-shadow text-amber shadow-sm min-w-[2.75rem]"
+                  : "bg-white text-shadow border border-nborder hover:border-shadow/40"
               }`}
           >
             {l}
@@ -184,11 +508,16 @@ function GlossaryView({ glossary }: { glossary: GlossaryTerm[] }) {
         ))}
       </div>
 
+      {/* Term cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {filtered.map((t) => {
           const c = t.color || "#623CEA";
           return (
-            <div key={t.id} className="bg-white rounded-2xl p-4 border border-nborder shadow-sm flex flex-col gap-3">
+            <div
+              key={t.id}
+              className="bg-white rounded-2xl p-4 border border-nborder shadow-sm flex flex-col gap-3 hover:shadow-md transition-shadow"
+              style={{ borderTop: `2.5px solid ${c}` }}
+            >
               <div className="flex gap-3">
                 <div
                   className="w-10 h-10 rounded-xl text-white font-extrabold text-base flex items-center justify-center flex-shrink-0 shadow-sm"
@@ -202,7 +531,10 @@ function GlossaryView({ glossary }: { glossary: GlossaryTerm[] }) {
                 </div>
               </div>
               {t.example && (
-                <div className="rounded-xl px-3 py-2.5 text-[11px] italic leading-relaxed border" style={{ background: `${c}12`, borderColor: `${c}35`, color: c }}>
+                <div
+                  className="rounded-xl px-3 py-2.5 text-[11px] italic leading-relaxed border"
+                  style={{ background: `${c}10`, borderColor: `${c}30`, color: c }}
+                >
                   e.g. &lsquo;{t.example}&rsquo;
                 </div>
               )}
@@ -211,10 +543,14 @@ function GlossaryView({ glossary }: { glossary: GlossaryTerm[] }) {
         })}
       </div>
 
-      {filtered.length === 0 && <div className="text-muted text-sm py-6 text-center">No terms found.</div>}
+      {filtered.length === 0 && (
+        <div className="text-muted text-sm py-6 text-center">No terms found.</div>
+      )}
     </div>
   );
 }
+
+// ─── Resources view ───────────────────────────────────────────────────────
 
 function ResourcesView({ resources }: { resources: Resource[] }) {
   const types = ["All", ...Array.from(new Set(resources.map((r) => r.resource_type)))];
@@ -228,6 +564,7 @@ function ResourcesView({ resources }: { resources: Resource[] }) {
 
   return (
     <div>
+      {/* Level filter */}
       <div className="flex gap-2 flex-wrap mb-3">
         {(["All", "beginner", "intermediate", "advanced"] as const).map((lv) => (
           <button
@@ -235,12 +572,14 @@ function ResourcesView({ resources }: { resources: Resource[] }) {
             type="button"
             onClick={() => setLevel(lv)}
             className={`px-4 py-2 rounded-full text-xs font-semibold capitalize transition
-              ${level === lv ? "bg-shadow text-amber" : "bg-white text-shadow border border-nborder hover:border-shadow"}`}
+              ${level === lv ? "bg-shadow text-amber shadow-sm" : "bg-white text-shadow border border-nborder hover:border-shadow/40"}`}
           >
             {lv}
           </button>
         ))}
       </div>
+
+      {/* Type filter */}
       <div className="flex gap-2 overflow-x-auto pb-2 mb-5 -mx-1 px-1">
         {types.map((c) => (
           <button
@@ -248,16 +587,23 @@ function ResourcesView({ resources }: { resources: Resource[] }) {
             type="button"
             onClick={() => setFilter(c)}
             className={`px-4 py-2 rounded-full text-xs font-semibold flex-shrink-0 capitalize transition
-              ${filter === c ? "bg-shadow text-amber" : "bg-white text-shadow border border-nborder hover:border-shadow"}`}
+              ${filter === c ? "bg-shadow text-amber shadow-sm" : "bg-white text-shadow border border-nborder hover:border-shadow/40"}`}
           >
             {c}
           </button>
         ))}
       </div>
 
+      {/* Featured */}
       {featured.length > 0 && (
         <>
-          <div className="text-[10px] font-bold tracking-[0.2em] text-norange mb-3">FEATURED</div>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="h-px flex-1 bg-amber/25" />
+            <span className="text-[10px] font-black tracking-[0.25em] text-norange px-2">
+              FEATURED
+            </span>
+            <div className="h-px flex-1 bg-amber/25" />
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
             {featured.map((r) => (
               <FeaturedResourceCard key={r.id} r={r} />
@@ -266,10 +612,13 @@ function ResourcesView({ resources }: { resources: Resource[] }) {
         </>
       )}
 
+      {/* Others */}
       {others.length > 0 && (
         <div>
           {featured.length > 0 && (
-            <div className="text-[10px] font-bold tracking-[0.2em] text-muted mb-3">MORE RESOURCES</div>
+            <div className="text-[10px] font-black tracking-[0.2em] text-muted mb-3">
+              MORE RESOURCES
+            </div>
           )}
           <div className="space-y-2.5">
             {others.map((r) => (
@@ -279,7 +628,9 @@ function ResourcesView({ resources }: { resources: Resource[] }) {
         </div>
       )}
 
-      {filtered.length === 0 && <div className="text-muted text-sm py-6">No resources in this filter.</div>}
+      {filtered.length === 0 && (
+        <div className="text-muted text-sm py-6">No resources in this filter.</div>
+      )}
     </div>
   );
 }
@@ -291,13 +642,16 @@ function levelClass(level: string | null | undefined) {
 
 function FeaturedResourceCard({ r }: { r: Resource }) {
   const title = resourceTitle(r);
-  const grad = r.thumbnail_url ? "linear-gradient(135deg,#623CEA,#3696FC)" : "linear-gradient(135deg,#F68A29,#FFCE00)";
+  const grad = r.thumbnail_url
+    ? "linear-gradient(135deg,#623CEA,#3696FC)"
+    : "linear-gradient(135deg,#F68A29,#FFCE00)";
   return (
     <a
       href={r.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="group flex flex-col bg-white rounded-2xl border border-nborder shadow-sm hover:shadow-md transition overflow-hidden p-5 min-h-[180px]"
+      className="group flex flex-col bg-white rounded-2xl border border-nborder shadow-sm hover:shadow-lg transition-all overflow-hidden p-5 min-h-[180px]"
+      style={{ borderTop: "3px solid #F68A29" }}
     >
       <div className="flex gap-4 flex-1">
         <div
@@ -314,12 +668,16 @@ function FeaturedResourceCard({ r }: { r: Resource }) {
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <span className="text-base font-extrabold text-shadow leading-tight">{title}</span>
             {r.level && (
-              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full capitalize ${levelClass(r.level)}`}>
+              <span
+                className={`text-[9px] font-bold px-2 py-0.5 rounded-full capitalize ${levelClass(r.level)}`}
+              >
                 {r.level}
               </span>
             )}
           </div>
-          {r.author && <div className="text-[11px] text-muted font-medium mb-1">{r.author}</div>}
+          {r.author && (
+            <div className="text-[11px] text-muted font-medium mb-1">{r.author}</div>
+          )}
           <p className="text-[13px] text-muted leading-snug line-clamp-3">{r.description}</p>
         </div>
       </div>
@@ -327,7 +685,7 @@ function FeaturedResourceCard({ r }: { r: Resource }) {
         <span className="text-[11px] text-muted inline-flex items-center gap-1">
           <Clock size={12} /> Self-paced
         </span>
-        <span className="text-[12px] font-extrabold text-norange inline-flex items-center gap-1">
+        <span className="text-[12px] font-extrabold text-norange inline-flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
           Open <ExternalLink size={12} />
         </span>
       </div>
@@ -350,7 +708,8 @@ function WideResourceRow({ r }: { r: Resource }) {
       href={r.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex gap-4 items-center bg-white rounded-2xl border border-nborder p-4 shadow-sm hover:shadow-md transition"
+      className="flex gap-4 items-center bg-white rounded-2xl border border-nborder p-4 shadow-sm hover:shadow-md transition group"
+      style={{ borderLeft: `3px solid ${bg}` }}
     >
       <div
         className="w-11 h-11 rounded-xl text-white font-black text-base flex items-center justify-center flex-shrink-0 shadow-sm"
@@ -366,7 +725,9 @@ function WideResourceRow({ r }: { r: Resource }) {
         <div className="flex items-center gap-2 flex-wrap mb-0.5">
           <span className="text-sm font-extrabold text-shadow">{title}</span>
           {r.level && (
-            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full capitalize ${levelClass(r.level)}`}>
+            <span
+              className={`text-[9px] font-bold px-2 py-0.5 rounded-full capitalize ${levelClass(r.level)}`}
+            >
               {r.level}
             </span>
           )}
@@ -380,7 +741,10 @@ function WideResourceRow({ r }: { r: Resource }) {
       </div>
       <div className="text-right shrink-0">
         {dur && <div className="text-[11px] font-bold text-shadow mb-1">{dur}</div>}
-        <ExternalLink size={14} className="text-muted inline-block" />
+        <ExternalLink
+          size={14}
+          className="text-muted group-hover:text-norange transition-colors inline-block"
+        />
       </div>
     </a>
   );
