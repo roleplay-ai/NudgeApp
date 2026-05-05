@@ -26,6 +26,19 @@ export type NewsItem = {
   is_featured: boolean;
 };
 
+/** Singleton row: copy for the dark “Nudgeable Brief” hero on Home. */
+export type HomeBriefHero = {
+  id: string;
+  badge_label: string;
+  title: string;
+  subtitle: string;
+  /** If set, shown as the full gray byline (no auto date prefix). */
+  byline_override: string | null;
+  /** Used with the latest brief news date as: `{date} · {byline_suffix}` when override is empty. */
+  byline_suffix: string;
+  updated_at?: string;
+};
+
 // --- Trending ---
 
 export type TrendingTopic = {
