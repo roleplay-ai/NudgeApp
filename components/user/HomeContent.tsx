@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import type {
@@ -10,6 +12,7 @@ import type {
   World,
 } from "@/lib/types";
 import { resolveVideoThumbnailUrl } from "@/lib/videoThumbnails";
+import { track } from "@/lib/analytics";
 
 function formatBriefDate(iso: string | undefined) {
   if (!iso) return "";
@@ -122,6 +125,7 @@ export default function HomeContent({
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-xs font-bold text-homeClay hover:underline shrink-0 inline-flex items-center gap-0.5 pt-1"
+                        onClick={() => track("news_click", { item_id: n.id, title: n.title, url: href })}
                       >
                         Read <ArrowRight size={12} />
                       </a>
@@ -213,6 +217,7 @@ function WatchWeekThumb({ video }: { video: WatchVideo }) {
       target="_blank"
       rel="noopener noreferrer"
       className="group flex min-w-0 w-full flex-col overflow-hidden rounded-[10px] bg-homeInk shadow-[0_2px_8px_rgba(0,0,0,0.15)] transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.25)] no-underline"
+      onClick={() => track("video_click", { item_id: video.id, title: video.title, creator: video.creator })}
     >
       <div
         className="relative flex h-[90px] w-full flex-shrink-0 items-center justify-center overflow-hidden"
@@ -279,6 +284,7 @@ function HomeDiscoveryCard({
     <Link
       href={href}
       className={`group relative flex flex-col rounded-2xl border border-black/10 shadow-md transition hover:brightness-[1.06] hover:shadow-lg overflow-hidden no-underline h-full min-h-[220px] ${surface}`}
+      onClick={() => track("link_click", { title, url: href })}
     >
       <div className="p-6 pb-6 flex flex-col flex-1 text-white">
         <span className="text-[2.35rem] leading-none mb-4 drop-shadow-sm" aria-hidden>
@@ -302,6 +308,7 @@ function HomeMidProductCard({ product }: { product: ProductOfDay }) {
       target="_blank"
       rel="noopener noreferrer"
       className="flex h-full cursor-pointer flex-col rounded-xl border border-homeShellLine bg-white px-5 py-[18px] shadow-none transition-[box-shadow] hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] no-underline"
+      onClick={() => track("product_click", { item_id: product.id, title: product.name, url: href })}
     >
       <div className="mb-3">
         <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-homeClay">
@@ -342,6 +349,7 @@ function HomeMidLearnCard({ worlds, modules }: { worlds: World[]; modules: Modul
               key={w.id}
               href={href}
               className="flex cursor-pointer items-center gap-3 rounded-lg border border-[#ece8e0] bg-[#faf8f4] px-3 py-2.5 transition-colors hover:bg-homeCanvas no-underline"
+              onClick={() => track("learn_click", { item_id: w.id, title: w.title })}
             >
               <span className="shrink-0 text-xl leading-none" aria-hidden>
                 {w.emoji}
@@ -398,6 +406,7 @@ function HomeMidFeaturesCard({ videos }: { videos: ApplyVideo[] }) {
               key={v.id}
               href="/apply"
               className="flex cursor-pointer items-center gap-3 rounded-lg border border-[#ece8e0] bg-[#faf8f4] px-3 py-2.5 transition-colors hover:bg-homeCanvas no-underline"
+              onClick={() => track("apply_click", { item_id: v.id, title: v.title })}
             >
               <span className="shrink-0 text-xl leading-none" aria-hidden>
                 {applyVideoEmoji(v.group_name)}
