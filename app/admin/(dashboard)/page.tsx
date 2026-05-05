@@ -3,11 +3,11 @@ import { createClient } from "@/lib/supabase/server";
 export default async function AdminDashboard() {
   const supabase = await createClient();
 
-  const [news, watchVideos, videoOfDay, productOfDay, tools, glossary, worlds, modules, applyVideos, resources, users] =
+  const [news, watchVideos, weeklyPicks, productOfDay, tools, glossary, worlds, modules, applyVideos, resources, users] =
     await Promise.all([
       supabase.from("news_items").select("id", { count: "exact", head: true }),
       supabase.from("watch_videos").select("id", { count: "exact", head: true }),
-      supabase.from("video_of_day").select("id", { count: "exact", head: true }),
+      supabase.from("home_weekly_watch_videos").select("id", { count: "exact", head: true }),
       supabase.from("product_of_day").select("id", { count: "exact", head: true }),
       supabase.from("tools").select("id", { count: "exact", head: true }),
       supabase.from("glossary_terms").select("id", { count: "exact", head: true }),
@@ -21,7 +21,7 @@ export default async function AdminDashboard() {
   const stats = [
     { label: "News items", count: news.count ?? 0, color: "bg-amber" },
     { label: "Watch videos", count: watchVideos.count ?? 0, color: "bg-fuchsia" },
-    { label: "Video of day rows", count: videoOfDay.count ?? 0, color: "bg-norange" },
+    { label: "Video of week picks", count: weeklyPicks.count ?? 0, color: "bg-norange" },
     { label: "Product of day rows", count: productOfDay.count ?? 0, color: "bg-nblue" },
     { label: "Tools", count: tools.count ?? 0, color: "bg-dodger" },
     { label: "Glossary terms", count: glossary.count ?? 0, color: "bg-emerald" },

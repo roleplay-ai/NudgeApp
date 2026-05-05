@@ -163,6 +163,13 @@ export type VideoOfDay = {
   active_date: string;
 };
 
+export type HomeWeeklyWatchVideo = {
+  id: string;
+  slot: number;
+  watch_video_id: string;
+  updated_at?: string;
+};
+
 export type ProductOfDay = {
   id: string;
   name: string;
@@ -197,6 +204,7 @@ export type Module = {
   order_index: number;
   xp_reward: number;
   is_published: boolean;
+  is_locked: boolean;
 };
 
 export type ScreenType = "hook" | "idea" | "example" | "why" | "check" | "unlocked";

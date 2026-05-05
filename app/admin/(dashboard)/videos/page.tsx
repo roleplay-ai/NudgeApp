@@ -53,7 +53,7 @@ export default function VideosAdmin() {
         <Button onClick={() => setEditing(empty())}><Plus size={14} className="inline mr-1" /> Add</Button>
       </div>
       <p className="text-sm text-muted mb-6">
-        Videos shown in the Watch tab. Use "Video of Day" table in Supabase to feature one on the home page.
+        Videos shown in the Watch tab. Use <strong>Video of the week</strong> to pick 4 for Home.
       </p>
 
       {editing && (
