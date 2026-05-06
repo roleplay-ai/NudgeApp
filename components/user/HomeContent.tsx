@@ -307,64 +307,116 @@ function HomeMidProductCard({ product }: { product: ProductOfDay }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex h-full cursor-pointer flex-col rounded-xl border border-homeShellLine bg-white px-5 py-[18px] shadow-none transition-[box-shadow] hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] no-underline"
+      className="group flex h-full cursor-pointer flex-col rounded-xl overflow-hidden no-underline transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(80,30,180,0.30)]"
+      style={{ background: "linear-gradient(145deg,#5B2AB8 0%,#3B1285 55%,#2A0E6A 100%)" }}
       onClick={() => track("product_click", { item_id: product.id, title: product.name, url: href })}
     >
-      <div className="mb-3">
-        <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-homeClay">
+      {/* Top label */}
+      <div className="px-5 pt-5 pb-0 flex items-center gap-2">
+        <span className="text-amber text-[10px] font-black tracking-[0.2em]">—</span>
+        <span className="text-amber text-[10px] font-black tracking-[0.16em] uppercase">
           PRODUCT OF THE WEEK
         </span>
-        <div className="mt-1.5 h-px w-full" style={{ background: `${HOME_CLAY}4d` }} />
       </div>
-      <div className="mb-3 flex items-center gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-homeInk text-[22px] leading-none">
-          🤖
+
+      {/* Icon + name */}
+      <div className="px-5 pt-4 flex items-center gap-3">
+        <div
+          className="w-12 h-12 rounded-[12px] flex items-center justify-center text-[24px] shrink-0"
+          style={{ background: "rgba(255,206,0,0.18)", border: "1.5px solid rgba(255,206,0,0.35)" }}
+        >
+          {product.image_url ? (
+            <img src={product.image_url} alt="" className="w-full h-full object-cover rounded-[10px]" />
+          ) : "✨"}
         </div>
         <div className="min-w-0">
-          <div className="text-[18px] font-bold leading-tight text-homeInk">{product.name}</div>
-          {product.tagline ? <div className="text-[11px] text-homeSubtle">{product.tagline}</div> : null}
+          <div className="text-[22px] font-extrabold leading-tight text-white tracking-tight">
+            {product.name}
+          </div>
         </div>
       </div>
-      <p className="flex-1 text-pretty text-[13px] leading-relaxed text-homeBodyMuted">{product.description}</p>
-      <span className="mt-3.5 inline-block text-xs font-semibold text-homeClay">Learn more →</span>
+
+      {/* Description */}
+      <p className="flex-1 px-5 pt-3 text-[13px] leading-relaxed text-white/70 text-pretty">
+        {product.description}
+      </p>
+
+      {/* Footer */}
+      <div className="px-5 pt-3 pb-5 flex items-center justify-between gap-3 mt-2">
+        {product.tagline ? (
+          <span
+            className="text-[11px] font-semibold px-3 py-1.5 rounded-full text-white/80"
+            style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.14)" }}
+          >
+            {product.tagline}
+          </span>
+        ) : <span />}
+        <span
+          className="shrink-0 text-[13px] font-bold text-shadow px-4 py-1.5 rounded-full transition group-hover:brightness-95"
+          style={{ background: "#FFCE00", boxShadow: "0 2px 12px rgba(255,206,0,0.40)" }}
+        >
+          Try it →
+        </span>
+      </div>
     </a>
   );
 }
 
 function HomeMidLearnCard({ worlds, modules }: { worlds: World[]; modules: Module[] }) {
+  const totalMods = modules.length;
   return (
-    <div className="flex h-full flex-col rounded-xl border border-homeShellLine bg-white px-5 py-[18px]">
-      <div className="mb-3.5 flex items-center justify-between gap-2">
-        <span className="text-[11px] font-bold text-homeInk">Learn AI fundamentals</span>
-        <Link href="/learn" className="shrink-0 text-xs font-semibold text-homeClay hover:underline">
-          Start learning →
+    <div className="flex h-full flex-col rounded-xl border border-homeShellLine bg-white px-5 py-[18px] shadow-sm">
+      {/* Header */}
+      <div className="mb-1 flex items-start justify-between gap-2">
+        <div>
+          <div className="text-[15px] font-extrabold text-homeInk leading-tight">Learn AI fundamentals</div>
+          <div className="text-[11px] text-homeSubtle mt-0.5">
+            {worlds.length} short world{worlds.length !== 1 ? "s" : ""} · ~{Math.max(5, totalMods * 2)} min each
+          </div>
+        </div>
+        <Link
+          href="/learn"
+          className="shrink-0 text-[12px] font-bold text-homeClay hover:underline no-underline mt-0.5"
+        >
+          Start →
         </Link>
       </div>
-      <div className="flex flex-col gap-2">
+
+      <div className="mt-3 flex flex-col gap-2">
         {worlds.map((w) => {
           const wMods = modules.filter((m) => m.world_id === w.id);
-          const href = wMods[0]?.id ? `/learn/${wMods[0].id}` : "/learn";
+          const href = `/learn`;
           return (
             <Link
               key={w.id}
               href={href}
-              className="flex cursor-pointer items-center gap-3 rounded-lg border border-[#ece8e0] bg-[#faf8f4] px-3 py-2.5 transition-colors hover:bg-homeCanvas no-underline"
+              className="group flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 transition-all hover:shadow-sm no-underline"
+              style={{ borderColor: `${w.color}28`, background: `${w.color}09` }}
               onClick={() => track("learn_click", { item_id: w.id, title: w.title })}
             >
-              <span className="shrink-0 text-xl leading-none" aria-hidden>
+              {/* Emoji icon */}
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-[20px] shrink-0"
+                style={{ background: `${w.color}20`, border: `1.5px solid ${w.color}35` }}
+              >
                 {w.emoji}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[13px] font-semibold text-homeInk">{w.title}</span>
-                </div>
-                <span className="text-[11px] text-homeSubtle">
-                  {wMods.length} module{wMods.length === 1 ? "" : "s"}
-                </span>
               </div>
-              <span className="shrink-0 text-sm text-[#c0b0a0]" aria-hidden>
-                ›
-              </span>
+
+              {/* Title + count */}
+              <div className="min-w-0 flex-1">
+                <div className="text-[13px] font-bold text-homeInk leading-tight">{w.title}</div>
+                <div className="text-[11px] font-semibold mt-0.5" style={{ color: w.color }}>
+                  {wMods.length} module{wMods.length === 1 ? "" : "s"}
+                </div>
+              </div>
+
+              {/* Colored play button */}
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-transform group-hover:scale-105"
+                style={{ background: w.color }}
+              >
+                <span className="text-white text-[12px] pl-0.5 font-black">▶</span>
+              </div>
             </Link>
           );
         })}
@@ -388,43 +440,87 @@ function applyVideoBlurb(description: string | null | undefined): string {
   return line.length > 96 ? `${line.slice(0, 94)}…` : line;
 }
 
+const GROUP_COLORS: Record<string, string> = {
+  Features:  "#A855F7",
+  Apps:      "#EC4899",
+  Workflows: "#F68A29",
+  Skills:    "#3699FC",
+};
+
+function featureAccent(group: string | null | undefined): string {
+  const g = (group || "").trim();
+  return GROUP_COLORS[g] || "#623CEA";
+}
+
+function tagVariant(tag: string | null | undefined): { bg: string; color: string } {
+  const t = (tag || "").toUpperCase();
+  if (t.includes("EDIT"))    return { bg: "rgba(98,60,234,0.12)",  color: "#623CEA" };
+  if (t.includes("PERSONAL"))return { bg: "rgba(236,72,153,0.12)", color: "#BE185D" };
+  if (t.includes("KNOW"))    return { bg: "rgba(246,138,41,0.14)", color: "#92400E" };
+  if (t.includes("WORK"))    return { bg: "rgba(54,153,252,0.13)", color: "#1E40AF" };
+  return { bg: "rgba(34,29,35,0.08)", color: "#6B6B6B" };
+}
+
 function HomeMidFeaturesCard({ videos }: { videos: ApplyVideo[] }) {
   return (
-    <div className="flex h-full flex-col rounded-xl border border-homeShellLine bg-white px-5 py-[18px]">
-      <div className="mb-3.5 flex items-center justify-between gap-2">
-        <span className="text-[11px] font-bold text-homeInk">Explore common AI features</span>
-        <Link href="/apply" className="shrink-0 text-xs font-semibold text-homeClay hover:underline">
+    <div className="flex h-full flex-col rounded-xl border border-homeShellLine bg-white px-5 py-[18px] shadow-sm">
+      {/* Header */}
+      <div className="mb-1 flex items-start justify-between gap-2">
+        <div>
+          <div className="text-[15px] font-extrabold text-homeInk leading-tight">Explore common AI features</div>
+          <div className="text-[11px] text-homeSubtle mt-0.5">The features changing how teams work</div>
+        </div>
+        <Link href="/apply" className="shrink-0 text-[12px] font-bold text-homeClay hover:underline no-underline mt-0.5">
           See all →
         </Link>
       </div>
-      <div className="flex flex-col gap-2">
+
+      <div className="mt-3 flex flex-col gap-2">
         {videos.map((v) => {
           const tag = v.category_tag?.trim();
           const blurb = applyVideoBlurb(v.description);
+          const accent = featureAccent(v.group_name);
+          const tv = tagVariant(tag);
           return (
             <Link
               key={v.id}
               href="/apply"
-              className="flex cursor-pointer items-center gap-3 rounded-lg border border-[#ece8e0] bg-[#faf8f4] px-3 py-2.5 transition-colors hover:bg-homeCanvas no-underline"
+              className="group flex cursor-pointer items-center gap-3 rounded-xl border border-[#ece8e0] bg-[#faf8f4] px-3 py-2.5 transition-all hover:shadow-sm no-underline"
               onClick={() => track("apply_click", { item_id: v.id, title: v.title })}
             >
-              <span className="shrink-0 text-xl leading-none" aria-hidden>
+              {/* Colored square icon */}
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-[19px] shrink-0"
+                style={{ background: `${accent}18`, border: `1.5px solid ${accent}30` }}
+              >
                 {applyVideoEmoji(v.group_name)}
-              </span>
+              </div>
+
+              {/* Title + blurb */}
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="block text-[13px] font-semibold text-homeInk">{v.title}</span>
-                  {tag ? (
-                    <span className="rounded bg-homeClay px-1.5 py-0.5 font-mono text-[8px] font-semibold uppercase tracking-[0.07em] text-white">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[13px] font-bold text-homeInk leading-tight">{v.title}</span>
+                  {tag && (
+                    <span
+                      className="text-[8px] font-black tracking-[0.1em] uppercase px-1.5 py-0.5 rounded-md"
+                      style={{ background: tv.bg, color: tv.color }}
+                    >
                       {tag}
                     </span>
-                  ) : null}
+                  )}
                 </div>
-                {blurb ? <span className="text-[11px] text-homeSubtle">{blurb}</span> : null}
+                {blurb && (
+                  <span className="text-[11px] text-homeSubtle line-clamp-1">{blurb}</span>
+                )}
               </div>
-              <span className="shrink-0 rounded px-[7px] py-0.5 font-mono text-[10px] text-homeNavMuted bg-homeDivider">
-                {v.duration?.trim() || "~2 min"}
-              </span>
+
+              {/* Colored circle arrow */}
+              <div
+                className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-transform group-hover:scale-105"
+                style={{ background: accent }}
+              >
+                <span className="text-white text-[10px] font-black">›</span>
+              </div>
             </Link>
           );
         })}
