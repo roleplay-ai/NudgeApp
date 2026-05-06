@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   creator: "Nudgeable AI",
   publisher: "Nudgeable AI",
   openGraph: {
-    title: "Nudgeable AI Fluency",
+    title: "AI Fluency - Nudgeable",
     description: "AI Fluency Isn't a Course. It's a Daily Habit",
   },
   icons: {
