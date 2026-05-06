@@ -106,28 +106,51 @@ export default function UserNav({
         </div>
       </aside>
 
-      {/* Mobile bottom nav */}
-      <nav className="sm:hidden fixed bottom-0 left-0 right-0 border-t border-homeInk/30 bg-homeSidebar flex justify-around py-2 px-1 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-50 text-homeCanvas/90">
-        {items.map((it) => {
-          const Ic = it.icon;
-          const active = path === it.href || (it.href !== "/" && path.startsWith(it.href));
-          return (
-            <Link
-              key={it.href}
-              href={it.href}
-              className="flex flex-col items-center gap-0.5 px-1 py-0.5 min-w-0 flex-1 max-w-[4.5rem] no-underline"
-              style={{ color: active ? "#f5f0e8" : "#9e948a" }}
-            >
-              <div
-                className={`px-2 py-1 rounded-lg border ${active ? "bg-homeClay/20 border-homeClay/60" : "border-transparent"}`}
-              >
-                <Ic size={17} strokeWidth={2} style={{ color: active ? "#C07B3A" : "#9e948a" }} />
+      {/* Mobile top nav */}
+      <header className="sm:hidden fixed top-0 left-0 right-0 z-50">
+        {/* Background */}
+        <div className="bg-homeSidebar/95 backdrop-blur supports-[backdrop-filter]:bg-homeSidebar/75 border-b border-homeInk/25 pt-[env(safe-area-inset-top)]">
+          {/* Brand row */}
+          <div className="px-4 pt-3 pb-2 flex items-center justify-between">
+            <div className="min-w-0">
+              <div className="text-[10px] font-bold tracking-[2px] text-homeClay">NUDGEABLE.AI</div>
+              <div className="text-[15px] font-extrabold tracking-tight text-white leading-tight truncate">
+                AI Fluency
               </div>
-              <span className="text-[8.5px] font-semibold truncate w-full text-center leading-tight">{it.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <nav
+            aria-label="Primary"
+            className="px-2 pb-2 flex gap-1 overflow-x-auto no-scrollbar"
+          >
+            {items.map((it) => {
+              const Ic = it.icon;
+              const active = path === it.href || (it.href !== "/" && path.startsWith(it.href));
+              return (
+                <Link
+                  key={it.href}
+                  href={it.href}
+                  className={`shrink-0 flex items-center gap-2 rounded-xl border px-3 py-2 text-[13px] font-semibold transition no-underline
+                    ${
+                      active
+                        ? "bg-homeClay/20 border-homeClay/60 text-white"
+                        : "border-transparent text-homeNavMuted hover:bg-white/[0.06] hover:text-homeCanvas"
+                    }`}
+                >
+                  <Ic
+                    size={16}
+                    strokeWidth={2}
+                    className={active ? "text-homeClay" : "text-homeNavMuted"}
+                  />
+                  <span className="whitespace-nowrap">{it.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+      </header>
     </>
   );
 }
