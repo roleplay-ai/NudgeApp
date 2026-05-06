@@ -32,6 +32,7 @@ export default function AnalyticsAdmin() {
   const [loading, setLoading]   = useState(true);
   const [total, setTotal]       = useState(0);
   const [uniq, setUniq]         = useState(0);
+  const [uniqUsers, setUniqUsers] = useState(0);
 
   async function load(r: Range) {
     setLoading(true);
@@ -41,7 +42,7 @@ export default function AnalyticsAdmin() {
     // All rows in range (limit 20k to stay safe)
     const { data: rows, error } = await supabase
       .from("analytics_events")
-      .select("event, page, visitor_id, meta, created_at")
+      .select("event, page, visitor_id, ip_address, meta, created_at")
       .gte("created_at", since)
       .order("created_at", { ascending: false })
       .limit(20000);
@@ -58,6 +59,10 @@ export default function AnalyticsAdmin() {
     setTotal(pviews.length);
     const uniqueVisitors = new Set(pviews.map((e) => e.visitor_id)).size;
     setUniq(uniqueVisitors);
+    const uniqueUsers = new Set(
+      pviews.map((e) => (e.ip_address ? String(e.ip_address) : "")).filter(Boolean)
+    ).size;
+    setUniqUsers(uniqueUsers);
 
     const pageMap = new Map<string, { views: number; visitors: Set<string> }>();
     for (const row of pviews) {
@@ -167,8 +172,8 @@ export default function AnalyticsAdmin() {
         {[
           { label: "Page views", value: total, color: "bg-nblue" },
           { label: "Unique sessions", value: uniq, color: "bg-emerald" },
+          { label: "Unique users", value: uniqUsers, color: "bg-amber" },
           { label: "Events tracked", value: events.reduce((s, e) => s + e.count, 0), color: "bg-norange" },
-          { label: "Click events", value: clicks.reduce((s, c) => s + c.count, 0), color: "bg-fuchsia" },
         ].map((k) => (
           <div key={k.label} className="bg-white rounded-2xl p-5 shadow-sm">
             <div className={`w-3 h-3 rounded-full ${k.color} mb-3`} />

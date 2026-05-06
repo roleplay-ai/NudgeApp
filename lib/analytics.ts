@@ -5,8 +5,6 @@
  * (it resets on every new browser session — no cross-session tracking).
  */
 
-import { createClient } from "@/lib/supabase/client";
-
 const VISITOR_KEY = "nv_id";
 
 function generateUUID(): string {
@@ -62,7 +60,11 @@ export function track(
     meta: meta ? (meta as Record<string, unknown>) : null,
   };
 
-  const supabase = createClient();
-  // Fire-and-forget — ignore errors so tracking never breaks the UI
-  supabase.from("analytics_events").insert(payload).then(() => {});
+  // Fire-and-forget — send to server so it can capture IP address.
+  fetch("/api/track", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload),
+    keepalive: true,
+  }).then(() => {});
 }
