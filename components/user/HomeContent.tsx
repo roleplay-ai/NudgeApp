@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import RichText from "@/components/ui/RichText";
 import type {
   ApplyVideo,
@@ -75,7 +74,7 @@ export default function HomeContent({
         </div>
       </header>
 
-      {/* Nudgeable Brief hero — copy from Admin → Brief hero */}
+      {/* Nudgeable Brief hero — badge/title from Admin → Brief hero; news briefs inline */}
       {showBriefHero && (
         <section aria-labelledby="brief-hero-heading">
           <div className="rounded-2xl border border-homeInk/10 shadow-md overflow-hidden bg-homeInk px-5 pt-6 pb-6 md:px-8 md:pt-8 md:pb-7">
@@ -91,60 +90,54 @@ export default function HomeContent({
             >
               {heroTitle}
             </h2>
-            <RichText
-              content={heroSubtitle}
-              classes={{
-                wrapper: "mt-3 max-w-2xl space-y-2",
-                p: "text-sm text-homeWarmGray leading-relaxed",
-                ul: "space-y-1.5 list-none",
-                li: "flex items-start gap-2 text-sm text-homeWarmGray leading-relaxed",
-                bullet: "shrink-0 text-homeClay mt-0.5 text-base leading-none",
-                strong: "font-bold text-white",
-                em: "italic",
-                code: "font-mono text-[12px] bg-white/10 text-amber px-1.5 py-0.5 rounded",
-              }}
-            />
-          </div>
-        </section>
-      )}
 
-      {/* Nudgeable Brief — this week's headlines */}
-      {briefNews.length > 0 && (
-        <section aria-label="This week in the brief">
-          <div className="rounded-2xl border border-homeInk/10 shadow-md overflow-hidden bg-white">
-            <div className="px-5 md:px-8 pt-6 pb-2">
-              <div className="text-[11px] font-bold tracking-[0.14em] text-homeInk/80 mb-3">THIS WEEK</div>
-              <div className="h-px bg-homeDivider mb-5" />
-            </div>
-
-            <div className="divide-y divide-homeDivider">
-              {briefNews.slice(0, 3).map((n, i) => {
-                const href = n.url || "#";
-                return (
-                  <div key={n.id} className="px-5 md:px-8 py-4 flex gap-4 items-start">
-                    <span
-                      className="mt-2 h-2 w-2 rounded-full shrink-0 bg-[#ef4444]"
-                      aria-hidden
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-extrabold text-homeInk leading-snug mb-1">{n.title}</div>
-                      <p className="text-xs text-homeBodyMuted leading-relaxed line-clamp-2 mb-1">{n.body}</p>
-                    </div>
-                    {n.url ? (
-                      <a
-                        href={href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs font-bold text-homeClay hover:underline shrink-0 inline-flex items-center gap-0.5 pt-1"
-                        onClick={() => track("news_click", { item_id: n.id, title: n.title, url: href })}
-                      >
-                        Read <ArrowRight size={12} />
-                      </a>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </div>
+            {briefNews.length > 0 ? (
+              <ul className="mt-4 space-y-3 list-none">
+                {briefNews.map((n) => {
+                  const href = n.url || null;
+                  const briefText = n.brief?.trim() || n.body?.trim() || null;
+                  return (
+                    <li key={n.id}>
+                      {href ? (
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex gap-2.5 items-start group no-underline"
+                          onClick={() => track("news_click", { item_id: n.id, title: n.title, url: href })}
+                        >
+                          <span className="shrink-0 mt-[7px] h-1.5 w-1.5 rounded-full bg-homeClay group-hover:bg-amber transition-colors" aria-hidden />
+                          <p className="text-[13px] text-homeWarmGray leading-relaxed group-hover:text-white/90 transition-colors">
+                            {briefText || n.title}
+                          </p>
+                        </a>
+                      ) : (
+                        <div className="flex gap-2.5 items-start">
+                          <span className="shrink-0 mt-[7px] h-1.5 w-1.5 rounded-full bg-homeClay" aria-hidden />
+                          <p className="text-[13px] text-homeWarmGray leading-relaxed">
+                            {briefText || n.title}
+                          </p>
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <RichText
+                content={heroSubtitle}
+                classes={{
+                  wrapper: "mt-3 max-w-2xl space-y-2",
+                  p: "text-sm text-homeWarmGray leading-relaxed",
+                  ul: "space-y-1.5 list-none",
+                  li: "flex items-start gap-2 text-sm text-homeWarmGray leading-relaxed",
+                  bullet: "shrink-0 text-homeClay mt-0.5 text-base leading-none",
+                  strong: "font-bold text-white",
+                  em: "italic",
+                  code: "font-mono text-[12px] bg-white/10 text-amber px-1.5 py-0.5 rounded",
+                }}
+              />
+            )}
           </div>
         </section>
       )}

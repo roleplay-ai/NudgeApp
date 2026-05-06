@@ -7,7 +7,7 @@ import { Trash2, Edit2, Plus } from "lucide-react";
 
 const TAGS = ["MODEL", "TOOL", "RESEARCH", "POLICY", "FEATURE", "TREND"];
 const empty = (): Partial<NewsItem> => ({
-  title: "", body: "", tag: "MODEL", tag_color: "#ED4551", url: "",
+  title: "", body: "", brief: "", tag: "MODEL", tag_color: "#ED4551", url: "",
   is_published: true, is_featured: false,
   published_at: new Date().toISOString().slice(0, 10),
 });
@@ -56,7 +56,13 @@ export default function NewsAdmin() {
         <div className="bg-white rounded-2xl p-6 shadow-sm mb-8 space-y-4 border-2 border-amber">
           <h2 className="font-bold">{editing.id ? "Edit news" : "New news item"}</h2>
           <Input label="Title" value={editing.title || ""} onChange={(e) => setEditing({ ...editing, title: e.target.value })} />
-          <Textarea label="Body" value={editing.body || ""} onChange={(e) => setEditing({ ...editing, body: e.target.value })} />
+          <Textarea
+            label="Brief (shown on home hero card)"
+            value={editing.brief || ""}
+            onChange={(e) => setEditing({ ...editing, brief: e.target.value })}
+            placeholder="1–2 sentence teaser shown on the black hero card on the home page."
+          />
+          <Textarea label="Body (full detail)" value={editing.body || ""} onChange={(e) => setEditing({ ...editing, body: e.target.value })} />
           <div className="grid grid-cols-2 gap-3">
             <Select label="Tag" value={editing.tag || "MODEL"} options={TAGS}
               onChange={(e) => setEditing({ ...editing, tag: e.target.value })} />
@@ -96,6 +102,7 @@ export default function NewsAdmin() {
                 <span className="text-[10px] text-muted">{n.published_at}</span>
               </div>
               <div className="font-bold text-sm mb-1">{n.title}</div>
+              {n.brief && <div className="text-xs text-amber font-medium line-clamp-1 mb-0.5">Brief: {n.brief}</div>}
               <div className="text-xs text-muted line-clamp-2">{n.body}</div>
             </div>
             <button onClick={() => setEditing(n)} className="text-muted hover:text-shadow"><Edit2 size={16} /></button>
