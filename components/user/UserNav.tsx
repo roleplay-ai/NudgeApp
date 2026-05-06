@@ -106,28 +106,37 @@ export default function UserNav({
         </div>
       </aside>
 
-      {/* Mobile bottom nav */}
-      <nav className="sm:hidden fixed bottom-0 left-0 right-0 border-t border-homeInk/30 bg-homeSidebar flex justify-around py-2 px-1 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-50 text-homeCanvas/90">
-        {items.map((it) => {
-          const Ic = it.icon;
-          const active = path === it.href || (it.href !== "/" && path.startsWith(it.href));
-          return (
-            <Link
-              key={it.href}
-              href={it.href}
-              className="flex flex-col items-center gap-0.5 px-1 py-0.5 min-w-0 flex-1 max-w-[4.5rem] no-underline"
-              style={{ color: active ? "#f5f0e8" : "#9e948a" }}
-            >
-              <div
-                className={`px-2 py-1 rounded-lg border ${active ? "bg-homeClay/20 border-homeClay/60" : "border-transparent"}`}
-              >
-                <Ic size={17} strokeWidth={2} style={{ color: active ? "#C07B3A" : "#9e948a" }} />
-              </div>
-              <span className="text-[8.5px] font-semibold truncate w-full text-center leading-tight">{it.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
+      {/* Mobile top nav (no horizontal scrolling) */}
+      <header className="sm:hidden fixed top-0 left-0 right-0 z-50">
+        <nav
+          aria-label="Primary"
+          className="bg-homeSidebar border-b border-homeInk/30 pt-[env(safe-area-inset-top)] px-2 pb-2 shadow-[0_10px_30px_rgba(0,0,0,0.28)]"
+        >
+          <div className="grid grid-cols-5 gap-1">
+            {items.map((it) => {
+              const Ic = it.icon;
+              const active = path === it.href || (it.href !== "/" && path.startsWith(it.href));
+              return (
+                <Link
+                  key={it.href}
+                  href={it.href}
+                  className={`flex flex-col items-center justify-center gap-1 rounded-xl border px-1 py-2.5 transition-[transform,background-color,color,border-color] duration-150 no-underline min-w-0 transform hover:scale-[1.06] active:scale-[0.98]
+                    ${
+                      active
+                        ? "bg-homeClay/25 border-homeClay text-white"
+                        : "border-homeInk/20 text-homeCanvas/90 hover:bg-white/[0.06] hover:text-white"
+                    }`}
+                >
+                  <Ic size={18} strokeWidth={2.2} className={active ? "text-amber" : "text-homeCanvas/85"} />
+                  <span className="text-[11px] font-bold leading-tight w-full text-center">
+                    {it.label}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      </header>
     </>
   );
 }
