@@ -3,7 +3,21 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Nudgeable AI Fluency",
-  description: "Daily AI literacy practice",
+  description: "AI Fluency Isn't a Course. It's a Daily Habit",
+  keywords: ["AI", "AI Fluency", "AI Literacy", "AI Education", "AI Training", "AI Skills", "AI Development", "AI Skills Training", "AI Skills Development", "AI Skills Training", "AI Skills Development"],
+  authors: [{ name: "Nudgeable AI", url: "https://nudgeable.ai" }],
+  creator: "Nudgeable AI",
+  publisher: "Nudgeable AI",
+  openGraph: {
+    title: "Nudgeable AI Fluency",
+    description: "AI Fluency Isn't a Course. It's a Daily Habit",
+  },
+  icons: {
+    icon: "/favicon.jpeg",
+  },
+
+
+
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
