@@ -19,6 +19,8 @@ export type NewsItem = {
   tag_color: string;
   title: string;
   body: string;
+  /** Short 1-2 sentence teaser shown on the black hero card on Home. */
+  brief: string | null;
   url: string | null;
   image_url: string | null;
   published_at: string;
