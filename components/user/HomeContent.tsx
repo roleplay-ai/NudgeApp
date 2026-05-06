@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import RichText from "@/components/ui/RichText";
 import type {
   ApplyVideo,
   HomeBriefHero,
@@ -90,7 +91,19 @@ export default function HomeContent({
             >
               {heroTitle}
             </h2>
-            <p className="text-sm text-homeWarmGray mt-3 max-w-2xl leading-relaxed">{heroSubtitle}</p>
+            <RichText
+              content={heroSubtitle}
+              classes={{
+                wrapper: "mt-3 max-w-2xl space-y-2",
+                p: "text-sm text-homeWarmGray leading-relaxed",
+                ul: "space-y-1.5 list-none",
+                li: "flex items-start gap-2 text-sm text-homeWarmGray leading-relaxed",
+                bullet: "shrink-0 text-homeClay mt-0.5 text-base leading-none",
+                strong: "font-bold text-white",
+                em: "italic",
+                code: "font-mono text-[12px] bg-white/10 text-amber px-1.5 py-0.5 rounded",
+              }}
+            />
           </div>
         </section>
       )}
