@@ -5,6 +5,54 @@ import { ExternalLink, Play, Search } from "lucide-react";
 import type { NewsItem, Resource, WatchVideo } from "@/lib/types";
 import { resolveVideoThumbnailUrl } from "@/lib/videoThumbnails";
 
+function getFaviconUrl(url: string): string | null {
+  try {
+    const { hostname } = new URL(url);
+    return `https://www.google.com/s2/favicons?sz=64&domain=${hostname}`;
+  } catch {
+    return null;
+  }
+}
+
+function ResourceLogo({
+  url,
+  thumbnailUrl,
+  fallbackLetter,
+  fallbackBg,
+  imgClass,
+  tileClass,
+}: {
+  url: string;
+  thumbnailUrl: string | null;
+  fallbackLetter: string;
+  fallbackBg: string;
+  imgClass: string;
+  tileClass: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  const logoSrc = !failed ? (thumbnailUrl || getFaviconUrl(url)) : null;
+
+  return (
+    <div className={tileClass}>
+      {logoSrc ? (
+        <img
+          src={logoSrc}
+          alt=""
+          className={imgClass}
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <span
+          className="w-full h-full flex items-center justify-center text-white font-black rounded-[inherit]"
+          style={{ background: fallbackBg }}
+        >
+          {fallbackLetter}
+        </span>
+      )}
+    </div>
+  );
+}
+
 const VIDEO_COLORS = ["#ED4551", "#623CEA", "#F68A29", "#3696FC", "#23CE68", "#FFCE00"];
 const ACCENT = {
   videos: "#ED4551",
@@ -339,12 +387,14 @@ function ArticleRow({ resource: r, colorIndex }: { resource: Resource; colorInde
       rel="noopener noreferrer"
       className="flex gap-4 items-center bg-white rounded-2xl p-4 border border-nborder shadow-sm hover:shadow-md transition"
     >
-      <div
-        className="w-11 h-11 rounded-full flex items-center justify-center text-white text-sm font-black flex-shrink-0"
-        style={{ background: color }}
-      >
-        {title[0]?.toUpperCase()}
-      </div>
+      <ResourceLogo
+        url={r.url}
+        thumbnailUrl={r.thumbnail_url}
+        fallbackLetter={title[0]?.toUpperCase() ?? "?"}
+        fallbackBg={color}
+        imgClass="w-7 h-7 object-contain"
+        tileClass="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 bg-white border border-nborder overflow-hidden"
+      />
       <div className="flex-1 min-w-0">
         <div className="flex flex-wrap items-center gap-2 mb-1">
           <span
@@ -379,16 +429,14 @@ function ResourceTile({ resource: r, colorIndex }: { resource: Resource; colorIn
       className="flex flex-col bg-white rounded-2xl p-4 border border-nborder shadow-sm hover:shadow-md transition h-full"
     >
       <div className="flex gap-3 mb-3">
-        <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-black flex-shrink-0"
-          style={{ background: color }}
-        >
-          {r.thumbnail_url ? (
-            <img src={r.thumbnail_url} alt="" className="w-full h-full rounded-xl object-cover" />
-          ) : (
-            title[0]?.toUpperCase()
-          )}
-        </div>
+        <ResourceLogo
+          url={r.url}
+          thumbnailUrl={r.thumbnail_url}
+          fallbackLetter={title[0]?.toUpperCase() ?? "?"}
+          fallbackBg={color}
+          imgClass="w-6 h-6 object-contain"
+          tileClass="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-white border border-nborder overflow-hidden"
+        />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-sm font-bold text-shadow leading-tight">{title}</span>

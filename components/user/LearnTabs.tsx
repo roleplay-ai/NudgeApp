@@ -447,11 +447,56 @@ function levelClass(level: string | null | undefined) {
   return LEVEL_STYLES[k] || "bg-chiffon text-shadow border border-nborder";
 }
 
+function getFaviconUrl(url: string): string | null {
+  try {
+    const { hostname } = new URL(url);
+    return `https://www.google.com/s2/favicons?sz=64&domain=${hostname}`;
+  } catch {
+    return null;
+  }
+}
+
+function ResourceLogo({
+  url,
+  thumbnailUrl,
+  fallbackLetter,
+  fallbackColor,
+  imgClass,
+  tileClass,
+}: {
+  url: string;
+  thumbnailUrl: string | null;
+  fallbackLetter: string;
+  fallbackColor: string;
+  imgClass: string;
+  tileClass: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  const logoSrc = !failed ? (thumbnailUrl || getFaviconUrl(url)) : null;
+
+  return (
+    <div className={tileClass}>
+      {logoSrc ? (
+        <img
+          src={logoSrc}
+          alt=""
+          className={imgClass}
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <span
+          className="w-full h-full rounded-xl flex items-center justify-center text-white font-black"
+          style={{ background: fallbackColor }}
+        >
+          {fallbackLetter}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function FeaturedResourceCard({ r }: { r: Resource }) {
   const title = resourceTitle(r);
-  const grad = r.thumbnail_url
-    ? "linear-gradient(135deg,#623CEA,#3696FC)"
-    : "linear-gradient(135deg,#F68A29,#FFCE00)";
   return (
     <a
       href={r.url}
@@ -461,16 +506,14 @@ function FeaturedResourceCard({ r }: { r: Resource }) {
       style={{ borderTop: "3px solid #F68A29" }}
     >
       <div className="flex gap-4 flex-1">
-        <div
-          className="w-14 h-14 rounded-xl text-white font-black text-xl flex items-center justify-center flex-shrink-0 shadow-md"
-          style={{ background: grad }}
-        >
-          {r.thumbnail_url ? (
-            <img src={r.thumbnail_url} alt="" className="w-full h-full rounded-xl object-cover" />
-          ) : (
-            title[0]?.toUpperCase()
-          )}
-        </div>
+        <ResourceLogo
+          url={r.url}
+          thumbnailUrl={r.thumbnail_url}
+          fallbackLetter={title[0]?.toUpperCase() ?? "?"}
+          fallbackColor="linear-gradient(135deg,#F68A29,#FFCE00)"
+          imgClass="w-9 h-9 object-contain"
+          tileClass="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md bg-white border border-nborder overflow-hidden"
+        />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <span className="text-base font-extrabold text-shadow leading-tight">{title}</span>
@@ -518,16 +561,14 @@ function WideResourceRow({ r }: { r: Resource }) {
       className="flex gap-4 items-center bg-white rounded-2xl border border-nborder p-4 shadow-sm hover:shadow-md transition group"
       style={{ borderLeft: `3px solid ${bg}` }}
     >
-      <div
-        className="w-11 h-11 rounded-xl text-white font-black text-base flex items-center justify-center flex-shrink-0 shadow-sm"
-        style={{ background: bg }}
-      >
-        {r.thumbnail_url ? (
-          <img src={r.thumbnail_url} alt="" className="w-full h-full rounded-xl object-cover" />
-        ) : (
-          title[0]?.toUpperCase()
-        )}
-      </div>
+      <ResourceLogo
+        url={r.url}
+        thumbnailUrl={r.thumbnail_url}
+        fallbackLetter={title[0]?.toUpperCase() ?? "?"}
+        fallbackColor={bg}
+        imgClass="w-7 h-7 object-contain"
+        tileClass="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm bg-white border border-nborder overflow-hidden"
+      />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap mb-0.5">
           <span className="text-sm font-extrabold text-shadow">{title}</span>

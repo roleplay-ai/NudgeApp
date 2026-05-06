@@ -5,7 +5,7 @@ import { Input, Textarea, Select, Checkbox, Button, Toast, useToast } from "@/co
 import type { Tool } from "@/lib/types";
 import { Edit2, Plus, Trash2 } from "lucide-react";
 
-const CATS = ["PPT", "Excel", "Image", "Video", "Voice", "Coding", "Research", "Writing", "Other"];
+const CATS = ["PPT", "Excel", "Image", "Video", "Voice", "Coding", "Research", "Writing", "Foundation Models", "Other"];
 
 const empty = (): Partial<Tool> => ({
   name: "", category: "PPT", description: "", url: "",
