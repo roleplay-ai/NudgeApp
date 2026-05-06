@@ -106,25 +106,13 @@ export default function UserNav({
         </div>
       </aside>
 
-      {/* Mobile top nav */}
+      {/* Mobile top nav (no horizontal scrolling) */}
       <header className="sm:hidden fixed top-0 left-0 right-0 z-50">
-        {/* Background */}
-        <div className="bg-homeSidebar/95 backdrop-blur supports-[backdrop-filter]:bg-homeSidebar/75 border-b border-homeInk/25 pt-[env(safe-area-inset-top)]">
-          {/* Brand row */}
-          <div className="px-4 pt-3 pb-2 flex items-center justify-between">
-            <div className="min-w-0">
-              <div className="text-[10px] font-bold tracking-[2px] text-homeClay">NUDGEABLE.AI</div>
-              <div className="text-[15px] font-extrabold tracking-tight text-white leading-tight truncate">
-                AI Fluency
-              </div>
-            </div>
-          </div>
-
-          {/* Tabs */}
-          <nav
-            aria-label="Primary"
-            className="px-2 pb-2 flex gap-1 overflow-x-auto no-scrollbar"
-          >
+        <nav
+          aria-label="Primary"
+          className="bg-homeSidebar/95 backdrop-blur supports-[backdrop-filter]:bg-homeSidebar/75 border-b border-homeInk/25 pt-[env(safe-area-inset-top)] px-2 pb-2"
+        >
+          <div className="grid grid-cols-5 gap-1">
             {items.map((it) => {
               const Ic = it.icon;
               const active = path === it.href || (it.href !== "/" && path.startsWith(it.href));
@@ -132,24 +120,22 @@ export default function UserNav({
                 <Link
                   key={it.href}
                   href={it.href}
-                  className={`shrink-0 flex items-center gap-2 rounded-xl border px-3 py-2 text-[13px] font-semibold transition no-underline
+                  className={`flex flex-col items-center justify-center gap-1 rounded-xl border px-1.5 py-2 transition no-underline min-w-0
                     ${
                       active
                         ? "bg-homeClay/20 border-homeClay/60 text-white"
                         : "border-transparent text-homeNavMuted hover:bg-white/[0.06] hover:text-homeCanvas"
                     }`}
                 >
-                  <Ic
-                    size={16}
-                    strokeWidth={2}
-                    className={active ? "text-homeClay" : "text-homeNavMuted"}
-                  />
-                  <span className="whitespace-nowrap">{it.label}</span>
+                  <Ic size={17} strokeWidth={2} className={active ? "text-homeClay" : "text-homeNavMuted"} />
+                  <span className="text-[10px] font-semibold leading-tight truncate w-full text-center">
+                    {it.label}
+                  </span>
                 </Link>
               );
             })}
-          </nav>
-        </div>
+          </div>
+        </nav>
       </header>
     </>
   );

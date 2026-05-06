@@ -146,11 +146,11 @@ export default function HomeContent({
       {(productOfWeek || learnWorlds.length > 0 || applyMidVideos.length > 0) && (
         <section>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-4">
-            {productOfWeek ? <HomeMidProductCard product={productOfWeek} /> : null}
             {learnWorlds.length > 0 ? (
               <HomeMidLearnCard worlds={learnWorlds} modules={modules} />
             ) : null}
             {applyMidVideos.length > 0 ? <HomeMidFeaturesCard videos={applyMidVideos} /> : null}
+            {productOfWeek ? <HomeMidProductCard product={productOfWeek} /> : null}
           </div>
         </section>
       )}
