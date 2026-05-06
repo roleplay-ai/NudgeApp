@@ -25,7 +25,7 @@ export default async function Home() {
     { data: modules },
     { data: applyMidVideos },
   ] = await Promise.all([
-    supabase.from("news_items").select("*").eq("is_published", true).order("published_at", { ascending: false }).limit(3),
+    supabase.from("news_items").select("*").eq("is_published", true).eq("is_featured", true).order("published_at", { ascending: false }),
     supabase
       .from("home_brief_hero")
       .select("*")

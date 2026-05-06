@@ -93,7 +93,7 @@ export default function HomeContent({
 
             {briefNews.length > 0 ? (
               <ul className="mt-4 space-y-3 list-none">
-                {briefNews.slice(0, 3).map((n) => {
+                {briefNews.map((n) => {
                   const href = n.url || null;
                   const briefText = n.brief?.trim() || n.body?.trim() || null;
                   return (
