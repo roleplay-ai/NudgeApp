@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import RichText from "@/components/ui/RichText";
 import type {
   ApplyVideo,
   HomeBriefHero,
@@ -90,7 +91,19 @@ export default function HomeContent({
             >
               {heroTitle}
             </h2>
-            <p className="text-sm text-homeWarmGray mt-3 max-w-2xl leading-relaxed">{heroSubtitle}</p>
+            <RichText
+              content={heroSubtitle}
+              classes={{
+                wrapper: "mt-3 max-w-2xl space-y-2",
+                p: "text-sm text-homeWarmGray leading-relaxed",
+                ul: "space-y-1.5 list-none",
+                li: "flex items-start gap-2 text-sm text-homeWarmGray leading-relaxed",
+                bullet: "shrink-0 text-homeClay mt-0.5 text-base leading-none",
+                strong: "font-bold text-white",
+                em: "italic",
+                code: "font-mono text-[12px] bg-white/10 text-amber px-1.5 py-0.5 rounded",
+              }}
+            />
           </div>
         </section>
       )}
@@ -107,12 +120,10 @@ export default function HomeContent({
             <div className="divide-y divide-homeDivider">
               {briefNews.slice(0, 3).map((n, i) => {
                 const href = n.url || "#";
-                const bulletStrong = i < 2;
                 return (
                   <div key={n.id} className="px-5 md:px-8 py-4 flex gap-4 items-start">
                     <span
-                      className="mt-2 h-2 w-2 rounded-full shrink-0"
-                      style={{ background: bulletStrong ? "#ef4444" : "#d0c4b4" }}
+                      className="mt-2 h-2 w-2 rounded-full shrink-0 bg-[#ef4444]"
                       aria-hidden
                     />
                     <div className="flex-1 min-w-0">
@@ -410,12 +421,12 @@ function HomeMidLearnCard({ worlds, modules }: { worlds: World[]; modules: Modul
                 </div>
               </div>
 
-              {/* Colored play button */}
+              {/* Right arrow */}
               <div
-                className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-transform group-hover:scale-105"
-                style={{ background: w.color }}
+                className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-transform group-hover:translate-x-0.5"
+                style={{ background: `${w.color}18`, border: `1.5px solid ${w.color}35` }}
               >
-                <span className="text-white text-[12px] pl-0.5 font-black">▶</span>
+                <span className="font-black text-[15px]" style={{ color: w.color }}>›</span>
               </div>
             </Link>
           );
@@ -425,12 +436,31 @@ function HomeMidLearnCard({ worlds, modules }: { worlds: World[]; modules: Modul
   );
 }
 
-function applyVideoEmoji(group: string | null | undefined): string {
-  const g = (group || "").toLowerCase();
-  if (g.includes("workflow")) return "⚙️";
-  if (g.includes("app")) return "📱";
-  if (g.includes("skill")) return "🎯";
-  return "✨";
+/** Returns a unique emoji per feature based on its title keywords. */
+function featureIcon(title: string | null | undefined): string {
+  const t = (title || "").toLowerCase();
+  if (t.includes("canvas"))        return "🖊️";
+  if (t.includes("gem"))           return "💎";
+  if (t.includes("notebook") || t.includes("podcast")) return "🎧";
+  if (t.includes("code") || t.includes("codex"))       return "💻";
+  if (t.includes("image") || t.includes("dall"))       return "🖼️";
+  if (t.includes("voice") || t.includes("audio") || t.includes("speech")) return "🎙️";
+  if (t.includes("search") || t.includes("browse"))    return "🔍";
+  if (t.includes("summar") || t.includes("tldr"))      return "📋";
+  if (t.includes("translat"))      return "🌐";
+  if (t.includes("email") || t.includes("write") || t.includes("draft")) return "✉️";
+  if (t.includes("chart") || t.includes("data") || t.includes("analys")) return "📊";
+  if (t.includes("plan") || t.includes("task") || t.includes("project")) return "📌";
+  if (t.includes("present") || t.includes("slide"))    return "📽️";
+  if (t.includes("copilot"))       return "🤝";
+  if (t.includes("chat"))          return "💬";
+  if (t.includes("agent"))         return "🤖";
+  if (t.includes("workflow") || t.includes("automat")) return "⚙️";
+  if (t.includes("app"))           return "📱";
+  if (t.includes("skill") || t.includes("learn"))      return "🎯";
+  // Fallback: use first letter-based emoji variety
+  const code = (title?.charCodeAt(0) ?? 65) % 6;
+  return ["✨", "🔥", "⚡", "🌟", "🚀", "💡"][code];
 }
 
 function applyVideoBlurb(description: string | null | undefined): string {
@@ -488,12 +518,12 @@ function HomeMidFeaturesCard({ videos }: { videos: ApplyVideo[] }) {
               className="group flex cursor-pointer items-center gap-3 rounded-xl border border-[#ece8e0] bg-[#faf8f4] px-3 py-2.5 transition-all hover:shadow-sm no-underline"
               onClick={() => track("apply_click", { item_id: v.id, title: v.title })}
             >
-              {/* Colored square icon */}
+              {/* Per-feature icon */}
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center text-[19px] shrink-0"
                 style={{ background: `${accent}18`, border: `1.5px solid ${accent}30` }}
               >
-                {applyVideoEmoji(v.group_name)}
+                {featureIcon(v.title)}
               </div>
 
               {/* Title + blurb */}
@@ -514,12 +544,12 @@ function HomeMidFeaturesCard({ videos }: { videos: ApplyVideo[] }) {
                 )}
               </div>
 
-              {/* Colored circle arrow */}
+              {/* Play button */}
               <div
                 className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-transform group-hover:scale-105"
                 style={{ background: accent }}
               >
-                <span className="text-white text-[10px] font-black">›</span>
+                <span className="text-white text-[9px] pl-px font-black">▶</span>
               </div>
             </Link>
           );
