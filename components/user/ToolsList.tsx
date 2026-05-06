@@ -69,7 +69,7 @@ export default function ToolsList({ tools }: { tools: Tool[] }) {
                 </div>
                 {t.best_for && (
                   <div className="rounded-xl px-3 py-2 mb-3 text-[11px] text-shadow leading-snug" style={{ background: `${accent}14` }}>
-                    <span className="font-bold">Best for:</span> {t.best_for}
+                    <span className="font-bold">Use for:</span> {t.best_for}
                   </div>
                 )}
                 <div className="flex flex-wrap gap-1.5 mt-auto mb-2">

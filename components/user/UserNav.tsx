@@ -110,7 +110,7 @@ export default function UserNav({
       <header className="sm:hidden fixed top-0 left-0 right-0 z-50">
         <nav
           aria-label="Primary"
-          className="bg-homeSidebar/95 backdrop-blur supports-[backdrop-filter]:bg-homeSidebar/75 border-b border-homeInk/25 pt-[env(safe-area-inset-top)] px-2 pb-2"
+          className="bg-homeSidebar border-b border-homeInk/30 pt-[env(safe-area-inset-top)] px-2 pb-2 shadow-[0_10px_30px_rgba(0,0,0,0.28)]"
         >
           <div className="grid grid-cols-5 gap-1">
             {items.map((it) => {
@@ -120,15 +120,15 @@ export default function UserNav({
                 <Link
                   key={it.href}
                   href={it.href}
-                  className={`flex flex-col items-center justify-center gap-1 rounded-xl border px-1.5 py-2 transition no-underline min-w-0
+                  className={`flex flex-col items-center justify-center gap-1 rounded-xl border px-1 py-2.5 transition-[transform,background-color,color,border-color] duration-150 no-underline min-w-0 transform hover:scale-[1.06] active:scale-[0.98]
                     ${
                       active
-                        ? "bg-homeClay/20 border-homeClay/60 text-white"
-                        : "border-transparent text-homeNavMuted hover:bg-white/[0.06] hover:text-homeCanvas"
+                        ? "bg-homeClay/25 border-homeClay text-white"
+                        : "border-homeInk/20 text-homeCanvas/90 hover:bg-white/[0.06] hover:text-white"
                     }`}
                 >
-                  <Ic size={17} strokeWidth={2} className={active ? "text-homeClay" : "text-homeNavMuted"} />
-                  <span className="text-[10px] font-semibold leading-tight truncate w-full text-center">
+                  <Ic size={18} strokeWidth={2.2} className={active ? "text-amber" : "text-homeCanvas/85"} />
+                  <span className="text-[11px] font-bold leading-tight w-full text-center">
                     {it.label}
                   </span>
                 </Link>
