@@ -35,8 +35,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const sections = [
     { href: "/admin", label: "Dashboard" },
+    { href: "/admin/analytics", label: "Analytics" },
     { href: "/admin/trending", label: "Trending" },
-    { href: "/admin/video-of-day", label: "Video of day" },
+    { href: "/admin/video-of-week", label: "Video of the week" },
     { href: "/admin/product-of-day", label: "Product of day" },
     { href: "/admin/news", label: "News" },
     { href: "/admin/videos", label: "Videos" },
@@ -45,6 +46,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     { href: "/admin/resources", label: "Resources" },
     { href: "/admin/worlds", label: "Worlds & Modules" },
     { href: "/admin/apply", label: "Apply videos" },
+    { href: "/admin/apply-tiles", label: "Apply tiles" },
   ];
 
   return (

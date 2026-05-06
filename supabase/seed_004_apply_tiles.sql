@@ -2,13 +2,16 @@
 -- Seeds 25 Apply tiles and 1 active trending entry.
 -- Slides are intentionally NOT pre-populated — admin uploads images & captions.
 
--- Trending hero
-insert into public.trending (title, subtitle, body, why_it_matters, emoji, color, is_active) values
-('Agents go mainstream',
- 'From advisor to doer — the shift defining 2026',
- 'Companies are deploying task-completing AI agents in HR, sales, and ops at scale. The boundary between "AI helps me" and "AI does it for me" is collapsing fast.',
- 'If your team isn''t piloting at least one agent, you''re already 6 months behind.',
- '🤖', '#623CEA', true);
+-- Trending hero (table: trending_topics — see migration_004)
+insert into public.trending_topics (emoji, title, subtitle, body, why_matters, is_active) values
+(
+  '🤖',
+  'Agents go mainstream',
+  'From advisor to doer — the shift defining 2026',
+  'Companies are deploying task-completing AI agents in HR, sales, and ops at scale. The boundary between "AI helps me" and "AI does it for me" is collapsing fast.',
+  'If your team isn''t piloting at least one agent, you''re already 6 months behind.',
+  true
+);
 
 -- 25 Apply tiles
 insert into public.apply_tiles (title, subtitle, group_name, is_featured, order_index) values

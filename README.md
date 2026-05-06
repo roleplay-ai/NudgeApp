@@ -1,4 +1,4 @@
-# Nudgeable AI Fluency — Web App
+## Nudgeable AI Fluency — Web App
 
 Responsive web app built with **Next.js 14 + Supabase + Tailwind**. Mobile-friendly, desktop-friendly, deployable on Vercel.
 

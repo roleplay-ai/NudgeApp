@@ -12,7 +12,9 @@ export default async function ToolsPage() {
     <div>
       <div className="text-[11px] font-bold tracking-[2px] text-norange">EXPLORE</div>
       <h1 className="text-2xl font-extrabold text-shadow mb-1">Best AI tools</h1>
-      <p className="text-sm text-muted mb-5">Tap any tool for full details.</p>
+      <p className="text-sm text-muted mb-5 max-w-2xl">
+        Vetted picks — with honest pros, cons, and who they&apos;re best for.
+      </p>
       <ToolsList tools={(data || []) as Tool[]} />
     </div>
   );

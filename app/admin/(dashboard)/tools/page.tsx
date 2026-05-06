@@ -5,7 +5,7 @@ import { Input, Textarea, Select, Checkbox, Button, Toast, useToast } from "@/co
 import type { Tool } from "@/lib/types";
 import { Edit2, Plus, Trash2 } from "lucide-react";
 
-const CATS = ["PPT", "Excel", "Image", "Video", "Voice", "Coding", "Research", "Writing", "Other"];
+const CATS = ["PPT", "Excel", "Image", "Video", "Voice", "Coding", "Research", "Writing", "Foundation Models", "Other"];
 
 const empty = (): Partial<Tool> => ({
   name: "", category: "PPT", description: "", url: "",
@@ -23,15 +23,48 @@ export default function ToolsAdmin() {
   const [consText, setConsText] = useState("");
 
   async function load() {
-    const { data } = await supabase
-      .from("tools")
-      .select("*, tool_pros(text, order_index), tool_cons(text, order_index)")
-      .order("order_index");
-    const mapped = (data || []).map((t: any) => ({
+    // Avoid embedded selects relying on FK relationships in Supabase schema cache.
+    const { data: tools, error: toolsErr } = await supabase.from("tools").select("*").order("order_index");
+    if (toolsErr) {
+      toast.show(toolsErr.message, "error");
+      setList([]);
+      return;
+    }
+
+    const ids = (tools || []).map((t: any) => t.id).filter(Boolean);
+    if (ids.length === 0) {
+      setList((tools || []) as Tool[]);
+      return;
+    }
+
+    const [{ data: prosRows, error: prosErr }, { data: consRows, error: consErr }] = await Promise.all([
+      supabase.from("tool_pros").select("tool_id, text, order_index").in("tool_id", ids),
+      supabase.from("tool_cons").select("tool_id, text, order_index").in("tool_id", ids),
+    ]);
+
+    if (prosErr) toast.show(prosErr.message, "error");
+    if (consErr) toast.show(consErr.message, "error");
+
+    const prosByTool = new Map<string, { text: string; order_index: number }[]>();
+    for (const r of (prosRows || []) as any[]) {
+      const arr = prosByTool.get(r.tool_id) || [];
+      arr.push({ text: r.text, order_index: r.order_index });
+      prosByTool.set(r.tool_id, arr);
+    }
+
+    const consByTool = new Map<string, { text: string; order_index: number }[]>();
+    for (const r of (consRows || []) as any[]) {
+      const arr = consByTool.get(r.tool_id) || [];
+      arr.push({ text: r.text, order_index: r.order_index });
+      consByTool.set(r.tool_id, arr);
+    }
+
+    const mapped = (tools || []).map((t: any) => ({
       ...t,
-      pros: (t.tool_pros || []).sort((a: any, b: any) => a.order_index - b.order_index).map((p: any) => p.text),
-      cons: (t.tool_cons || []).sort((a: any, b: any) => a.order_index - b.order_index).map((c: any) => c.text),
-    }));
+      pros: (prosByTool.get(t.id) || []).sort((a, b) => a.order_index - b.order_index).map((p) => p.text),
+      cons: (consByTool.get(t.id) || []).sort((a, b) => a.order_index - b.order_index).map((c) => c.text),
+    })) as Tool[];
+
     setList(mapped);
   }
   useEffect(() => { load(); }, []);
@@ -115,7 +148,7 @@ export default function ToolsAdmin() {
           </div>
           <Input label="Pricing (e.g., 'Free + Pro $10/mo')" value={editing.pricing || ""}
             onChange={(e) => setEditing({ ...editing, pricing: e.target.value })} />
-          <Input label="Best for (one-liner)" value={editing.best_for || ""}
+          <Input label="Use for (one-liner)" value={editing.best_for || ""}
             onChange={(e) => setEditing({ ...editing, best_for: e.target.value })} />
           <Textarea label="Pros (one per line)" value={prosText} onChange={(e) => setProsText(e.target.value)} rows={3} />
           <Textarea label="Cons (one per line)" value={consText} onChange={(e) => setConsText(e.target.value)} rows={3} />

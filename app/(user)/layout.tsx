@@ -1,13 +1,32 @@
+import { createClient } from "@/lib/supabase/server";
 import UserNav from "@/components/user/UserNav";
+import PageView from "@/components/user/PageView";
 
-export default function UserLayout({ children }: { children: React.ReactNode }) {
+export default async function UserLayout({ children }: { children: React.ReactNode }) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let masteryScore = 0;
+  let streakDays = 0;
+  if (user) {
+    const { data: row } = await supabase
+      .from("profiles")
+      .select("xp, streak")
+      .eq("id", user.id)
+      .maybeSingle();
+    const r = row as { xp?: number; streak?: number } | null;
+    masteryScore = Number(r?.xp ?? 0);
+    streakDays = Number(r?.streak ?? 0);
+  }
+
   return (
-    <div className="min-h-screen bg-bg">
-      <UserNav />
-      <main className="md:ml-60 pb-24 md:pb-8">
-        <div className="max-w-3xl mx-auto px-4 py-6 md:px-8 md:py-8">
-          {children}
-        </div>
+    <div className="min-h-screen bg-homeCanvas">
+      <UserNav masteryScore={masteryScore} streakDays={streakDays} isLoggedIn={!!user} />
+      <PageView />
+      <main className="sm:ml-64 pt-[76px] sm:pt-0 pb-8 min-h-screen bg-homeCanvas">
+        <div className="max-w-6xl mx-auto px-4 py-6 md:px-8 md:py-10">{children}</div>
       </main>
     </div>
   );
