@@ -906,21 +906,21 @@ function ProductsCarousel({ products }: { products: ProductOfDay[] }) {
                   track("product_click", { item_id: p.id, title: p.name, url: href });
                   pauseFor(4000);
                 }}
-                className={`flex-shrink-0 flex flex-col w-[min(292px,calc(100vw-3rem))] min-h-[340px] rounded-[22px] overflow-hidden no-underline shadow-[0_10px_36px_rgba(34,29,35,0.14)] snap-start transition-[opacity,transform] duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_44px_rgba(34,29,35,0.18)] ${
+                className={`flex-shrink-0 flex flex-col w-[min(292px,calc(100vw-3rem))] min-h-[286px] rounded-[22px] overflow-hidden no-underline shadow-[0_10px_36px_rgba(34,29,35,0.14)] snap-start transition-[opacity,transform] duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_44px_rgba(34,29,35,0.18)] ${
                   i === activeIdx ? "opacity-100" : "opacity-[0.92] hover:opacity-100"
                 }`}
                 style={{ background: theme }}
               >
-                <div className="px-4 pt-4 pb-1 flex items-center gap-2">
+                <div className="px-4 pt-3 pb-0.5 flex items-center gap-2">
                   <span className="text-amber text-[10px] font-black tracking-[0.12em] shrink-0">—</span>
                   <span className="text-amber text-[10px] font-black tracking-[0.14em] uppercase leading-tight">
                     {ribbon}
                   </span>
                 </div>
 
-                <div className="px-4 pt-2 flex items-start gap-3">
+                <div className="px-4 pt-1.5 flex items-start gap-2.5">
                   <div
-                    className="w-[52px] h-[52px] rounded-[14px] shrink-0 flex items-center justify-center overflow-hidden border border-white/25 shadow-inner"
+                    className="w-[46px] h-[46px] rounded-[12px] shrink-0 flex items-center justify-center overflow-hidden border border-white/25 shadow-inner"
                     style={{
                       background: "linear-gradient(145deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.06) 100%)",
                     }}
@@ -928,27 +928,27 @@ function ProductsCarousel({ products }: { products: ProductOfDay[] }) {
                     {p.image_url ? (
                       <img src={p.image_url} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-[26px] leading-none drop-shadow-sm" aria-hidden>
+                      <span className="text-[22px] leading-none drop-shadow-sm" aria-hidden>
                         ✨
                       </span>
                     )}
                   </div>
                   <div className="min-w-0 flex-1 pt-0.5">
-                    <div className="text-[18px] font-extrabold text-white leading-snug tracking-tight line-clamp-3">
+                    <div className="text-[17px] font-extrabold text-white leading-snug tracking-tight line-clamp-2">
                       {p.name}
                     </div>
                   </div>
                 </div>
 
-                <p className="flex-1 px-4 pt-3 text-[13px] leading-relaxed text-white/[0.92] line-clamp-5">
+                <p className="flex-1 px-4 pt-2 text-[12px] leading-snug text-white/[0.92] line-clamp-4">
                   {p.description}
                 </p>
 
-                <div className="mt-auto px-4 pt-2 pb-5 flex flex-col gap-3">
+                <div className="mt-auto px-4 pt-1.5 pb-4 flex flex-col gap-2">
                   {byline ? (
-                    <span className="text-[12px] font-medium text-white/75">{byline}</span>
+                    <span className="text-[11px] font-medium text-white/75">{byline}</span>
                   ) : null}
-                  <span className="inline-flex self-start items-center rounded-full bg-amber px-4 py-2 text-[12px] font-extrabold text-homeInk shadow-[0_4px_16px_rgba(255,206,0,0.35)]">
+                  <span className="inline-flex self-start items-center rounded-full bg-amber px-3.5 py-1.5 text-[11px] font-extrabold text-homeInk shadow-[0_4px_16px_rgba(255,206,0,0.35)]">
                     Try it →
                   </span>
                 </div>
