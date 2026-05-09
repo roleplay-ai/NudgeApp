@@ -308,7 +308,7 @@ function worldsFundamentalsSubtitle(worlds: World[], modules: Module[]): string 
   const nMods = modules.filter((m) => worldIds.has(m.world_id)).length;
   const wLabel = nWorlds === 1 ? "world" : "worlds";
   const mLabel = nMods === 1 ? "module" : "modules";
-  return `${nWorlds} ${wLabel} · ${nMods} ${mLabel} · ~30 sec each`;
+  return `${nMods} ${mLabel} · ~60 sec each`;
 }
 
 function useCarouselInteractionHint(): "swipe" | "drag" {
@@ -902,7 +902,7 @@ function ProductsCarousel({ products }: { products: ProductOfDay[] }) {
                   track("product_click", { item_id: p.id, title: p.name, url: href });
                   pauseFor(4000);
                 }}
-                className={`flex-shrink-0 flex flex-col w-[min(292px,calc(100vw-3rem))] min-h-[252px] rounded-[22px] overflow-hidden no-underline shadow-[0_10px_36px_rgba(34,29,35,0.14)] snap-start transition-[opacity,transform] duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_44px_rgba(34,29,35,0.18)] ${i === activeIdx ? "opacity-100" : "opacity-[0.92] hover:opacity-100"
+                className={`flex-shrink-0 flex flex-col w-[min(292px,calc(100vw-3rem))] min-h-[218px] rounded-[22px] overflow-hidden no-underline shadow-[0_10px_36px_rgba(34,29,35,0.14)] snap-start transition-[opacity,transform] duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_44px_rgba(34,29,35,0.18)] ${i === activeIdx ? "opacity-100" : "opacity-[0.92] hover:opacity-100"
                   }`}
                 style={{ background: theme }}
               >
