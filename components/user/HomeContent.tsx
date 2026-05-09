@@ -302,14 +302,13 @@ function estimateWorldMinutes(moduleCount: number): number {
 }
 
 function worldsFundamentalsSubtitle(worlds: World[], modules: Module[]): string {
-  const n = worlds.length;
-  if (!n) return "";
-  const mins = worlds.map((w) => {
-    const c = modules.filter((m) => m.world_id === w.id).length;
-    return estimateWorldMinutes(c);
-  });
-  const avg = Math.round(mins.reduce((a, b) => a + b, 0) / n);
-  return `${n} short worlds · ~${avg} min each`;
+  const nWorlds = worlds.length;
+  if (!nWorlds) return "";
+  const worldIds = new Set(worlds.map((w) => w.id));
+  const nMods = modules.filter((m) => worldIds.has(m.world_id)).length;
+  const wLabel = nWorlds === 1 ? "world" : "worlds";
+  const mLabel = nMods === 1 ? "module" : "modules";
+  return `${nWorlds} ${wLabel} · ${nMods} ${mLabel} · ~30 sec each`;
 }
 
 function useCarouselInteractionHint(): "swipe" | "drag" {
@@ -751,7 +750,7 @@ function ApplyVideosCarousel({
       <HomeSectionHeader
         label="Apply"
         title="What can AI do?"
-        subtitle={`${totalLabel} features · click any card for the 30-second video`}
+        subtitle={"Most useful and common features across chatbots"}
       />
 
       <div
@@ -874,7 +873,7 @@ function ProductsCarousel({ products }: { products: ProductOfDay[] }) {
       <HomeSectionHeader
         label="This week"
         title="Products of the week"
-        subtitle={`${products.length} new launches our editors have tried`}
+        subtitle={"Best in their categories"}
       />
 
       <div
@@ -903,20 +902,20 @@ function ProductsCarousel({ products }: { products: ProductOfDay[] }) {
                   track("product_click", { item_id: p.id, title: p.name, url: href });
                   pauseFor(4000);
                 }}
-                className={`flex-shrink-0 flex flex-col w-[min(292px,calc(100vw-3rem))] min-h-[286px] rounded-[22px] overflow-hidden no-underline shadow-[0_10px_36px_rgba(34,29,35,0.14)] snap-start transition-[opacity,transform] duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_44px_rgba(34,29,35,0.18)] ${i === activeIdx ? "opacity-100" : "opacity-[0.92] hover:opacity-100"
+                className={`flex-shrink-0 flex flex-col w-[min(292px,calc(100vw-3rem))] min-h-[252px] rounded-[22px] overflow-hidden no-underline shadow-[0_10px_36px_rgba(34,29,35,0.14)] snap-start transition-[opacity,transform] duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_44px_rgba(34,29,35,0.18)] ${i === activeIdx ? "opacity-100" : "opacity-[0.92] hover:opacity-100"
                   }`}
                 style={{ background: theme }}
               >
-                <div className="px-4 pt-3 pb-0.5 flex items-center gap-2">
+                <div className="px-3.5 pt-2.5 pb-px flex items-center gap-1.5">
                   <span className="text-amber text-[10px] font-black tracking-[0.12em] shrink-0">—</span>
                   <span className="text-amber text-[10px] font-black tracking-[0.14em] uppercase leading-tight">
                     {ribbon}
                   </span>
                 </div>
 
-                <div className="px-4 pt-1.5 flex items-start gap-2.5">
+                <div className="px-3.5 pt-1 flex items-start gap-2">
                   <div
-                    className="w-[46px] h-[46px] rounded-[12px] shrink-0 flex items-center justify-center overflow-hidden border border-white/25 shadow-inner"
+                    className="w-[40px] h-[40px] rounded-[11px] shrink-0 flex items-center justify-center overflow-hidden border border-white/25 shadow-inner"
                     style={{
                       background: "linear-gradient(145deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.06) 100%)",
                     }}
@@ -924,27 +923,27 @@ function ProductsCarousel({ products }: { products: ProductOfDay[] }) {
                     {p.image_url ? (
                       <img src={p.image_url} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-[22px] leading-none drop-shadow-sm" aria-hidden>
+                      <span className="text-[19px] leading-none drop-shadow-sm" aria-hidden>
                         ✨
                       </span>
                     )}
                   </div>
-                  <div className="min-w-0 flex-1 pt-0.5">
-                    <div className="text-[17px] font-extrabold text-white leading-snug tracking-tight line-clamp-2">
+                  <div className="min-w-0 flex-1 pt-px">
+                    <div className="text-[16px] font-extrabold text-white leading-snug tracking-tight line-clamp-2">
                       {p.name}
                     </div>
                   </div>
                 </div>
 
-                <p className="flex-1 px-4 pt-2 text-[12px] leading-snug text-white/[0.92] line-clamp-4">
+                <p className="flex-1 px-3.5 pt-1.5 text-[11.5px] leading-snug text-white/[0.92] line-clamp-3">
                   {p.description}
                 </p>
 
-                <div className="mt-auto px-4 pt-1.5 pb-4 flex flex-col gap-2">
+                <div className="mt-auto px-3.5 pt-1 pb-3 flex flex-col gap-1.5">
                   {byline ? (
-                    <span className="text-[11px] font-medium text-white/75">{byline}</span>
+                    <span className="text-[10px] font-medium text-white/75">{byline}</span>
                   ) : null}
-                  <span className="inline-flex self-start items-center rounded-full bg-amber px-3.5 py-1.5 text-[11px] font-extrabold text-homeInk shadow-[0_4px_16px_rgba(255,206,0,0.35)]">
+                  <span className="inline-flex self-start items-center rounded-full bg-amber px-3 py-1 text-[10px] font-extrabold text-homeInk shadow-[0_4px_16px_rgba(255,206,0,0.35)]">
                     Try it →
                   </span>
                 </div>
