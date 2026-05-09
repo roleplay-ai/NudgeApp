@@ -531,7 +531,7 @@ function WorldsCarousel({ worlds, modules }: { worlds: World[]; modules: Module[
     <section className="space-y-3">
       <HomeSectionHeader
         label="Learn"
-        title="AI fundamentals"
+        title="AI Foundations"
         subtitle={worldsFundamentalsSubtitle(worlds, modules)}
       />
 
@@ -563,9 +563,8 @@ function WorldsCarousel({ worlds, modules }: { worlds: World[]; modules: Module[
                 key={w.id}
                 type="button"
                 onClick={() => handleSelectWorld(w, i)}
-                className={`flex-shrink-0 flex items-center gap-3 rounded-[18px] pl-3 pr-3 py-3 text-left cursor-pointer transition-[opacity,box-shadow] duration-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] snap-start ${
-                  activeIdx === i ? "opacity-100" : "opacity-[0.88] hover:opacity-100"
-                }`}
+                className={`flex-shrink-0 flex items-center gap-3 rounded-[18px] pl-3 pr-3 py-3 text-left cursor-pointer transition-[opacity,box-shadow] duration-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] snap-start ${activeIdx === i ? "opacity-100" : "opacity-[0.88] hover:opacity-100"
+                  }`}
                 style={{
                   width: "min(300px, calc(100vw - 3rem))",
                   borderTopWidth: 3,
@@ -611,7 +610,7 @@ function WorldsCarousel({ worlds, modules }: { worlds: World[]; modules: Module[
           total={worlds.length}
           hint={hint}
           linkHref="/learn"
-          linkLabel="See all worlds →"
+          linkLabel="See all →"
         />
       </div>
 
@@ -665,24 +664,23 @@ function WorldsCarousel({ worlds, modules }: { worlds: World[]; modules: Module[
                     style={
                       locked
                         ? {
-                            background: "rgba(34,29,35,0.07)",
-                            color: "#9e8e7a",
-                            border: "1.5px solid rgba(34,29,35,0.12)",
-                          }
+                          background: "rgba(34,29,35,0.07)",
+                          color: "#9e8e7a",
+                          border: "1.5px solid rgba(34,29,35,0.12)",
+                        }
                         : {
-                            background: `${selectedWorld.color}18`,
-                            color: selectedWorld.color,
-                            border: `1.5px solid ${selectedWorld.color}35`,
-                          }
+                          background: `${selectedWorld.color}18`,
+                          color: selectedWorld.color,
+                          border: `1.5px solid ${selectedWorld.color}35`,
+                        }
                     }
                   >
                     {locked ? <Lock size={10} strokeWidth={2.5} /> : idx + 1}
                   </div>
                   <div className="flex-1 min-w-0">
                     <span
-                      className={`text-[13px] font-bold leading-tight ${
-                        locked ? "text-homeSubtle" : "text-homeInk"
-                      }`}
+                      className={`text-[13px] font-bold leading-tight ${locked ? "text-homeSubtle" : "text-homeInk"
+                        }`}
                     >
                       {m.title}
                     </span>
@@ -789,9 +787,8 @@ function ApplyVideosCarousel({
                   pauseFor(4000);
                   track("apply_click", { item_id: v.id, title: v.title });
                 }}
-                className={`flex-shrink-0 w-[min(268px,calc(100vw-3rem))] overflow-hidden rounded-[18px] border border-black/[0.06] bg-white text-left cursor-pointer transition-opacity duration-200 shadow-[0_2px_12px_rgba(0,0,0,0.06)] snap-start flex flex-col ${
-                  i === activeIdx ? "opacity-100" : "opacity-[0.9] hover:opacity-100"
-                }`}
+                className={`flex-shrink-0 w-[min(268px,calc(100vw-3rem))] overflow-hidden rounded-[18px] border border-black/[0.06] bg-white text-left cursor-pointer transition-opacity duration-200 shadow-[0_2px_12px_rgba(0,0,0,0.06)] snap-start flex flex-col ${i === activeIdx ? "opacity-100" : "opacity-[0.9] hover:opacity-100"
+                  }`}
               >
                 <div
                   className="relative h-[132px] w-full shrink-0 overflow-hidden"
@@ -906,9 +903,8 @@ function ProductsCarousel({ products }: { products: ProductOfDay[] }) {
                   track("product_click", { item_id: p.id, title: p.name, url: href });
                   pauseFor(4000);
                 }}
-                className={`flex-shrink-0 flex flex-col w-[min(292px,calc(100vw-3rem))] min-h-[286px] rounded-[22px] overflow-hidden no-underline shadow-[0_10px_36px_rgba(34,29,35,0.14)] snap-start transition-[opacity,transform] duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_44px_rgba(34,29,35,0.18)] ${
-                  i === activeIdx ? "opacity-100" : "opacity-[0.92] hover:opacity-100"
-                }`}
+                className={`flex-shrink-0 flex flex-col w-[min(292px,calc(100vw-3rem))] min-h-[286px] rounded-[22px] overflow-hidden no-underline shadow-[0_10px_36px_rgba(34,29,35,0.14)] snap-start transition-[opacity,transform] duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_44px_rgba(34,29,35,0.18)] ${i === activeIdx ? "opacity-100" : "opacity-[0.92] hover:opacity-100"
+                  }`}
                 style={{ background: theme }}
               >
                 <div className="px-4 pt-3 pb-0.5 flex items-center gap-2">
@@ -1078,10 +1074,10 @@ function applyVideoBlurb(description: string | null | undefined): string {
 }
 
 const GROUP_COLORS: Record<string, string> = {
-  Features:  "#A855F7",
-  Apps:      "#EC4899",
+  Features: "#A855F7",
+  Apps: "#EC4899",
   Workflows: "#F68A29",
-  Skills:    "#3699FC",
+  Skills: "#3699FC",
 };
 
 function featureAccent(group: string | null | undefined): string {
