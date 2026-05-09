@@ -19,7 +19,7 @@ export default async function Home() {
   const [
     { data: newsBrief },
     { data: briefHeroRow },
-    { data: productOfDay },
+    { data: productsData },
     { data: weeklyPickRows },
     { data: worlds },
     { data: modules },
@@ -32,11 +32,11 @@ export default async function Home() {
       .order("updated_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
-    supabase.from("product_of_day").select("*").eq("is_active", true).maybeSingle(),
+    supabase.from("product_of_day").select("*").eq("is_active", true).order("active_date", { ascending: false }).limit(7),
     supabase.from("home_weekly_watch_videos").select("*").order("slot", { ascending: true }).limit(4),
     supabase.from("worlds").select("*").eq("is_published", true).order("order_index").limit(12),
     supabase.from("modules").select("*").eq("is_published", true).order("order_index"),
-    supabase.from("apply_videos").select("*").eq("is_published", true).order("order_index").limit(3),
+    supabase.from("apply_videos").select("*").eq("is_published", true).order("order_index").limit(12),
   ]);
 
   const picks = (weeklyPickRows || []) as HomeWeeklyWatchVideo[];
@@ -63,7 +63,7 @@ export default async function Home() {
     <HomeContent
       briefNews={(newsBrief || []) as NewsItem[]}
       briefHero={(briefHeroRow as HomeBriefHero | null) ?? null}
-      productOfWeek={(productOfDay as ProductOfDay | null) ?? null}
+      products={(productsData || []) as ProductOfDay[]}
       libraryVideos={libraryVideos}
       worlds={(worlds || []) as World[]}
       modules={(modules || []) as Module[]}

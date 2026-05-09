@@ -92,7 +92,7 @@ function walkthroughCaption(description: string | null | undefined): string | nu
   return oneLine.length > 0 ? oneLine : null;
 }
 
-function ApplyVideoDetailModal({ video, onClose }: { video: ApplyVideo; onClose: () => void }) {
+export function ApplyVideoDetailModal({ video, onClose }: { video: ApplyVideo; onClose: () => void }) {
   const group = (video.group_name || "Features").trim();
   const accent = GROUP_ACCENT[group] || "#A855F7";
   const cat = formatCategoryLabel(video.category_tag);

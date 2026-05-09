@@ -1,11 +1,14 @@
 "use client";
 
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { ChevronRight, Lock, Loader2, X } from "lucide-react";
 import RichText from "@/components/ui/RichText";
 import type {
   ApplyVideo,
   HomeBriefHero,
   Module,
+  ModuleScreen,
   NewsItem,
   ProductOfDay,
   WatchVideo,
@@ -13,6 +16,9 @@ import type {
 } from "@/lib/types";
 import { resolveVideoThumbnailUrl } from "@/lib/videoThumbnails";
 import { track } from "@/lib/analytics";
+import { getModuleWithScreens } from "@/app/actions/getModule";
+import ModulePlayer from "@/components/user/ModulePlayer";
+import { ApplyVideoDetailModal } from "@/components/user/ApplyVideosFeed";
 
 function formatBriefDate(iso: string | undefined) {
   if (!iso) return "";
@@ -25,8 +31,6 @@ function formatBriefDate(iso: string | undefined) {
 
 const VIDEO_AVATAR_COLORS = ["#ED4551", "#623CEA", "#F68A29", "#3696FC", "#23CE68", "#FFCE00"];
 
-const HOME_CLAY = "#C07B3A";
-
 const HERO_FALLBACK = {
   badge_label: "NUDGEABLE BRIEF",
   title: "What changed in AI — fast",
@@ -34,10 +38,102 @@ const HERO_FALLBACK = {
     "Three headlines worth your attention — curated, plain English, links when you want more.",
 };
 
+// ─── Shared auto-scroll carousel hook ────────────────────────────────────────
+
+function useCarousel(count: number, intervalMs = 2000) {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const pausedRef = useRef(false);
+
+  // Scroll track to active card whenever index changes
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track || count === 0) return;
+    requestAnimationFrame(() => {
+      const card = track.children[activeIdx] as HTMLElement;
+      if (card) {
+        track.scrollTo({ left: card.offsetLeft, behavior: "smooth" });
+      }
+    });
+  }, [activeIdx, count]);
+
+  // Auto-advance timer
+  useEffect(() => {
+    if (count <= 1) return;
+    const timer = setInterval(() => {
+      if (!pausedRef.current) {
+        setActiveIdx((p) => (p + 1) % count);
+      }
+    }, intervalMs);
+    return () => clearInterval(timer);
+  }, [count, intervalMs]);
+
+  const pause = useCallback(() => {
+    pausedRef.current = true;
+  }, []);
+
+  const resume = useCallback(() => {
+    pausedRef.current = false;
+  }, []);
+
+  const pauseFor = useCallback((ms: number) => {
+    pausedRef.current = true;
+    setTimeout(() => {
+      pausedRef.current = false;
+    }, ms);
+  }, []);
+
+  const goTo = useCallback(
+    (i: number) => {
+      setActiveIdx(i);
+      pausedRef.current = true;
+      setTimeout(() => {
+        pausedRef.current = false;
+      }, 4000);
+    },
+    []
+  );
+
+  return { activeIdx, trackRef, pause, resume, pauseFor, goTo };
+}
+
+// ─── Dot indicator row ────────────────────────────────────────────────────────
+
+function CarouselDots({
+  count,
+  activeIdx,
+  onGoTo,
+}: {
+  count: number;
+  activeIdx: number;
+  onGoTo: (i: number) => void;
+}) {
+  if (count <= 1) return null;
+  return (
+    <div className="flex justify-center gap-1.5 mt-3">
+      {Array.from({ length: count }).map((_, i) => (
+        <button
+          key={i}
+          type="button"
+          onClick={() => onGoTo(i)}
+          aria-label={`Go to item ${i + 1}`}
+          className={`h-1.5 rounded-full transition-all duration-300 ${
+            i === activeIdx
+              ? "w-5 bg-homeClay"
+              : "w-1.5 bg-homeInk/20 hover:bg-homeInk/40"
+          }`}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ─── Main HomeContent ─────────────────────────────────────────────────────────
+
 export default function HomeContent({
   briefNews,
   briefHero,
-  productOfWeek,
+  products,
   libraryVideos,
   worlds,
   modules,
@@ -45,14 +141,12 @@ export default function HomeContent({
 }: {
   briefNews: NewsItem[];
   briefHero: HomeBriefHero | null;
-  productOfWeek: ProductOfDay | null;
+  products: ProductOfDay[];
   libraryVideos: WatchVideo[];
   worlds: World[];
   modules: Module[];
   applyMidVideos: ApplyVideo[];
 }) {
-  const learnWorlds = worlds.slice(0, 3);
-
   const showBriefHero = briefNews.length > 0 || !!briefHero;
   const heroBadge = briefHero?.badge_label?.trim() || HERO_FALLBACK.badge_label;
   const heroTitle = briefHero?.title?.trim() || HERO_FALLBACK.title;
@@ -74,7 +168,7 @@ export default function HomeContent({
         </div>
       </header>
 
-      {/* Nudgeable Brief hero — badge/title from Admin → Brief hero; news briefs inline */}
+      {/* Nudgeable Brief hero */}
       {showBriefHero && (
         <section aria-labelledby="brief-hero-heading">
           <div className="rounded-2xl border border-homeInk/10 shadow-md overflow-hidden bg-homeInk px-5 pt-6 pb-6 md:px-8 md:pt-8 md:pb-7">
@@ -142,20 +236,16 @@ export default function HomeContent({
         </section>
       )}
 
-      {/* Middle row — matches reference: product, learn fundamentals, AI features */}
-      {(productOfWeek || learnWorlds.length > 0 || applyMidVideos.length > 0) && (
-        <section>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-4">
-            {learnWorlds.length > 0 ? (
-              <HomeMidLearnCard worlds={learnWorlds} modules={modules} />
-            ) : null}
-            {applyMidVideos.length > 0 ? <HomeMidFeaturesCard videos={applyMidVideos} /> : null}
-            {productOfWeek ? <HomeMidProductCard product={productOfWeek} /> : null}
-          </div>
-        </section>
-      )}
+      {/* Worlds horizontal auto-scroll carousel */}
+      {worlds.length > 0 && <WorldsCarousel worlds={worlds} modules={modules} />}
 
-      {/* Watch this week — compact dark thumbs inside white shell (reference HTML) */}
+      {/* Apply videos horizontal auto-scroll carousel */}
+      {applyMidVideos.length > 0 && <ApplyVideosCarousel videos={applyMidVideos} />}
+
+      {/* Products horizontal auto-scroll carousel */}
+      {products.length > 0 && <ProductsCarousel products={products} />}
+
+      {/* Watch this week */}
       {libraryVideos.length > 0 && (
         <section>
           <div className="rounded-xl bg-white border border-homeShellLine px-5 py-[18px] shadow-sm">
@@ -177,7 +267,7 @@ export default function HomeContent({
         </section>
       )}
 
-      {/* Discovery cards — Learn resources, Tools, Glossary */}
+      {/* Discovery cards */}
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-5 pt-2">
         <HomeDiscoveryCard
           href="/learn?tab=resources"
@@ -207,6 +297,417 @@ export default function HomeContent({
     </div>
   );
 }
+
+// ─── Worlds carousel ──────────────────────────────────────────────────────────
+
+function WorldsCarousel({ worlds, modules }: { worlds: World[]; modules: Module[] }) {
+  const { activeIdx, trackRef, pause, resume, pauseFor, goTo } = useCarousel(worlds.length);
+  const [selectedWorld, setSelectedWorld] = useState<World | null>(null);
+  const [playerData, setPlayerData] = useState<{
+    module: Module;
+    screens: ModuleScreen[];
+  } | null>(null);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+
+  async function handleOpenModule(m: Module) {
+    if (m.is_locked || loadingId) return;
+    setLoadingId(m.id);
+    const data = await getModuleWithScreens(m.id);
+    setLoadingId(null);
+    if (data) setPlayerData(data);
+  }
+
+  function handleSelectWorld(world: World, i: number) {
+    goTo(i);
+    setSelectedWorld((prev) => (prev?.id === world.id ? null : world));
+  }
+
+  const worldModules = selectedWorld
+    ? modules.filter((m) => m.world_id === selectedWorld.id)
+    : [];
+
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[11px] font-bold text-homeInk">Learn AI worlds</span>
+        <Link href="/learn" className="text-xs font-semibold text-homeClay hover:underline no-underline">
+          All worlds →
+        </Link>
+      </div>
+
+      <div onMouseEnter={pause} onMouseLeave={resume} onTouchStart={() => pauseFor(4000)}>
+        <div
+          ref={trackRef}
+          className="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          style={{ scrollSnapType: "x mandatory" }}
+        >
+          {worlds.map((w, i) => {
+            const wMods = modules.filter((m) => m.world_id === w.id);
+            const isSelected = selectedWorld?.id === w.id;
+            const isActive = activeIdx === i;
+            return (
+              <button
+                key={w.id}
+                type="button"
+                onClick={() => handleSelectWorld(w, i)}
+                className={`flex-shrink-0 rounded-xl px-4 py-3.5 text-left cursor-pointer transition-all duration-200
+                  ${isActive ? "opacity-100" : "opacity-75 hover:opacity-100"}`}
+                style={{
+                  scrollSnapAlign: "start",
+                  width: "196px",
+                  border: isSelected
+                    ? `2px solid ${w.color}`
+                    : `1.5px solid ${w.color}28`,
+                  background: isSelected ? `${w.color}12` : `${w.color}07`,
+                  boxShadow: isSelected
+                    ? `0 0 0 3px ${w.color}22, 0 4px 16px ${w.color}18`
+                    : "0 1px 4px rgba(0,0,0,0.06)",
+                }}
+              >
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center text-xl mb-2.5"
+                  style={{
+                    background: `${w.color}18`,
+                    border: `1.5px solid ${w.color}35`,
+                  }}
+                >
+                  {w.emoji}
+                </div>
+                <div className="text-[13px] font-bold text-homeInk leading-tight">{w.title}</div>
+                <div className="text-[10px] font-semibold mt-1" style={{ color: w.color }}>
+                  {wMods.length} module{wMods.length !== 1 ? "s" : ""}
+                </div>
+                {isSelected && (
+                  <div className="mt-1.5 flex items-center gap-0.5" style={{ color: w.color }}>
+                    <ChevronRight size={9} className="rotate-90" />
+                    <span className="text-[9px] font-bold">Open</span>
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <CarouselDots count={worlds.length} activeIdx={activeIdx} onGoTo={goTo} />
+      </div>
+
+      {/* Expanded modules panel */}
+      {selectedWorld && (
+        <div
+          className="mt-4 rounded-xl border px-4 py-4"
+          style={{
+            borderColor: `${selectedWorld.color}28`,
+            background: `${selectedWorld.color}05`,
+          }}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xl">{selectedWorld.emoji}</span>
+              <span className="text-[14px] font-extrabold text-homeInk">{selectedWorld.title}</span>
+              <span
+                className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                style={{
+                  background: `${selectedWorld.color}18`,
+                  color: selectedWorld.color,
+                }}
+              >
+                {worldModules.length} module{worldModules.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSelectedWorld(null)}
+              className="p-1 rounded-lg text-homeSubtle hover:text-homeInk transition-colors"
+            >
+              <X size={14} />
+            </button>
+          </div>
+
+          <div className="flex flex-col">
+            {worldModules.map((m, idx) => {
+              const locked = m.is_locked;
+              const loading = loadingId === m.id;
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => handleOpenModule(m)}
+                  disabled={locked || !!loadingId}
+                  className={`w-full flex gap-3 items-start py-2.5 rounded-xl px-2 -mx-2 text-left transition group
+                    ${locked ? "cursor-not-allowed opacity-55" : loading ? "cursor-wait" : "hover:bg-white/60 cursor-pointer"}`}
+                >
+                  <div
+                    className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 text-[11px] font-black"
+                    style={
+                      locked
+                        ? {
+                            background: "rgba(34,29,35,0.07)",
+                            color: "#9e8e7a",
+                            border: "1.5px solid rgba(34,29,35,0.12)",
+                          }
+                        : {
+                            background: `${selectedWorld.color}18`,
+                            color: selectedWorld.color,
+                            border: `1.5px solid ${selectedWorld.color}35`,
+                          }
+                    }
+                  >
+                    {locked ? <Lock size={10} strokeWidth={2.5} /> : idx + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span
+                      className={`text-[13px] font-bold leading-tight ${
+                        locked ? "text-homeSubtle" : "text-homeInk"
+                      }`}
+                    >
+                      {m.title}
+                    </span>
+                    {m.concepts && m.concepts.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-0.5">
+                        {m.concepts.slice(0, 3).map((c, ci) => (
+                          <span
+                            key={ci}
+                            className="text-[10px] text-homeSubtle/80 bg-homeInk/5 px-1.5 py-0.5 rounded-md font-medium"
+                          >
+                            {c}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {locked ? (
+                    <Lock size={12} className="text-homeSubtle/40 shrink-0 mt-1" />
+                  ) : loading ? (
+                    <Loader2
+                      size={13}
+                      className="shrink-0 mt-1 animate-spin"
+                      style={{ color: selectedWorld.color }}
+                    />
+                  ) : (
+                    <ChevronRight
+                      size={13}
+                      className="text-homeSubtle/50 shrink-0 mt-1 group-hover:text-homeInk group-hover:translate-x-0.5 transition"
+                    />
+                  )}
+                </button>
+              );
+            })}
+            {worldModules.length === 0 && (
+              <div className="text-xs text-homeSubtle py-2 px-2">No modules yet.</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {playerData && (
+        <ModulePlayer
+          module={playerData.module}
+          screens={playerData.screens}
+          onClose={() => setPlayerData(null)}
+        />
+      )}
+    </section>
+  );
+}
+
+// ─── Apply videos carousel ────────────────────────────────────────────────────
+
+function ApplyVideosCarousel({ videos }: { videos: ApplyVideo[] }) {
+  const { activeIdx, trackRef, pause, resume, pauseFor, goTo } = useCarousel(videos.length);
+  const [modalVideo, setModalVideo] = useState<ApplyVideo | null>(null);
+
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[11px] font-bold text-homeInk">Explore AI features</span>
+        <Link href="/apply" className="text-xs font-semibold text-homeClay hover:underline no-underline">
+          See all →
+        </Link>
+      </div>
+
+      <div onMouseEnter={pause} onMouseLeave={resume} onTouchStart={() => pauseFor(4000)}>
+        <div
+          ref={trackRef}
+          className="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          style={{ scrollSnapType: "x mandatory" }}
+        >
+          {videos.map((v, i) => {
+            const accent = featureAccent(v.group_name);
+            const tv = tagVariant(v.category_tag);
+            const blurb = applyVideoBlurb(v.description);
+            return (
+              <button
+                key={v.id}
+                type="button"
+                onClick={() => {
+                  setModalVideo(v);
+                  pauseFor(4000);
+                  track("apply_click", { item_id: v.id, title: v.title });
+                }}
+                className={`flex-shrink-0 rounded-xl border border-[#ece8e0] bg-[#faf8f4] px-4 py-3.5 text-left cursor-pointer transition-all duration-200 flex flex-col
+                  ${i === activeIdx ? "opacity-100 shadow-sm" : "opacity-75 hover:opacity-100 hover:shadow-md"}`}
+                style={{ scrollSnapAlign: "start", width: "210px" }}
+              >
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center text-[19px] mb-2.5"
+                  style={{
+                    background: `${accent}18`,
+                    border: `1.5px solid ${accent}30`,
+                  }}
+                >
+                  {featureIcon(v.title)}
+                </div>
+                <div className="flex items-start gap-1.5 flex-wrap mb-1.5">
+                  <span className="text-[13px] font-bold text-homeInk leading-tight">{v.title}</span>
+                  {v.category_tag && (
+                    <span
+                      className="text-[8px] font-black tracking-[0.1em] uppercase px-1.5 py-0.5 rounded-md shrink-0"
+                      style={{ background: tv.bg, color: tv.color }}
+                    >
+                      {v.category_tag}
+                    </span>
+                  )}
+                </div>
+                {blurb && (
+                  <p className="text-[11px] text-homeSubtle line-clamp-2 leading-relaxed flex-1">
+                    {blurb}
+                  </p>
+                )}
+                <div className="mt-3 flex justify-end">
+                  <div
+                    className="w-7 h-7 rounded-full flex items-center justify-center"
+                    style={{ background: accent }}
+                  >
+                    <span className="text-white text-[9px] pl-px font-black">▶</span>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        <CarouselDots count={videos.length} activeIdx={activeIdx} onGoTo={goTo} />
+      </div>
+
+      {modalVideo && (
+        <ApplyVideoDetailModal video={modalVideo} onClose={() => setModalVideo(null)} />
+      )}
+    </section>
+  );
+}
+
+// ─── Products carousel ────────────────────────────────────────────────────────
+
+function ProductsCarousel({ products }: { products: ProductOfDay[] }) {
+  const { activeIdx, trackRef, pause, resume, pauseFor, goTo } = useCarousel(products.length);
+
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[11px] font-bold text-homeInk">Product of the week</span>
+      </div>
+
+      <div onMouseEnter={pause} onMouseLeave={resume} onTouchStart={() => pauseFor(4000)}>
+        <div
+          ref={trackRef}
+          className="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          style={{ scrollSnapType: "x mandatory" }}
+        >
+          {products.map((p, i) => {
+            const href = p.url || "/tools";
+            return (
+              <a
+                key={p.id}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => {
+                  track("product_click", { item_id: p.id, title: p.name, url: href });
+                  pauseFor(4000);
+                }}
+                className={`flex-shrink-0 rounded-xl overflow-hidden no-underline transition-all duration-200 cursor-pointer flex flex-col
+                  ${i === activeIdx ? "opacity-100" : "opacity-75 hover:opacity-100"}
+                  hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(80,30,180,0.30)]`}
+                style={{
+                  scrollSnapAlign: "start",
+                  width: "260px",
+                  minHeight: "210px",
+                  background:
+                    "linear-gradient(145deg,#5B2AB8 0%,#3B1285 55%,#2A0E6A 100%)",
+                }}
+              >
+                <div className="px-4 pt-4 pb-0 flex items-center gap-2">
+                  <span className="text-amber text-[10px] font-black tracking-[0.2em]">—</span>
+                  <span className="text-amber text-[10px] font-black tracking-[0.16em] uppercase">
+                    PRODUCT OF THE WEEK
+                  </span>
+                </div>
+
+                <div className="px-4 pt-3 flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-[10px] flex items-center justify-center text-[20px] shrink-0"
+                    style={{
+                      background: "rgba(255,206,0,0.18)",
+                      border: "1.5px solid rgba(255,206,0,0.35)",
+                    }}
+                  >
+                    {p.image_url ? (
+                      <img
+                        src={p.image_url}
+                        alt=""
+                        className="w-full h-full object-cover rounded-[8px]"
+                      />
+                    ) : (
+                      "✨"
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[18px] font-extrabold leading-tight text-white tracking-tight truncate">
+                      {p.name}
+                    </div>
+                  </div>
+                </div>
+
+                <p className="flex-1 px-4 pt-2 text-[12px] leading-relaxed text-white/70 line-clamp-2">
+                  {p.description}
+                </p>
+
+                <div className="px-4 pt-2 pb-4 flex items-center justify-between gap-2 mt-auto">
+                  {p.tagline ? (
+                    <span
+                      className="text-[10px] font-semibold px-2.5 py-1 rounded-full text-white/80 truncate max-w-[55%]"
+                      style={{
+                        background: "rgba(255,255,255,0.12)",
+                        border: "1px solid rgba(255,255,255,0.14)",
+                      }}
+                    >
+                      {p.tagline}
+                    </span>
+                  ) : (
+                    <span />
+                  )}
+                  <span
+                    className="shrink-0 text-[12px] font-bold px-3.5 py-1.5 rounded-full"
+                    style={{
+                      background: "#FFCE00",
+                      boxShadow: "0 2px 12px rgba(255,206,0,0.40)",
+                    }}
+                  >
+                    Try it →
+                  </span>
+                </div>
+              </a>
+            );
+          })}
+        </div>
+
+        <CarouselDots count={products.length} activeIdx={activeIdx} onGoTo={goTo} />
+      </div>
+    </section>
+  );
+}
+
+// ─── Watch this week thumb ─────────────────────────────────────────────────────
 
 function WatchWeekThumb({ video }: { video: WatchVideo }) {
   const thumb = resolveVideoThumbnailUrl(video.thumbnail_url, video.url);
@@ -261,6 +762,8 @@ function WatchWeekThumb({ video }: { video: WatchVideo }) {
   );
 }
 
+// ─── Discovery card ────────────────────────────────────────────────────────────
+
 function HomeDiscoveryCard({
   href,
   emoji,
@@ -276,7 +779,6 @@ function HomeDiscoveryCard({
   cta: string;
   accent: "green" | "navy" | "purple";
 }) {
-  /* Solid fills match reference wireframe: #2d5a3d, #1e3a5f, #4a2060 */
   const surface =
     accent === "green"
       ? "bg-homeCtaGreen border-homeCtaGreen"
@@ -304,132 +806,8 @@ function HomeDiscoveryCard({
   );
 }
 
-function HomeMidProductCard({ product }: { product: ProductOfDay }) {
-  const href = product.url || "/tools";
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="group flex h-full cursor-pointer flex-col rounded-xl overflow-hidden no-underline transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(80,30,180,0.30)]"
-      style={{ background: "linear-gradient(145deg,#5B2AB8 0%,#3B1285 55%,#2A0E6A 100%)" }}
-      onClick={() => track("product_click", { item_id: product.id, title: product.name, url: href })}
-    >
-      {/* Top label */}
-      <div className="px-5 pt-5 pb-0 flex items-center gap-2">
-        <span className="text-amber text-[10px] font-black tracking-[0.2em]">—</span>
-        <span className="text-amber text-[10px] font-black tracking-[0.16em] uppercase">
-          PRODUCT OF THE WEEK
-        </span>
-      </div>
+// ─── Helpers ───────────────────────────────────────────────────────────────────
 
-      {/* Icon + name */}
-      <div className="px-5 pt-4 flex items-center gap-3">
-        <div
-          className="w-12 h-12 rounded-[12px] flex items-center justify-center text-[24px] shrink-0"
-          style={{ background: "rgba(255,206,0,0.18)", border: "1.5px solid rgba(255,206,0,0.35)" }}
-        >
-          {product.image_url ? (
-            <img src={product.image_url} alt="" className="w-full h-full object-cover rounded-[10px]" />
-          ) : "✨"}
-        </div>
-        <div className="min-w-0">
-          <div className="text-[22px] font-extrabold leading-tight text-white tracking-tight">
-            {product.name}
-          </div>
-        </div>
-      </div>
-
-      {/* Description */}
-      <p className="flex-1 px-5 pt-3 text-[13px] leading-relaxed text-white/70 text-pretty">
-        {product.description}
-      </p>
-
-      {/* Footer */}
-      <div className="px-5 pt-3 pb-5 flex items-center justify-between gap-3 mt-2">
-        {product.tagline ? (
-          <span
-            className="text-[11px] font-semibold px-3 py-1.5 rounded-full text-white/80"
-            style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.14)" }}
-          >
-            {product.tagline}
-          </span>
-        ) : <span />}
-        <span
-          className="shrink-0 text-[13px] font-bold text-shadow px-4 py-1.5 rounded-full transition group-hover:brightness-95"
-          style={{ background: "#FFCE00", boxShadow: "0 2px 12px rgba(255,206,0,0.40)" }}
-        >
-          Try it →
-        </span>
-      </div>
-    </a>
-  );
-}
-
-function HomeMidLearnCard({ worlds, modules }: { worlds: World[]; modules: Module[] }) {
-  const totalMods = modules.length;
-  return (
-    <div className="flex h-full flex-col rounded-xl border border-homeShellLine bg-white px-5 py-[18px] shadow-sm">
-      {/* Header */}
-      <div className="mb-1 flex items-start justify-between gap-2">
-        <div>
-          <div className="text-[15px] font-extrabold text-homeInk leading-tight">Learn AI fundamentals</div>
-          <div className="text-[11px] text-homeSubtle mt-0.5">
-            {worlds.length} short world{worlds.length !== 1 ? "s" : ""} · ~{Math.max(5, totalMods * 2)} min each
-          </div>
-        </div>
-        <Link
-          href="/learn"
-          className="shrink-0 text-[12px] font-bold text-homeClay hover:underline no-underline mt-0.5"
-        >
-          Start →
-        </Link>
-      </div>
-
-      <div className="mt-3 flex flex-col gap-2">
-        {worlds.map((w) => {
-          const wMods = modules.filter((m) => m.world_id === w.id);
-          const href = `/learn`;
-          return (
-            <Link
-              key={w.id}
-              href={href}
-              className="group flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 transition-all hover:shadow-sm no-underline"
-              style={{ borderColor: `${w.color}28`, background: `${w.color}09` }}
-              onClick={() => track("learn_click", { item_id: w.id, title: w.title })}
-            >
-              {/* Emoji icon */}
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-[20px] shrink-0"
-                style={{ background: `${w.color}20`, border: `1.5px solid ${w.color}35` }}
-              >
-                {w.emoji}
-              </div>
-
-              {/* Title + count */}
-              <div className="min-w-0 flex-1">
-                <div className="text-[13px] font-bold text-homeInk leading-tight">{w.title}</div>
-                <div className="text-[11px] font-semibold mt-0.5" style={{ color: w.color }}>
-                  {wMods.length} module{wMods.length === 1 ? "" : "s"}
-                </div>
-              </div>
-
-              {/* Right arrow */}
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-transform group-hover:translate-x-0.5"
-                style={{ background: `${w.color}18`, border: `1.5px solid ${w.color}35` }}
-              >
-                <span className="font-black text-[15px]" style={{ color: w.color }}>›</span>
-              </div>
-            </Link>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-/** Returns a unique emoji per feature based on its title keywords. */
 function featureIcon(title: string | null | undefined): string {
   const t = (title || "").toLowerCase();
   if (t.includes("canvas"))        return "🖊️";
@@ -451,7 +829,6 @@ function featureIcon(title: string | null | undefined): string {
   if (t.includes("workflow") || t.includes("automat")) return "⚙️";
   if (t.includes("app"))           return "📱";
   if (t.includes("skill") || t.includes("learn"))      return "🎯";
-  // Fallback: use first letter-based emoji variety
   const code = (title?.charCodeAt(0) ?? 65) % 6;
   return ["✨", "🔥", "⚡", "🌟", "🚀", "💡"][code];
 }
@@ -482,72 +859,4 @@ function tagVariant(tag: string | null | undefined): { bg: string; color: string
   if (t.includes("KNOW"))    return { bg: "rgba(246,138,41,0.14)", color: "#92400E" };
   if (t.includes("WORK"))    return { bg: "rgba(54,153,252,0.13)", color: "#1E40AF" };
   return { bg: "rgba(34,29,35,0.08)", color: "#6B6B6B" };
-}
-
-function HomeMidFeaturesCard({ videos }: { videos: ApplyVideo[] }) {
-  return (
-    <div className="flex h-full flex-col rounded-xl border border-homeShellLine bg-white px-5 py-[18px] shadow-sm">
-      {/* Header */}
-      <div className="mb-1 flex items-start justify-between gap-2">
-        <div>
-          <div className="text-[15px] font-extrabold text-homeInk leading-tight">Explore common AI features</div>
-          <div className="text-[11px] text-homeSubtle mt-0.5">The features changing how teams work</div>
-        </div>
-        <Link href="/apply" className="shrink-0 text-[12px] font-bold text-homeClay hover:underline no-underline mt-0.5">
-          See all →
-        </Link>
-      </div>
-
-      <div className="mt-3 flex flex-col gap-2">
-        {videos.map((v) => {
-          const tag = v.category_tag?.trim();
-          const blurb = applyVideoBlurb(v.description);
-          const accent = featureAccent(v.group_name);
-          const tv = tagVariant(tag);
-          return (
-            <Link
-              key={v.id}
-              href="/apply"
-              className="group flex cursor-pointer items-center gap-3 rounded-xl border border-[#ece8e0] bg-[#faf8f4] px-3 py-2.5 transition-all hover:shadow-sm no-underline"
-              onClick={() => track("apply_click", { item_id: v.id, title: v.title })}
-            >
-              {/* Per-feature icon */}
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-[19px] shrink-0"
-                style={{ background: `${accent}18`, border: `1.5px solid ${accent}30` }}
-              >
-                {featureIcon(v.title)}
-              </div>
-
-              {/* Title + blurb */}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[13px] font-bold text-homeInk leading-tight">{v.title}</span>
-                  {tag && (
-                    <span
-                      className="text-[8px] font-black tracking-[0.1em] uppercase px-1.5 py-0.5 rounded-md"
-                      style={{ background: tv.bg, color: tv.color }}
-                    >
-                      {tag}
-                    </span>
-                  )}
-                </div>
-                {blurb && (
-                  <span className="text-[11px] text-homeSubtle line-clamp-1">{blurb}</span>
-                )}
-              </div>
-
-              {/* Play button */}
-              <div
-                className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-transform group-hover:scale-105"
-                style={{ background: accent }}
-              >
-                <span className="text-white text-[9px] pl-px font-black">▶</span>
-              </div>
-            </Link>
-          );
-        })}
-      </div>
-    </div>
-  );
 }
