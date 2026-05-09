@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronRight, Lock, Loader2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Lock, Loader2, X } from "lucide-react";
 import RichText from "@/components/ui/RichText";
 import type {
   ApplyVideo,
@@ -38,35 +38,113 @@ const HERO_FALLBACK = {
     "Three headlines worth your attention — curated, plain English, links when you want more.",
 };
 
+/** Warm orange-red used for section labels and CTAs (reference UI). */
+const HOME_SECTION_ORANGE = "#E64A19";
+
+/** Rotating full-bleed backgrounds for “Products of the week” cards (reference UI). */
+const PRODUCT_WEEK_CARD_THEMES = [
+  "linear-gradient(165deg, #7c5cf0 0%, #5d3fd3 42%, #4a32c4 100%)",
+  "linear-gradient(165deg, #2d7a5e 0%, #1b4d3e 48%, #143d32 100%)",
+  "linear-gradient(165deg, #2563ab 0%, #1e4d8c 50%, #163d70 100%)",
+  "linear-gradient(165deg, #a8466f 0%, #8b3a5c 50%, #6d2e49 100%)",
+  "linear-gradient(165deg, #c45f2a 0%, #a34d22 50%, #823d1c 100%)",
+  "linear-gradient(165deg, #5c4a8f 0%, #453673 50%, #36295c 100%)",
+  "linear-gradient(165deg, #2f6b8f 0%, #245574 50%, #1c445d 100%)",
+] as const;
+
 // ─── Shared auto-scroll carousel hook ────────────────────────────────────────
 
-function useCarousel(count: number, intervalMs = 2000) {
+function useCarousel(count: number, intervalMs = 4500) {
   const [activeIdx, setActiveIdx] = useState(0);
   const trackRef = useRef<HTMLDivElement>(null);
   const pausedRef = useRef(false);
+  const scrollPauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Ignore scroll-driven index updates while we animate programmatically (arrows / timer). */
+  const scrollSyncSuppressedUntilRef = useRef(0);
+  /** If index changed because the user dragged the track, don't run scroll-into-view (prevents fighting). */
+  const idxChangeSourceRef = useRef<"external" | "scroll">("external");
 
-  // Scroll track to active card whenever index changes
+  const suppressScrollSync = useCallback((ms = 700) => {
+    scrollSyncSuppressedUntilRef.current = Date.now() + ms;
+  }, []);
+
+  function scrollTrackToCard(track: HTMLDivElement, index: number, behavior: ScrollBehavior) {
+    const card = track.children[index] as HTMLElement | undefined;
+    if (!card) return;
+    const padLeft = parseFloat(getComputedStyle(track).paddingLeft) || 0;
+    const target = Math.max(0, card.offsetLeft - padLeft);
+    track.scrollTo({ left: target, behavior });
+  }
+
+  // Scroll track to active card when index changes from arrows / timer / goTo — not from user drag.
   useEffect(() => {
     const track = trackRef.current;
     if (!track || count === 0) return;
+
+    if (idxChangeSourceRef.current === "scroll") {
+      idxChangeSourceRef.current = "external";
+      return;
+    }
+
+    suppressScrollSync(750);
     requestAnimationFrame(() => {
-      const card = track.children[activeIdx] as HTMLElement;
-      if (card) {
-        track.scrollTo({ left: card.offsetLeft, behavior: "smooth" });
-      }
+      scrollTrackToCard(track, activeIdx, "smooth");
     });
-  }, [activeIdx, count]);
+  }, [activeIdx, count, suppressScrollSync]);
 
   // Auto-advance timer
   useEffect(() => {
     if (count <= 1) return;
     const timer = setInterval(() => {
       if (!pausedRef.current) {
+        idxChangeSourceRef.current = "external";
+        suppressScrollSync(750);
         setActiveIdx((p) => (p + 1) % count);
       }
     }, intervalMs);
     return () => clearInterval(timer);
-  }, [count, intervalMs]);
+  }, [count, intervalMs, suppressScrollSync]);
+
+  // Keep highlighted index in sync when the user swipes / drags the track
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track || count <= 1) return;
+    let raf = 0;
+    const onScroll = () => {
+      pausedRef.current = true;
+      if (scrollPauseTimerRef.current) clearTimeout(scrollPauseTimerRef.current);
+      scrollPauseTimerRef.current = setTimeout(() => {
+        pausedRef.current = false;
+      }, 3800);
+
+      if (Date.now() < scrollSyncSuppressedUntilRef.current) return;
+
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const children = [...track.children] as HTMLElement[];
+        if (!children.length) return;
+        const center = track.scrollLeft + track.clientWidth / 2;
+        let best = 0;
+        let bestDist = Infinity;
+        children.forEach((el, i) => {
+          const mid = el.offsetLeft + el.offsetWidth / 2;
+          const d = Math.abs(mid - center);
+          if (d < bestDist) {
+            bestDist = d;
+            best = i;
+          }
+        });
+        idxChangeSourceRef.current = "scroll";
+        setActiveIdx(best);
+      });
+    };
+    track.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(raf);
+      if (scrollPauseTimerRef.current) clearTimeout(scrollPauseTimerRef.current);
+      track.removeEventListener("scroll", onScroll);
+    };
+  }, [count]);
 
   const pause = useCallback(() => {
     pausedRef.current = true;
@@ -85,47 +163,165 @@ function useCarousel(count: number, intervalMs = 2000) {
 
   const goTo = useCallback(
     (i: number) => {
-      setActiveIdx(i);
+      const next = Math.max(0, Math.min(count - 1, i));
+      idxChangeSourceRef.current = "external";
+      suppressScrollSync(750);
+      setActiveIdx(next);
       pausedRef.current = true;
       setTimeout(() => {
         pausedRef.current = false;
-      }, 4000);
+      }, 4500);
     },
-    []
+    [count, suppressScrollSync]
   );
 
-  return { activeIdx, trackRef, pause, resume, pauseFor, goTo };
+  const step = useCallback(
+    (delta: number) => {
+      idxChangeSourceRef.current = "external";
+      suppressScrollSync(750);
+      setActiveIdx((p) => Math.max(0, Math.min(count - 1, p + delta)));
+      pausedRef.current = true;
+      setTimeout(() => {
+        pausedRef.current = false;
+      }, 4500);
+    },
+    [count, suppressScrollSync]
+  );
+
+  return { activeIdx, trackRef, pause, resume, pauseFor, goTo, step };
 }
 
-// ─── Dot indicator row ────────────────────────────────────────────────────────
-
-function CarouselDots({
-  count,
-  activeIdx,
-  onGoTo,
+function HomeSectionHeader({
+  label,
+  title,
+  subtitle,
 }: {
-  count: number;
-  activeIdx: number;
-  onGoTo: (i: number) => void;
+  label: string;
+  title: string;
+  subtitle: string;
 }) {
-  if (count <= 1) return null;
   return (
-    <div className="flex justify-center gap-1.5 mt-3">
-      {Array.from({ length: count }).map((_, i) => (
-        <button
-          key={i}
-          type="button"
-          onClick={() => onGoTo(i)}
-          aria-label={`Go to item ${i + 1}`}
-          className={`h-1.5 rounded-full transition-all duration-300 ${
-            i === activeIdx
-              ? "w-5 bg-homeClay"
-              : "w-1.5 bg-homeInk/20 hover:bg-homeInk/40"
-          }`}
-        />
-      ))}
+    <div className="space-y-1 px-0">
+      <p
+        className="text-[11px] font-bold tracking-[0.14em] uppercase m-0"
+        style={{ color: HOME_SECTION_ORANGE }}
+      >
+        {label}
+      </p>
+      <h2 className="text-[22px] sm:text-2xl font-extrabold text-homeInk tracking-tight leading-tight m-0">
+        {title}
+      </h2>
+      <p className="text-[14px] text-homeBodyMuted leading-snug m-0 mt-0.5">{subtitle}</p>
     </div>
   );
+}
+
+function CarouselStatusPill({
+  activeIdx,
+  total,
+  hint,
+}: {
+  activeIdx: number;
+  total: number;
+  hint: "swipe" | "drag";
+}) {
+  const cur = String(activeIdx + 1).padStart(2, "0");
+  const cap = String(total).padStart(2, "0");
+  return (
+    <div
+      className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-semibold tabular-nums bg-[#1A1A1A] text-white/90 shadow-sm"
+      aria-live="polite"
+    >
+      <span className="text-amber">{cur}</span>
+      <span className="text-white/75">{` / ${cap}`}</span>
+      <span className="text-white/35 px-0.5">·</span>
+      <span className="text-white/80 font-medium">{hint}</span>
+    </div>
+  );
+}
+
+function CarouselSectionFooter({
+  activeIdx,
+  total,
+  hint,
+  linkHref,
+  linkLabel,
+}: {
+  activeIdx: number;
+  total: number;
+  hint: "swipe" | "drag";
+  linkHref: string;
+  linkLabel: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 mt-3 px-0">
+      <CarouselStatusPill activeIdx={activeIdx} total={total} hint={hint} />
+      <Link
+        href={linkHref}
+        className="shrink-0 text-[13px] font-semibold no-underline hover:opacity-85 transition-opacity"
+        style={{ color: HOME_SECTION_ORANGE }}
+        onClick={() => track("link_click", { title: linkLabel, url: linkHref })}
+      >
+        {linkLabel}
+      </Link>
+    </div>
+  );
+}
+
+function CarouselArrowNav({
+  show,
+  onPrev,
+  onNext,
+  ariaPrev,
+  ariaNext,
+}: {
+  show: boolean;
+  onPrev: () => void;
+  onNext: () => void;
+  ariaPrev: string;
+  ariaNext: string;
+}) {
+  if (!show) return null;
+  const btn =
+    "absolute top-1/2 z-[2] -translate-y-1/2 hidden md:flex h-10 w-10 items-center justify-center rounded-full bg-white text-homeInk shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-black/[0.06] hover:bg-[#fafafa] transition-colors";
+  return (
+    <>
+      <button type="button" className={`${btn} left-0 -translate-x-1`} aria-label={ariaPrev} onClick={onPrev}>
+        <ChevronLeft size={20} strokeWidth={2.25} />
+      </button>
+      <button type="button" className={`${btn} right-0 translate-x-1`} aria-label={ariaNext} onClick={onNext}>
+        <ChevronRight size={20} strokeWidth={2.25} />
+      </button>
+    </>
+  );
+}
+
+function estimateWorldMinutes(moduleCount: number): number {
+  if (moduleCount <= 0) return 0;
+  return Math.max(3, Math.round(moduleCount * (14 / 3)));
+}
+
+function worldsFundamentalsSubtitle(worlds: World[], modules: Module[]): string {
+  const n = worlds.length;
+  if (!n) return "";
+  const mins = worlds.map((w) => {
+    const c = modules.filter((m) => m.world_id === w.id).length;
+    return estimateWorldMinutes(c);
+  });
+  const avg = Math.round(mins.reduce((a, b) => a + b, 0) / n);
+  return `${n} short worlds · ~${avg} min each`;
+}
+
+function useCarouselInteractionHint(): "swipe" | "drag" {
+  const [hint, setHint] = useState<"swipe" | "drag">("swipe");
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const apply = () => setHint(mq.matches ? "drag" : "swipe");
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+  return hint;
 }
 
 // ─── Main HomeContent ─────────────────────────────────────────────────────────
@@ -138,6 +334,7 @@ export default function HomeContent({
   worlds,
   modules,
   applyMidVideos,
+  applyVideosTotal,
 }: {
   briefNews: NewsItem[];
   briefHero: HomeBriefHero | null;
@@ -146,6 +343,7 @@ export default function HomeContent({
   worlds: World[];
   modules: Module[];
   applyMidVideos: ApplyVideo[];
+  applyVideosTotal: number;
 }) {
   const showBriefHero = briefNews.length > 0 || !!briefHero;
   const heroBadge = briefHero?.badge_label?.trim() || HERO_FALLBACK.badge_label;
@@ -240,7 +438,9 @@ export default function HomeContent({
       {worlds.length > 0 && <WorldsCarousel worlds={worlds} modules={modules} />}
 
       {/* Apply videos horizontal auto-scroll carousel */}
-      {applyMidVideos.length > 0 && <ApplyVideosCarousel videos={applyMidVideos} />}
+      {applyMidVideos.length > 0 && (
+        <ApplyVideosCarousel videos={applyMidVideos} applyVideosTotal={applyVideosTotal} />
+      )}
 
       {/* Products horizontal auto-scroll carousel */}
       {products.length > 0 && <ProductsCarousel products={products} />}
@@ -301,7 +501,8 @@ export default function HomeContent({
 // ─── Worlds carousel ──────────────────────────────────────────────────────────
 
 function WorldsCarousel({ worlds, modules }: { worlds: World[]; modules: Module[] }) {
-  const { activeIdx, trackRef, pause, resume, pauseFor, goTo } = useCarousel(worlds.length);
+  const hint = useCarouselInteractionHint();
+  const { activeIdx, trackRef, pause, resume, pauseFor, goTo, step } = useCarousel(worlds.length);
   const [selectedWorld, setSelectedWorld] = useState<World | null>(null);
   const [playerData, setPlayerData] = useState<{
     module: Module;
@@ -327,68 +528,91 @@ function WorldsCarousel({ worlds, modules }: { worlds: World[]; modules: Module[
     : [];
 
   return (
-    <section>
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-[11px] font-bold text-homeInk">Learn AI worlds</span>
-        <Link href="/learn" className="text-xs font-semibold text-homeClay hover:underline no-underline">
-          All worlds →
-        </Link>
-      </div>
+    <section className="space-y-3">
+      <HomeSectionHeader
+        label="Learn"
+        title="AI fundamentals"
+        subtitle={worldsFundamentalsSubtitle(worlds, modules)}
+      />
 
-      <div onMouseEnter={pause} onMouseLeave={resume} onTouchStart={() => pauseFor(4000)}>
+      <div
+        className="relative"
+        onMouseEnter={pause}
+        onMouseLeave={resume}
+        onTouchStart={() => pauseFor(4000)}
+      >
+        <CarouselArrowNav
+          show={worlds.length > 1}
+          onPrev={() => step(-1)}
+          onNext={() => step(1)}
+          ariaPrev="Previous world"
+          ariaNext="Next world"
+        />
         <div
           ref={trackRef}
-          className="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          style={{ scrollSnapType: "x mandatory" }}
+          className="flex gap-3 overflow-x-auto pb-1 scroll-pl-4 scroll-pr-4 pl-4 pr-4 md:scroll-pl-0 md:scroll-pr-0 md:pl-0 md:pr-0 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x snap-mandatory"
         >
           {worlds.map((w, i) => {
             const wMods = modules.filter((m) => m.world_id === w.id);
+            const modCount = wMods.length;
+            const mins = estimateWorldMinutes(modCount);
             const isSelected = selectedWorld?.id === w.id;
-            const isActive = activeIdx === i;
+            const metaColor = w.color;
             return (
               <button
                 key={w.id}
                 type="button"
                 onClick={() => handleSelectWorld(w, i)}
-                className={`flex-shrink-0 rounded-xl px-4 py-3.5 text-left cursor-pointer transition-all duration-200
-                  ${isActive ? "opacity-100" : "opacity-75 hover:opacity-100"}`}
+                className={`flex-shrink-0 flex items-center gap-3 rounded-[18px] pl-3 pr-3 py-3 text-left cursor-pointer transition-[opacity,box-shadow] duration-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] snap-start ${
+                  activeIdx === i ? "opacity-100" : "opacity-[0.88] hover:opacity-100"
+                }`}
                 style={{
-                  scrollSnapAlign: "start",
-                  width: "196px",
-                  border: isSelected
-                    ? `2px solid ${w.color}`
-                    : `1.5px solid ${w.color}28`,
-                  background: isSelected ? `${w.color}12` : `${w.color}07`,
-                  boxShadow: isSelected
-                    ? `0 0 0 3px ${w.color}22, 0 4px 16px ${w.color}18`
-                    : "0 1px 4px rgba(0,0,0,0.06)",
+                  width: "min(300px, calc(100vw - 3rem))",
+                  borderTopWidth: 3,
+                  borderLeftWidth: 3,
+                  borderBottomWidth: 0,
+                  borderRightWidth: 0,
+                  borderStyle: "solid",
+                  borderColor: w.color,
+                  backgroundColor: `${w.color}14`,
+                  boxShadow: isSelected ? `0 0 0 2px ${w.color}, 0 6px 18px ${w.color}22` : undefined,
                 }}
               >
                 <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center text-xl mb-2.5"
+                  className="w-[52px] h-[52px] rounded-[14px] flex items-center justify-center text-[26px] shrink-0"
                   style={{
-                    background: `${w.color}18`,
-                    border: `1.5px solid ${w.color}35`,
+                    background: `${w.color}22`,
+                    border: `2px solid ${w.color}44`,
                   }}
+                  aria-hidden
                 >
                   {w.emoji}
                 </div>
-                <div className="text-[13px] font-bold text-homeInk leading-tight">{w.title}</div>
-                <div className="text-[10px] font-semibold mt-1" style={{ color: w.color }}>
-                  {wMods.length} module{wMods.length !== 1 ? "s" : ""}
-                </div>
-                {isSelected && (
-                  <div className="mt-1.5 flex items-center gap-0.5" style={{ color: w.color }}>
-                    <ChevronRight size={9} className="rotate-90" />
-                    <span className="text-[9px] font-bold">Open</span>
+                <div className="flex-1 min-w-0 py-0.5">
+                  <div className="text-[14px] font-bold text-homeInk leading-snug line-clamp-2">{w.title}</div>
+                  <div className="text-[12px] font-semibold mt-1" style={{ color: metaColor }}>
+                    {modCount} module{modCount !== 1 ? "s" : ""} · {mins} min
                   </div>
-                )}
+                </div>
+                <div
+                  className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center text-white shadow-inner"
+                  style={{ backgroundColor: w.color }}
+                  aria-hidden
+                >
+                  <ChevronRight size={22} strokeWidth={2.5} className="-mr-px" />
+                </div>
               </button>
             );
           })}
         </div>
 
-        <CarouselDots count={worlds.length} activeIdx={activeIdx} onGoTo={goTo} />
+        <CarouselSectionFooter
+          activeIdx={activeIdx}
+          total={worlds.length}
+          hint={hint}
+          linkHref="/learn"
+          linkLabel="See all worlds →"
+        />
       </div>
 
       {/* Expanded modules panel */}
@@ -512,81 +736,120 @@ function WorldsCarousel({ worlds, modules }: { worlds: World[]; modules: Module[
 
 // ─── Apply videos carousel ────────────────────────────────────────────────────
 
-function ApplyVideosCarousel({ videos }: { videos: ApplyVideo[] }) {
-  const { activeIdx, trackRef, pause, resume, pauseFor, goTo } = useCarousel(videos.length);
+function ApplyVideosCarousel({
+  videos,
+  applyVideosTotal,
+}: {
+  videos: ApplyVideo[];
+  applyVideosTotal: number;
+}) {
+  const hint = useCarouselInteractionHint();
+  const { activeIdx, trackRef, pause, resume, pauseFor, goTo, step } = useCarousel(videos.length);
   const [modalVideo, setModalVideo] = useState<ApplyVideo | null>(null);
+  const totalLabel = Math.max(applyVideosTotal, videos.length);
 
   return (
-    <section>
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-[11px] font-bold text-homeInk">Explore AI features</span>
-        <Link href="/apply" className="text-xs font-semibold text-homeClay hover:underline no-underline">
-          See all →
-        </Link>
-      </div>
+    <section className="space-y-3">
+      <HomeSectionHeader
+        label="Apply"
+        title="What can AI do?"
+        subtitle={`${totalLabel} features · click any card for the 30-second video`}
+      />
 
-      <div onMouseEnter={pause} onMouseLeave={resume} onTouchStart={() => pauseFor(4000)}>
+      <div
+        className="relative"
+        onMouseEnter={pause}
+        onMouseLeave={resume}
+        onTouchStart={() => pauseFor(4000)}
+      >
+        <CarouselArrowNav
+          show={videos.length > 1}
+          onPrev={() => step(-1)}
+          onNext={() => step(1)}
+          ariaPrev="Previous feature"
+          ariaNext="Next feature"
+        />
         <div
           ref={trackRef}
-          className="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          style={{ scrollSnapType: "x mandatory" }}
+          className="flex gap-3 overflow-x-auto pb-1 scroll-pl-4 scroll-pr-4 pl-4 pr-4 md:scroll-pl-0 md:scroll-pr-0 md:pl-0 md:pr-0 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x snap-mandatory"
         >
           {videos.map((v, i) => {
             const accent = featureAccent(v.group_name);
-            const tv = tagVariant(v.category_tag);
+            const thumb = resolveVideoThumbnailUrl(v.thumbnail_url, v.video_url);
             const blurb = applyVideoBlurb(v.description);
+            const cat = (v.category_tag || "Feature").trim();
+            const durationLabel = v.duration?.trim() || "0:30";
             return (
               <button
                 key={v.id}
                 type="button"
                 onClick={() => {
                   setModalVideo(v);
+                  goTo(i);
                   pauseFor(4000);
                   track("apply_click", { item_id: v.id, title: v.title });
                 }}
-                className={`flex-shrink-0 rounded-xl border border-[#ece8e0] bg-[#faf8f4] px-4 py-3.5 text-left cursor-pointer transition-all duration-200 flex flex-col
-                  ${i === activeIdx ? "opacity-100 shadow-sm" : "opacity-75 hover:opacity-100 hover:shadow-md"}`}
-                style={{ scrollSnapAlign: "start", width: "210px" }}
+                className={`flex-shrink-0 w-[min(268px,calc(100vw-3rem))] overflow-hidden rounded-[18px] border border-black/[0.06] bg-white text-left cursor-pointer transition-opacity duration-200 shadow-[0_2px_12px_rgba(0,0,0,0.06)] snap-start flex flex-col ${
+                  i === activeIdx ? "opacity-100" : "opacity-[0.9] hover:opacity-100"
+                }`}
               >
                 <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center text-[19px] mb-2.5"
+                  className="relative h-[132px] w-full shrink-0 overflow-hidden"
                   style={{
-                    background: `${accent}18`,
-                    border: `1.5px solid ${accent}30`,
+                    background: thumb
+                      ? undefined
+                      : `linear-gradient(155deg, ${accent} 0%, #1a1030 48%, #0f0a18 100%)`,
                   }}
                 >
-                  {featureIcon(v.title)}
-                </div>
-                <div className="flex items-start gap-1.5 flex-wrap mb-1.5">
-                  <span className="text-[13px] font-bold text-homeInk leading-tight">{v.title}</span>
-                  {v.category_tag && (
-                    <span
-                      className="text-[8px] font-black tracking-[0.1em] uppercase px-1.5 py-0.5 rounded-md shrink-0"
-                      style={{ background: tv.bg, color: tv.color }}
-                    >
-                      {v.category_tag}
-                    </span>
-                  )}
-                </div>
-                {blurb && (
-                  <p className="text-[11px] text-homeSubtle line-clamp-2 leading-relaxed flex-1">
-                    {blurb}
-                  </p>
-                )}
-                <div className="mt-3 flex justify-end">
-                  <div
-                    className="w-7 h-7 rounded-full flex items-center justify-center"
-                    style={{ background: accent }}
-                  >
-                    <span className="text-white text-[9px] pl-px font-black">▶</span>
+                  {thumb ? (
+                    <>
+                      <img src={thumb} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                      <div
+                        className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-black/25"
+                        aria-hidden
+                      />
+                    </>
+                  ) : null}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="flex h-[52px] w-[52px] items-center justify-center rounded-full bg-white shadow-[0_6px_24px_rgba(0,0,0,0.2)]">
+                      <span className="text-homeInk text-[18px] leading-none pl-1" aria-hidden>
+                        ▶
+                      </span>
+                    </div>
                   </div>
+                  <div className="absolute bottom-2 right-2 rounded bg-black/80 px-1.5 py-px font-mono text-[11px] font-medium text-white tabular-nums">
+                    {durationLabel}
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5 px-3.5 pt-3 pb-3.5 bg-white">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span
+                      className="h-2 w-2 shrink-0 rounded-[2px]"
+                      style={{ backgroundColor: accent }}
+                      aria-hidden
+                    />
+                    <span className="text-[10px] font-bold tracking-[0.12em] uppercase text-homeBodyMuted truncate">
+                      {cat}
+                    </span>
+                  </div>
+                  <div className="text-[15px] font-bold text-homeInk leading-snug">{v.title}</div>
+                  {blurb ? (
+                    <p className="text-[12px] text-homeBodyMuted leading-relaxed line-clamp-2">{blurb}</p>
+                  ) : null}
                 </div>
               </button>
             );
           })}
         </div>
 
-        <CarouselDots count={videos.length} activeIdx={activeIdx} onGoTo={goTo} />
+        <CarouselSectionFooter
+          activeIdx={activeIdx}
+          total={totalLabel}
+          hint={hint}
+          linkHref="/apply"
+          linkLabel="See all features →"
+        />
       </div>
 
       {modalVideo && (
@@ -598,23 +861,41 @@ function ApplyVideosCarousel({ videos }: { videos: ApplyVideo[] }) {
 
 // ─── Products carousel ────────────────────────────────────────────────────────
 
+function productWeekByline(tagline: string | undefined | null): string | null {
+  const t = tagline?.trim();
+  if (!t) return null;
+  if (/^by\s+/i.test(t)) return t;
+  return `by ${t}`;
+}
+
 function ProductsCarousel({ products }: { products: ProductOfDay[] }) {
-  const { activeIdx, trackRef, pause, resume, pauseFor, goTo } = useCarousel(products.length);
+  const hint = useCarouselInteractionHint();
+  const { activeIdx, trackRef, pause, resume, pauseFor } = useCarousel(products.length);
 
   return (
-    <section>
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-[11px] font-bold text-homeInk">Product of the week</span>
-      </div>
+    <section className="space-y-3">
+      <HomeSectionHeader
+        label="This week"
+        title="Products of the week"
+        subtitle={`${products.length} new launches our editors have tried`}
+      />
 
-      <div onMouseEnter={pause} onMouseLeave={resume} onTouchStart={() => pauseFor(4000)}>
+      <div
+        className="relative"
+        onMouseEnter={pause}
+        onMouseLeave={resume}
+        onTouchStart={() => pauseFor(4000)}
+      >
         <div
           ref={trackRef}
-          className="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          style={{ scrollSnapType: "x mandatory" }}
+          className="flex gap-3 overflow-x-auto pb-1 scroll-pl-4 scroll-pr-4 pl-4 pr-4 md:scroll-pl-0 md:scroll-pr-0 md:pl-0 md:pr-0 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x snap-mandatory"
         >
           {products.map((p, i) => {
             const href = p.url || "/tools";
+            const theme =
+              PRODUCT_WEEK_CARD_THEMES[i % PRODUCT_WEEK_CARD_THEMES.length] ?? PRODUCT_WEEK_CARD_THEMES[0];
+            const ribbon = i === 0 ? "PRODUCT OF THE WEEK" : "NEW THIS WEEK";
+            const byline = productWeekByline(p.tagline);
             return (
               <a
                 key={p.id}
@@ -625,74 +906,49 @@ function ProductsCarousel({ products }: { products: ProductOfDay[] }) {
                   track("product_click", { item_id: p.id, title: p.name, url: href });
                   pauseFor(4000);
                 }}
-                className={`flex-shrink-0 rounded-xl overflow-hidden no-underline transition-all duration-200 cursor-pointer flex flex-col
-                  ${i === activeIdx ? "opacity-100" : "opacity-75 hover:opacity-100"}
-                  hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(80,30,180,0.30)]`}
-                style={{
-                  scrollSnapAlign: "start",
-                  width: "260px",
-                  minHeight: "210px",
-                  background:
-                    "linear-gradient(145deg,#5B2AB8 0%,#3B1285 55%,#2A0E6A 100%)",
-                }}
+                className={`flex-shrink-0 flex flex-col w-[min(292px,calc(100vw-3rem))] min-h-[340px] rounded-[22px] overflow-hidden no-underline shadow-[0_10px_36px_rgba(34,29,35,0.14)] snap-start transition-[opacity,transform] duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_44px_rgba(34,29,35,0.18)] ${
+                  i === activeIdx ? "opacity-100" : "opacity-[0.92] hover:opacity-100"
+                }`}
+                style={{ background: theme }}
               >
-                <div className="px-4 pt-4 pb-0 flex items-center gap-2">
-                  <span className="text-amber text-[10px] font-black tracking-[0.2em]">—</span>
-                  <span className="text-amber text-[10px] font-black tracking-[0.16em] uppercase">
-                    PRODUCT OF THE WEEK
+                <div className="px-4 pt-4 pb-1 flex items-center gap-2">
+                  <span className="text-amber text-[10px] font-black tracking-[0.12em] shrink-0">—</span>
+                  <span className="text-amber text-[10px] font-black tracking-[0.14em] uppercase leading-tight">
+                    {ribbon}
                   </span>
                 </div>
 
-                <div className="px-4 pt-3 flex items-center gap-3">
+                <div className="px-4 pt-2 flex items-start gap-3">
                   <div
-                    className="w-10 h-10 rounded-[10px] flex items-center justify-center text-[20px] shrink-0"
+                    className="w-[52px] h-[52px] rounded-[14px] shrink-0 flex items-center justify-center overflow-hidden border border-white/25 shadow-inner"
                     style={{
-                      background: "rgba(255,206,0,0.18)",
-                      border: "1.5px solid rgba(255,206,0,0.35)",
+                      background: "linear-gradient(145deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.06) 100%)",
                     }}
                   >
                     {p.image_url ? (
-                      <img
-                        src={p.image_url}
-                        alt=""
-                        className="w-full h-full object-cover rounded-[8px]"
-                      />
+                      <img src={p.image_url} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      "✨"
+                      <span className="text-[26px] leading-none drop-shadow-sm" aria-hidden>
+                        ✨
+                      </span>
                     )}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[18px] font-extrabold leading-tight text-white tracking-tight truncate">
+                  <div className="min-w-0 flex-1 pt-0.5">
+                    <div className="text-[18px] font-extrabold text-white leading-snug tracking-tight line-clamp-3">
                       {p.name}
                     </div>
                   </div>
                 </div>
 
-                <p className="flex-1 px-4 pt-2 text-[12px] leading-relaxed text-white/70 line-clamp-2">
+                <p className="flex-1 px-4 pt-3 text-[13px] leading-relaxed text-white/[0.92] line-clamp-5">
                   {p.description}
                 </p>
 
-                <div className="px-4 pt-2 pb-4 flex items-center justify-between gap-2 mt-auto">
-                  {p.tagline ? (
-                    <span
-                      className="text-[10px] font-semibold px-2.5 py-1 rounded-full text-white/80 truncate max-w-[55%]"
-                      style={{
-                        background: "rgba(255,255,255,0.12)",
-                        border: "1px solid rgba(255,255,255,0.14)",
-                      }}
-                    >
-                      {p.tagline}
-                    </span>
-                  ) : (
-                    <span />
-                  )}
-                  <span
-                    className="shrink-0 text-[12px] font-bold px-3.5 py-1.5 rounded-full"
-                    style={{
-                      background: "#FFCE00",
-                      boxShadow: "0 2px 12px rgba(255,206,0,0.40)",
-                    }}
-                  >
+                <div className="mt-auto px-4 pt-2 pb-5 flex flex-col gap-3">
+                  {byline ? (
+                    <span className="text-[12px] font-medium text-white/75">{byline}</span>
+                  ) : null}
+                  <span className="inline-flex self-start items-center rounded-full bg-amber px-4 py-2 text-[12px] font-extrabold text-homeInk shadow-[0_4px_16px_rgba(255,206,0,0.35)]">
                     Try it →
                   </span>
                 </div>
@@ -701,7 +957,13 @@ function ProductsCarousel({ products }: { products: ProductOfDay[] }) {
           })}
         </div>
 
-        <CarouselDots count={products.length} activeIdx={activeIdx} onGoTo={goTo} />
+        <CarouselSectionFooter
+          activeIdx={activeIdx}
+          total={products.length}
+          hint={hint}
+          linkHref="/tools"
+          linkLabel="All this week →"
+        />
       </div>
     </section>
   );
@@ -808,31 +1070,6 @@ function HomeDiscoveryCard({
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
-function featureIcon(title: string | null | undefined): string {
-  const t = (title || "").toLowerCase();
-  if (t.includes("canvas"))        return "🖊️";
-  if (t.includes("gem"))           return "💎";
-  if (t.includes("notebook") || t.includes("podcast")) return "🎧";
-  if (t.includes("code") || t.includes("codex"))       return "💻";
-  if (t.includes("image") || t.includes("dall"))       return "🖼️";
-  if (t.includes("voice") || t.includes("audio") || t.includes("speech")) return "🎙️";
-  if (t.includes("search") || t.includes("browse"))    return "🔍";
-  if (t.includes("summar") || t.includes("tldr"))      return "📋";
-  if (t.includes("translat"))      return "🌐";
-  if (t.includes("email") || t.includes("write") || t.includes("draft")) return "✉️";
-  if (t.includes("chart") || t.includes("data") || t.includes("analys")) return "📊";
-  if (t.includes("plan") || t.includes("task") || t.includes("project")) return "📌";
-  if (t.includes("present") || t.includes("slide"))    return "📽️";
-  if (t.includes("copilot"))       return "🤝";
-  if (t.includes("chat"))          return "💬";
-  if (t.includes("agent"))         return "🤖";
-  if (t.includes("workflow") || t.includes("automat")) return "⚙️";
-  if (t.includes("app"))           return "📱";
-  if (t.includes("skill") || t.includes("learn"))      return "🎯";
-  const code = (title?.charCodeAt(0) ?? 65) % 6;
-  return ["✨", "🔥", "⚡", "🌟", "🚀", "💡"][code];
-}
-
 function applyVideoBlurb(description: string | null | undefined): string {
   if (!description?.trim()) return "";
   const cleaned = description.replace(/\n*\[seed:ai-features-guide-v1]\s*$/i, "").trim();
@@ -850,13 +1087,4 @@ const GROUP_COLORS: Record<string, string> = {
 function featureAccent(group: string | null | undefined): string {
   const g = (group || "").trim();
   return GROUP_COLORS[g] || "#623CEA";
-}
-
-function tagVariant(tag: string | null | undefined): { bg: string; color: string } {
-  const t = (tag || "").toUpperCase();
-  if (t.includes("EDIT"))    return { bg: "rgba(98,60,234,0.12)",  color: "#623CEA" };
-  if (t.includes("PERSONAL"))return { bg: "rgba(236,72,153,0.12)", color: "#BE185D" };
-  if (t.includes("KNOW"))    return { bg: "rgba(246,138,41,0.14)", color: "#92400E" };
-  if (t.includes("WORK"))    return { bg: "rgba(54,153,252,0.13)", color: "#1E40AF" };
-  return { bg: "rgba(34,29,35,0.08)", color: "#6B6B6B" };
 }

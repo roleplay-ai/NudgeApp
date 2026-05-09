@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Input, Textarea, Checkbox, Button, Toast, useToast } from "@/components/admin/Form";
 import type { ProductOfDay, Tool } from "@/lib/types";
-import { setExclusiveActiveRow } from "@/lib/admin/setExclusiveActive";
 import { Edit2, Plus, Trash2 } from "lucide-react";
 
 const selectClass =
@@ -56,7 +55,11 @@ export default function ProductOfDayAdmin() {
       ...editing,
       tool_id: id,
       name: t.name,
-      tagline: (t.best_for && t.best_for.trim()) || t.category || (t.company ?? "") || "",
+      tagline:
+        (t.company && t.company.trim()) ||
+        (t.best_for && t.best_for.trim()) ||
+        t.category ||
+        "",
       description,
       url: (t.url && t.url.trim()) || "",
       image_url: (t.logo_url && t.logo_url.trim()) || "",
@@ -69,7 +72,6 @@ export default function ProductOfDayAdmin() {
       return;
     }
 
-    const wantActive = !!editing.is_active;
     const payload: Record<string, unknown> = {
       name: editing.name,
       tagline: editing.tagline || "",
@@ -78,7 +80,7 @@ export default function ProductOfDayAdmin() {
       image_url: editing.image_url?.trim() || null,
       tool_id: editing.tool_id?.trim() || null,
       active_date: editing.active_date || new Date().toISOString().slice(0, 10),
-      is_active: false,
+      is_active: !!editing.is_active,
     };
 
     let rowId = editing.id;
@@ -98,24 +100,25 @@ export default function ProductOfDayAdmin() {
       rowId = inserted.id;
     }
 
-    if (wantActive && rowId) {
-      const r = await setExclusiveActiveRow(supabase, "product_of_day", rowId);
-      if (!r.ok) {
-        toast.show(r.message, "error");
-        return;
-      }
-    }
-
     toast.show("Saved");
     setEditing(null);
     load();
   }
 
   async function activate(id: string) {
-    const r = await setExclusiveActiveRow(supabase, "product_of_day", id);
-    if (!r.ok) toast.show(r.message, "error");
+    const { error } = await supabase.from("product_of_day").update({ is_active: true }).eq("id", id);
+    if (error) toast.show(error.message, "error");
     else {
-      toast.show("Activated — this product shows on Home");
+      toast.show("Featured on Home — appears in “Products of the week” (up to 7)");
+      load();
+    }
+  }
+
+  async function deactivate(id: string) {
+    const { error } = await supabase.from("product_of_day").update({ is_active: false }).eq("id", id);
+    if (error) toast.show(error.message, "error");
+    else {
+      toast.show("Removed from Home carousel");
       load();
     }
   }
@@ -139,7 +142,9 @@ export default function ProductOfDayAdmin() {
         </Button>
       </div>
       <p className="text-sm text-muted mb-6">
-        Home shows the row marked <strong>ACTIVE</strong>. Choose a tool from your <strong>Tools</strong> library to fill name, URL, and image; you can edit after. Or type everything manually.
+        Home <strong>Products of the week</strong> shows up to <strong>7</strong> rows marked <strong>ACTIVE</strong>
+        (newest <code className="text-xs bg-chiffon px-1 rounded">active_date</code> first). Multiple products can be active at once.
+        Choose a tool from <strong>Tools</strong> to pre-fill fields, or enter manually.
       </p>
 
       {editing && (
@@ -168,7 +173,7 @@ export default function ProductOfDayAdmin() {
           <Input label="Image URL (optional)" value={editing.image_url || ""} onChange={(e) => setEditing({ ...editing, image_url: e.target.value })} />
           <Input label="Active date" type="date" value={editing.active_date?.slice(0, 10) || ""} onChange={(e) => setEditing({ ...editing, active_date: e.target.value })} />
           <Checkbox
-            label="Show on Home (make this the active product — others become inactive)"
+            label="Show on Home (“Products of the week” carousel — up to 7 active products)"
             checked={!!editing.is_active}
             onChange={(e) => setEditing({ ...editing, is_active: e.target.checked })}
           />
@@ -194,13 +199,21 @@ export default function ProductOfDayAdmin() {
               <div className="text-xs text-muted">{p.tagline}</div>
               <div className="text-[11px] text-muted mt-1">{p.active_date}</div>
             </div>
-            {!p.is_active && (
+            {p.is_active ? (
+              <button
+                type="button"
+                onClick={() => deactivate(p.id)}
+                className="text-xs font-semibold text-muted border border-nborder px-2 py-1 rounded-lg hover:bg-chiffon transition flex-shrink-0"
+              >
+                Remove from Home
+              </button>
+            ) : (
               <button
                 type="button"
                 onClick={() => activate(p.id)}
                 className="text-xs font-semibold text-emerald border border-emerald px-2 py-1 rounded-lg hover:bg-emerald hover:text-white transition flex-shrink-0"
               >
-                Activate
+                Feature on Home
               </button>
             )}
             <button type="button" onClick={() => setEditing(p)} className="text-muted hover:text-shadow flex-shrink-0">

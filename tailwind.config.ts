@@ -21,7 +21,7 @@ const config: Config = {
         nborder: "#E8E6DC",
         muted: "#6B6B6B",
         /* Nudgeable AI home reference (warm editorial) */
-        homeCanvas: "#f5f0e8",
+        homeCanvas: "#fdf9f0",
         homeInk: "#1c1814",
         homeSidebar: "#1a1614",
         homeClay: "#C07B3A",
