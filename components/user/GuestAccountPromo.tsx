@@ -74,7 +74,7 @@ export function GuestAccountMobileStrip() {
 
       <section
         aria-label="Create an account"
-        className="sm:hidden fixed inset-x-0 bottom-0 z-[49] pointer-events-none pb-[max(env(safe-area-inset-bottom),0.5rem)]"
+        className="sm:hidden fixed inset-x-0 bottom-0 z-[49] pointer-events-none pb-[calc(76px+env(safe-area-inset-bottom,0px))]"
       >
         {/* Full-bleed banner: yellow rule + flat white strip (reference mobile UI) */}
         <div className="pointer-events-auto w-full bg-white border-t-2 border-amber shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">

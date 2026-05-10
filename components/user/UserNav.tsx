@@ -7,6 +7,7 @@ import {
   GraduationCap,
   Home,
   Lightbulb,
+  LogIn,
   LogOut,
   UserRound,
   Wrench,
@@ -131,13 +132,13 @@ export default function UserNav({
         </div>
       </aside>
 
-      {/* Mobile top nav */}
-      <header className="sm:hidden fixed top-0 left-0 right-0 z-50">
+      {/* Mobile bottom nav */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50">
         <nav
           aria-label="Primary"
-          className="bg-homeSidebar border-b border-homeInk/30 pt-[max(env(safe-area-inset-top),0.5rem)] px-2 pb-2 shadow-[0_8px_24px_rgba(0,0,0,0.2)]"
+          className="bg-homeSidebar border-t border-homeInk/30 pt-2 px-1 pb-[max(env(safe-area-inset-bottom),0.5rem)] shadow-[0_-10px_30px_rgba(0,0,0,0.28)]"
         >
-          <div className="grid grid-cols-5 gap-1">
+          <div className="grid grid-cols-6 gap-0.5">
             {items.map((it) => {
               const Ic = it.icon;
               const active = path === it.href || (it.href !== "/" && path.startsWith(it.href));
@@ -145,22 +146,47 @@ export default function UserNav({
                 <Link
                   key={it.href}
                   href={it.href}
-                  className={`flex flex-col items-center justify-center gap-1 rounded-xl border px-1 py-2.5 transition-[transform,background-color,color,border-color] duration-150 no-underline min-w-0 transform hover:scale-[1.06] active:scale-[0.98]
+                  className={`flex flex-col items-center justify-center gap-0.5 rounded-xl border px-0.5 py-2 transition-[transform,background-color,color,border-color] duration-150 no-underline min-w-0 transform hover:scale-[1.04] active:scale-[0.98]
                     ${active
                       ? "bg-homeClay/25 border-homeClay text-white"
                       : "border-homeInk/20 text-homeCanvas/90 hover:bg-white/[0.06] hover:text-white"
                     }`}
                 >
-                  <Ic size={18} strokeWidth={2.2} className={active ? "text-amber" : "text-homeCanvas/85"} />
-                  <span className="text-[11px] font-bold leading-tight w-full text-center">
+                  <Ic size={17} strokeWidth={2.2} className={active ? "text-amber" : "text-homeCanvas/85"} />
+                  <span className="text-[10px] font-bold leading-tight w-full text-center truncate">
                     {it.label}
                   </span>
                 </Link>
               );
             })}
+            {isLoggedIn ? (
+              <Link
+                href="/profile"
+                className={`flex flex-col items-center justify-center gap-0.5 rounded-xl border px-0.5 py-2 transition-[transform,background-color,color,border-color] duration-150 no-underline min-w-0 transform hover:scale-[1.04] active:scale-[0.98]
+                  ${path === "/profile"
+                    ? "bg-homeClay/25 border-homeClay text-white"
+                    : "border-homeInk/20 text-homeCanvas/90 hover:bg-white/[0.06] hover:text-white"
+                  }`}
+              >
+                <UserRound size={17} strokeWidth={2.2} className={path === "/profile" ? "text-amber" : "text-homeCanvas/85"} />
+                <span className="text-[10px] font-bold leading-tight w-full text-center truncate">Profile</span>
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className={`flex flex-col items-center justify-center gap-0.5 rounded-xl border px-0.5 py-2 transition-[transform,background-color,color,border-color] duration-150 no-underline min-w-0 transform hover:scale-[1.04] active:scale-[0.98]
+                  ${path === "/login"
+                    ? "bg-homeClay/25 border-homeClay text-white"
+                    : "border-homeInk/20 text-homeCanvas/90 hover:bg-white/[0.06] hover:text-white"
+                  }`}
+              >
+                <LogIn size={17} strokeWidth={2.2} className={path === "/login" ? "text-amber" : "text-homeCanvas/85"} />
+                <span className="text-[10px] font-bold leading-tight w-full text-center truncate">Sign in</span>
+              </Link>
+            )}
           </div>
         </nav>
-      </header>
+      </div>
     </>
   );
 }
