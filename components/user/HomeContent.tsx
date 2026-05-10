@@ -888,7 +888,7 @@ function ProductsCarousel({ products }: { products: ProductOfDay[] }) {
       >
         <div
           ref={trackRef}
-          className="flex gap-3 overflow-x-auto pb-1 scroll-pl-4 scroll-pr-4 pl-4 pr-4 md:scroll-pl-0 md:scroll-pr-0 md:pl-0 md:pr-0 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x snap-mandatory"
+          className="flex gap-3 overflow-x-auto py-2 scroll-pl-4 scroll-pr-4 pl-4 pr-4 md:scroll-pl-0 md:scroll-pr-0 md:pl-0 md:pr-0 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x snap-mandatory"
         >
           {products.map((p, i) => {
             const href = p.url || "/tools";
