@@ -493,6 +493,21 @@ export default function HomeContent({
           accent="purple"
         />
       </section>
+
+      <footer className="pt-8 mt-4 border-t border-homeInk/10">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-[13px] text-homeBodyMuted">
+          <p>© {new Date().getFullYear()} Nudgeable AI. All rights reserved.</p>
+          <nav aria-label="Legal">
+            <Link
+              href="/privacy"
+              className="font-semibold text-homeInk hover:underline underline-offset-2"
+              onClick={() => track("link_click", { title: "Privacy policy", url: "/privacy" })}
+            >
+              Privacy policy
+            </Link>
+          </nav>
+        </div>
+      </footer>
     </div>
   );
 }
