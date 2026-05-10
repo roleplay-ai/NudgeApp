@@ -6,12 +6,12 @@ import type { WatchVideo } from "@/lib/types";
 import { Trash2, Edit2, Plus, Play } from "lucide-react";
 
 const SUBCATEGORIES = [
-  { id: "gemini",  label: "Gemini",  color: "#4285F4" },
-  { id: "chatgpt", label: "ChatGPT", color: "#10A37F" },
-  { id: "claude",  label: "Claude",  color: "#E8865A" },
-  { id: "copilot", label: "Copilot", color: "#6264A7" },
-  { id: "podcast", label: "Podcast", color: "#F68A29" },
-  { id: "others",  label: "Others",  color: "#623CEA" },
+  { id: "gemini",         label: "Gemini",        color: "#4285F4" },
+  { id: "chatgpt",        label: "ChatGPT",        color: "#10A37F" },
+  { id: "claude",         label: "Claude",         color: "#E8865A" },
+  { id: "copilot",        label: "Copilot",        color: "#6264A7" },
+  { id: "ai_foundations", label: "AI Foundations", color: "#F68A29" },
+  { id: "useful",         label: "Useful",         color: "#623CEA" },
 ] as const;
 
 function subcategoryColor(id: string | null | undefined): string {
@@ -21,7 +21,7 @@ function subcategoryColor(id: string | null | undefined): string {
 const empty = (): Partial<WatchVideo> => ({
   title: "", creator: "", duration: "", url: "", thumbnail_url: "", description: "",
   is_published: true, order_index: 0,
-  subcategory: "others",
+  subcategory: "useful",
   published_at: new Date().toISOString().slice(0, 10),
 });
 

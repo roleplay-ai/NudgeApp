@@ -61,7 +61,7 @@ const ACCENT = {
   resources: "#23CE68",
 } as const;
 
-type Filter = "all" | "videos" | "articles" | "news" | "resources";
+type Filter = "videos" | "articles" | "news" | "resources";
 
 function resourceTitle(r: Resource & { name?: string }) {
   return r.title || (r as { name?: string }).name || "Untitled";
@@ -69,25 +69,25 @@ function resourceTitle(r: Resource & { name?: string }) {
 
 // ─── Video subcategory definitions ───────────────────────────────────────────
 
-type VideoSubcategory = "gemini" | "chatgpt" | "claude" | "copilot" | "podcast" | "others";
+type VideoSubcategory = "gemini" | "chatgpt" | "claude" | "copilot" | "ai_foundations" | "useful";
 
 const SUBCATEGORIES: { id: VideoSubcategory; label: string; color: string }[] = [
-  { id: "gemini",  label: "Gemini",  color: "#4285F4" },
-  { id: "chatgpt", label: "ChatGPT", color: "#10A37F" },
-  { id: "claude",  label: "Claude",  color: "#E8865A" },
-  { id: "copilot", label: "Copilot", color: "#6264A7" },
-  { id: "podcast", label: "Podcast", color: "#F68A29" },
-  { id: "others",  label: "Others",  color: "#623CEA" },
+  { id: "gemini",         label: "Gemini",         color: "#4285F4" },
+  { id: "chatgpt",        label: "ChatGPT",         color: "#10A37F" },
+  { id: "claude",         label: "Claude",          color: "#E8865A" },
+  { id: "copilot",        label: "Copilot",         color: "#6264A7" },
+  { id: "ai_foundations", label: "AI Foundations",  color: "#F68A29" },
+  { id: "useful",         label: "Useful",          color: "#623CEA" },
 ];
 
 function normalizeSubcategory(sub: string | null | undefined): VideoSubcategory {
   const s = (sub || "").trim().toLowerCase();
-  if (s === "gemini")  return "gemini";
-  if (s === "chatgpt") return "chatgpt";
-  if (s === "claude")  return "claude";
-  if (s === "copilot") return "copilot";
-  if (s === "podcast") return "podcast";
-  return "others";
+  if (s === "gemini")         return "gemini";
+  if (s === "chatgpt")        return "chatgpt";
+  if (s === "claude")         return "claude";
+  if (s === "copilot")        return "copilot";
+  if (s === "ai_foundations") return "ai_foundations";
+  return "useful";
 }
 
 // ─── Auto-scroll carousel hook ────────────────────────────────────────────────
@@ -407,7 +407,7 @@ export default function LibraryHub({
     [resources],
   );
 
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>("videos");
   const [q, setQ] = useState("");
 
   const matches = (text: string | null | undefined) => {
@@ -442,7 +442,6 @@ export default function LibraryHub({
       <div className="flex gap-2 flex-wrap mb-6">
         {(
           [
-            ["all", "All"],
             ["videos", "Videos"],
             ["articles", "Articles"],
             ["news", "News"],
@@ -460,48 +459,6 @@ export default function LibraryHub({
           </button>
         ))}
       </div>
-
-      {filter === "all" && (
-        <div className="space-y-10">
-          {fVideos.length > 0 && (
-            <section>
-              <SectionTitle dotColor={ACCENT.videos} label="Videos" count={fVideos.length} isVideos />
-              <VideosByCategorySection videos={fVideos} />
-            </section>
-          )}
-          {fArticles.length > 0 && (
-            <section>
-              <SectionTitle dotColor={ACCENT.articles} label="Articles & reads" count={fArticles.length} />
-              <div className="space-y-2.5">
-                {fArticles.map((r, i) => (
-                  <ArticleRow key={r.id} resource={r} colorIndex={i} />
-                ))}
-              </div>
-            </section>
-          )}
-          {fNews.length > 0 && (
-            <section>
-              <SectionTitle dotColor={ACCENT.news} label="News" count={fNews.length} />
-              <NewsBuckets items={fNews} />
-            </section>
-          )}
-          {fResources.length > 0 && (
-            <section>
-              <SectionTitle dotColor={ACCENT.resources} label="Learning resources" count={fResources.length} />
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {fResources.map((r, i) => (
-                  <ResourceTile key={r.id} resource={r} colorIndex={i} />
-                ))}
-              </div>
-            </section>
-          )}
-          {emptyLibrary(fVideos, fArticles, fNews, fResources) && (
-            <p className="text-sm text-muted py-6">
-              {q.trim() ? "Nothing matches your search." : "Nothing yet — check back soon."}
-            </p>
-          )}
-        </div>
-      )}
 
       {filter === "videos" && (
         <section>
@@ -558,9 +515,6 @@ export default function LibraryHub({
   );
 }
 
-function emptyLibrary(v: WatchVideo[], a: Resource[], n: NewsItem[], r: Resource[]) {
-  return v.length === 0 && a.length === 0 && n.length === 0 && r.length === 0;
-}
 
 function SectionTitle({ dotColor, label, count, isVideos = false }: { dotColor: string; label: string; count: number; isVideos?: boolean }) {
   if (isVideos) {
