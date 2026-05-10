@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { setOAuthNextCookie } from "@/lib/auth/oauthRedirectCookie";
 import { formatOAuthProviderError } from "@/lib/supabase/oauthErrorMessage";
+import { SITE_HOST_LABEL } from "@/lib/site";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 const REMEMBER_ME_KEY = "nudgeable_remember_me";
@@ -104,8 +105,8 @@ export function LoginPageClient() {
       <div className="w-full max-w-sm">
         {/* Brand */}
         <div className="mb-8 text-center">
-          <div className="text-[10px] font-bold tracking-[3px] text-homeClay mb-1">
-            NUDGEABLE.AI
+          <div className="text-[10px] font-bold tracking-[2px] text-homeClay mb-1 break-all">
+            {SITE_HOST_LABEL}
           </div>
           <h1 className="text-3xl font-extrabold text-white tracking-tight">
             Welcome back

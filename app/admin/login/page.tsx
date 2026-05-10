@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { SITE_HOST_LABEL } from "@/lib/site";
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
@@ -46,7 +47,7 @@ export default function AdminLoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center px-5 bg-shadow">
       <div className="w-full max-w-sm">
-        <div className="text-[10px] font-bold tracking-[3px] text-amber mb-1">NUDGEABLE.AI</div>
+        <div className="text-[10px] font-bold tracking-[2px] text-amber mb-1 break-all">{SITE_HOST_LABEL}</div>
         <h1 className="text-3xl font-extrabold text-white mb-1">Admin login</h1>
         <p className="text-white/50 text-sm mb-8">Content management access only.</p>
 

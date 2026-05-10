@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Eye, EyeOff, Loader2, CheckCircle2 } from "lucide-react";
+import { SITE_HOST_LABEL } from "@/lib/site";
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState("");
@@ -99,8 +100,8 @@ export default function ResetPasswordPage() {
     <div className="dark-auth-form min-h-screen flex items-center justify-center px-5 bg-homeSidebar text-white">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="text-[10px] font-bold tracking-[3px] text-homeClay mb-1">
-            NUDGEABLE.AI
+          <div className="text-[10px] font-bold tracking-[2px] text-homeClay mb-1 break-all">
+            {SITE_HOST_LABEL}
           </div>
           <h1 className="text-3xl font-extrabold text-white tracking-tight">
             Set new password

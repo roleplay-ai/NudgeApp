@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { setOAuthNextCookie } from "@/lib/auth/oauthRedirectCookie";
 import { formatOAuthProviderError } from "@/lib/supabase/oauthErrorMessage";
+import { SITE_HOST_LABEL } from "@/lib/site";
 import { Eye, EyeOff, Loader2, CheckCircle2 } from "lucide-react";
 
 export default function SignupPage() {
@@ -103,8 +104,8 @@ export default function SignupPage() {
           <div className="w-16 h-16 rounded-2xl bg-emerald/15 border border-emerald/30 flex items-center justify-center mx-auto mb-5">
             <CheckCircle2 size={32} className="text-emerald" />
           </div>
-          <div className="text-[10px] font-bold tracking-[3px] text-homeClay mb-2">
-            NUDGEABLE.AI
+          <div className="text-[10px] font-bold tracking-[2px] text-homeClay mb-2 break-all">
+            {SITE_HOST_LABEL}
           </div>
           <h1 className="text-2xl font-extrabold text-white mb-2 tracking-tight">
             {awaitingEmailConfirm ? "Check your inbox" : "Almost there"}
@@ -155,8 +156,8 @@ export default function SignupPage() {
       <div className="w-full max-w-sm">
         {/* Brand */}
         <div className="mb-8 text-center">
-          <div className="text-[10px] font-bold tracking-[3px] text-homeClay mb-1">
-            NUDGEABLE.AI
+          <div className="text-[10px] font-bold tracking-[2px] text-homeClay mb-1 break-all">
+            {SITE_HOST_LABEL}
           </div>
           <h1 className="text-3xl font-extrabold text-white tracking-tight">
             Create account

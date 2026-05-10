@@ -15,6 +15,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { GuestAccountSidebarCard } from "@/components/user/GuestAccountPromo";
 import { useEffect } from "react";
+import { SITE_HOST_LABEL } from "@/lib/site";
 
 const REMEMBER_ME_KEY = "nudgeable_remember_me";
 const SESSION_ACTIVE_KEY = "nudgeable_session_active";
@@ -74,7 +75,7 @@ export default function UserNav({
         className="hidden sm:flex flex-col w-64 min-w-64 min-h-0 overflow-y-auto border-r border-homeInk/20 fixed inset-y-0 left-0 z-50 px-4 py-6 bg-homeSidebar text-homeCanvas/95"
       >
         <div className="mb-7 px-1">
-          <div className="text-[10px] font-bold tracking-[2px] text-homeClay">NUDGEABLE.AI</div>
+          <div className="text-[10px] font-bold tracking-[2px] text-homeClay break-all">{SITE_HOST_LABEL}</div>
           <div className="text-xl font-extrabold tracking-tight text-white">AI Fluency</div>
         </div>
 

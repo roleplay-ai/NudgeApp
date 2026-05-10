@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import LogoutButton from "@/components/LogoutButton";
+import { SITE_HOST_LABEL } from "@/lib/site";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -52,7 +53,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
       <aside className="md:w-64 bg-shadow text-white p-5 md:min-h-screen">
-        <div className="text-[10px] text-amber font-bold tracking-[2px] mb-1">NUDGEABLE.AI</div>
+        <div className="text-[10px] text-amber font-bold tracking-[2px] mb-1 break-all">{SITE_HOST_LABEL}</div>
         <div className="text-xl font-extrabold mb-1">Admin</div>
         <div className="text-xs text-white/50 mb-6 truncate">{displayName}</div>
 
