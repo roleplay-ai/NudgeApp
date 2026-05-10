@@ -7,7 +7,6 @@ import {
   GraduationCap,
   Home,
   Lightbulb,
-  LogIn,
   LogOut,
   UserRound,
   Wrench,
@@ -106,9 +105,8 @@ export default function UserNav({
         <div className="mt-auto pt-4 border-t border-homeInk/35 space-y-3">
           {!isLoggedIn ? <GuestAccountSidebarCard /> : null}
 
-          <div className="space-y-1">
           {isLoggedIn ? (
-            <>
+            <div className="space-y-1">
               <Link
                 href="/profile"
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition border no-underline
@@ -128,19 +126,8 @@ export default function UserNav({
                 <LogOut size={18} strokeWidth={2} className="shrink-0 text-homeNavMuted" />
                 <span className="truncate">Sign out</span>
               </button>
-            </>
-          ) : (
-            <>
-              <Link
-                href="/login"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition border border-transparent text-homeNavMuted hover:bg-white/[0.06] hover:text-homeCanvas no-underline"
-              >
-                <LogIn size={18} strokeWidth={2} className="shrink-0 text-homeNavMuted" />
-                <span className="truncate">Sign in</span>
-              </Link>
-            </>
-          )}
-          </div>
+            </div>
+          ) : null}
         </div>
       </aside>
 

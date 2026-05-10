@@ -53,7 +53,7 @@ export function GuestAccountSidebarCard() {
 
         <Link
           href={loginHref}
-          className="block w-full text-center text-[11px] font-semibold text-homeSubtle hover:text-homeBodyMuted transition-colors no-underline"
+          className="flex w-full items-center justify-center rounded-full border-2 border-homeInk/25 bg-white py-2.5 px-4 text-[13px] font-bold text-homeInk no-underline hover:border-homeClay/60 hover:bg-homeClay/[0.08] hover:text-homeClay transition-colors"
         >
           Sign in
         </Link>
