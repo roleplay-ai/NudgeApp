@@ -1,14 +1,32 @@
 import { createServerClient, type SetAllCookies } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { cookies } from "next/headers";
+import { OAUTH_NEXT_COOKIE } from "@/lib/auth/oauthRedirectCookie";
+
+function safeInternalPath(path: string): string {
+  const p = path.trim();
+  if (!p.startsWith("/") || p.startsWith("//")) return "/";
+  return p;
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/";
+
+  const cookieStore = await cookies();
+  const fromCookie = cookieStore.get(OAUTH_NEXT_COOKIE)?.value;
+  let next = "/";
+  if (fromCookie) {
+    try {
+      next = safeInternalPath(decodeURIComponent(fromCookie));
+    } catch {
+      next = "/";
+    }
+  } else {
+    next = safeInternalPath(searchParams.get("next") ?? "/");
+  }
 
   if (code) {
-    const cookieStore = await cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -28,9 +46,13 @@ export async function GET(request: NextRequest) {
 
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
+      const res = NextResponse.redirect(`${origin}${next}`);
+      res.cookies.set(OAUTH_NEXT_COOKIE, "", { path: "/", maxAge: 0 });
+      return res;
     }
   }
 
-  return NextResponse.redirect(`${origin}/login?error=auth_failed`);
+  const fail = NextResponse.redirect(`${origin}/login?error=auth_failed`);
+  fail.cookies.set(OAUTH_NEXT_COOKIE, "", { path: "/", maxAge: 0 });
+  return fail;
 }

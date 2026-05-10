@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { setOAuthNextCookie } from "@/lib/auth/oauthRedirectCookie";
 import { formatOAuthProviderError } from "@/lib/supabase/oauthErrorMessage";
 import { Eye, EyeOff, Loader2, CheckCircle2 } from "lucide-react";
 
@@ -39,7 +40,7 @@ export default function SignupPage() {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/`,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
@@ -75,11 +76,13 @@ export default function SignupPage() {
     setGoogleLoading(true);
     setErr(null);
 
+    setOAuthNextCookie("/");
+
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/`,
+        redirectTo: `${window.location.origin}/auth/callback`,
         queryParams: {
           access_type: "offline",
           prompt: "consent",

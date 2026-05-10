@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { setOAuthNextCookie } from "@/lib/auth/oauthRedirectCookie";
 import { formatOAuthProviderError } from "@/lib/supabase/oauthErrorMessage";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
@@ -75,11 +76,15 @@ export default function LoginPage() {
     setGoogleLoading(true);
     setErr(null);
 
+    const nextPath = searchParams.get("next") ?? "/";
+    setOAuthNextCookie(nextPath);
+
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/`,
+        // Must match Supabase Redirect URLs exactly (no ?next=); post-login path uses cookie.
+        redirectTo: `${window.location.origin}/auth/callback`,
         queryParams: {
           access_type: "offline",
           prompt: "consent",
