@@ -19,6 +19,7 @@ import { track } from "@/lib/analytics";
 import { getModuleWithScreens } from "@/app/actions/getModule";
 import ModulePlayer from "@/components/user/ModulePlayer";
 import { ApplyVideoDetailModal } from "@/components/user/ApplyVideosFeed";
+import { GuestAccountMobileStrip } from "@/components/user/GuestAccountPromo";
 
 function formatBriefDate(iso: string | undefined) {
   if (!iso) return "";
@@ -493,6 +494,9 @@ export default function HomeContent({
           accent="purple"
         />
       </section>
+
+      {/* Fixed mobile promo sits above tab bar; spacer above keeps bottom content scrollable */}
+      <GuestAccountMobileStrip />
     </div>
   );
 }

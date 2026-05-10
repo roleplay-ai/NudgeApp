@@ -13,6 +13,7 @@ import {
   // UserRound, // future: profile link
   Wrench,
 } from "lucide-react";
+import { GuestAccountSidebarCard } from "@/components/user/GuestAccountPromo";
 // import { createClient } from "@/lib/supabase/client"; // with sidebar sign out
 // import { masteryFromScore } from "@/lib/masteryUi"; // future: mastery card in sidebar
 
@@ -27,7 +28,7 @@ const items = [
 export default function UserNav({
   masteryScore: _masteryScore = 0,
   streakDays: _streakDays = 0,
-  isLoggedIn: _isLoggedIn = false,
+  isLoggedIn = false,
 }: {
   /** Reserved for future sidebar mastery widget */
   masteryScore?: number;
@@ -82,6 +83,8 @@ export default function UserNav({
         </nav>
 
         <div className="mt-auto space-y-3 pt-4 border-t border-homeInk/35">
+          <GuestAccountSidebarCard />
+
           {/*
             FUTURE: sidebar footer — restore imports (Flame, LogIn, UserRound, masteryFromScore),
             uncomment masteryFromScore(...) above, rename props from _masteryScore/_streakDays, then paste back:
