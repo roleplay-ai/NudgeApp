@@ -11,5 +11,32 @@ aside[data-user-sidebar] button {
   text-decoration: none;
 }
 
+/*
+  Dark auth screens (login/signup/etc.): body color is ink (#221D23). Without this,
+  native inputs often inherit that color onto bg-homeSidebar, so typed text is nearly invisible.
+  Chrome autofill also forces its own colors unless overridden.
+*/
+.dark-auth-form {
+  color-scheme: dark;
+}
+.dark-auth-form input:not([type="checkbox"]),
+.dark-auth-form textarea {
+  color: #fdf9f0;
+  caret-color: #fdf9f0;
+}
+.dark-auth-form input::placeholder,
+.dark-auth-form textarea::placeholder {
+  color: rgb(255 255 255 / 0.48);
+  opacity: 1;
+}
+.dark-auth-form input:-webkit-autofill,
+.dark-auth-form input:-webkit-autofill:hover,
+.dark-auth-form input:-webkit-autofill:focus,
+.dark-auth-form input:-webkit-autofill:active {
+  -webkit-text-fill-color: #fdf9f0 !important;
+  caret-color: #fdf9f0;
+  box-shadow: 0 0 0 1000px #1a1614 inset !important;
+}
+
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-thumb { background: #E8E6DC; border-radius: 999px; }

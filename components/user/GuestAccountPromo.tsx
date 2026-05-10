@@ -6,11 +6,11 @@ import { ArrowRight, BarChart3, GraduationCap, Lock, X } from "lucide-react";
 
 const PROMO_ORANGE = "#E64A19";
 
+const signupHref = "/signup";
+const loginHref = "/login";
+
 /** Desktop: white card at bottom of dark sidebar (reference UI). */
 export function GuestAccountSidebarCard() {
-  const [dismissed, setDismissed] = useState(false);
-  if (dismissed) return null;
-
   return (
     <div className="rounded-2xl bg-white border border-black/[0.06] shadow-[0_8px_28px_rgba(0,0,0,0.12)] overflow-hidden">
       <div className="h-[3px] bg-amber w-full" aria-hidden />
@@ -44,20 +44,19 @@ export function GuestAccountSidebarCard() {
         </ul>
 
         <Link
-          href="/profile"
+          href={signupHref}
           className="flex w-full items-center justify-center gap-1.5 rounded-full bg-homeInk py-3 px-4 text-[13px] font-bold text-amber no-underline hover:opacity-92 transition-opacity"
         >
           Create free account
           <ArrowRight size={16} strokeWidth={2.5} aria-hidden />
         </Link>
 
-        <button
-          type="button"
-          onClick={() => setDismissed(true)}
-          className="w-full text-center text-[11px] font-semibold text-homeSubtle hover:text-homeBodyMuted transition-colors bg-transparent border-none cursor-pointer p-0"
+        <Link
+          href={loginHref}
+          className="flex w-full items-center justify-center rounded-full border-2 border-homeInk/25 bg-white py-2.5 px-4 text-[13px] font-bold text-homeInk no-underline hover:border-homeClay/60 hover:bg-homeClay/[0.08] hover:text-homeClay transition-colors"
         >
-          Maybe later
-        </button>
+          Sign in
+        </Link>
       </div>
     </div>
   );
@@ -105,7 +104,7 @@ export function GuestAccountMobileStrip() {
             </div>
 
             <Link
-              href="/profile"
+              href={signupHref}
               className="shrink-0 inline-flex items-center justify-center gap-0.5 rounded-full bg-homeInk py-2 px-3.5 text-[11px] font-bold text-amber no-underline hover:opacity-92 transition-opacity whitespace-nowrap"
             >
               Sign up
