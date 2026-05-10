@@ -7,7 +7,7 @@ import {
   // Flame, // future: streak row in sidebar footer
   GraduationCap,
   Home,
-  Library,
+  Lightbulb,
   // LogIn, // future: sidebar login link
   // LogOut, // sidebar sign out (commented out)
   // UserRound, // future: profile link
@@ -21,7 +21,7 @@ const items = [
   { href: "/learn", label: "Learn", icon: GraduationCap },
   { href: "/apply", label: "Apply", icon: Crosshair },
   { href: "/tools", label: "Tools", icon: Wrench },
-  { href: "/library", label: "Library", icon: Library },
+  { href: "/insights", label: "Insights", icon: Lightbulb },
 ];
 
 export default function UserNav({
