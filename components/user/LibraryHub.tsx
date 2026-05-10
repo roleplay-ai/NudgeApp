@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { ExternalLink, Play, Search } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, ExternalLink, Search } from "lucide-react";
 import type { NewsItem, Resource, WatchVideo } from "@/lib/types";
 import { resolveVideoThumbnailUrl } from "@/lib/videoThumbnails";
 
@@ -61,11 +61,333 @@ const ACCENT = {
   resources: "#23CE68",
 } as const;
 
-type Filter = "all" | "videos" | "articles" | "news" | "resources";
+type Filter = "videos" | "articles" | "news" | "resources";
 
 function resourceTitle(r: Resource & { name?: string }) {
   return r.title || (r as { name?: string }).name || "Untitled";
 }
+
+// ─── Video subcategory definitions ───────────────────────────────────────────
+
+type VideoSubcategory = "gemini" | "chatgpt" | "claude" | "copilot" | "ai_foundations" | "useful";
+
+const SUBCATEGORIES: { id: VideoSubcategory; label: string; color: string }[] = [
+  { id: "gemini",         label: "Gemini",         color: "#4285F4" },
+  { id: "chatgpt",        label: "ChatGPT",         color: "#10A37F" },
+  { id: "claude",         label: "Claude",          color: "#E8865A" },
+  { id: "copilot",        label: "Copilot",         color: "#6264A7" },
+  { id: "ai_foundations", label: "AI Foundations",  color: "#F68A29" },
+  { id: "useful",         label: "Useful",          color: "#623CEA" },
+];
+
+function normalizeSubcategory(sub: string | null | undefined): VideoSubcategory {
+  const s = (sub || "").trim().toLowerCase();
+  if (s === "gemini")         return "gemini";
+  if (s === "chatgpt")        return "chatgpt";
+  if (s === "claude")         return "claude";
+  if (s === "copilot")        return "copilot";
+  if (s === "ai_foundations") return "ai_foundations";
+  return "useful";
+}
+
+// ─── Auto-scroll carousel hook ────────────────────────────────────────────────
+
+function useCarousel(count: number, intervalMs = 4500) {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const pausedRef = useRef(false);
+  const scrollPauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollSyncSuppressedUntilRef = useRef(0);
+  const idxChangeSourceRef = useRef<"external" | "scroll">("external");
+
+  const suppressScrollSync = useCallback((ms = 700) => {
+    scrollSyncSuppressedUntilRef.current = Date.now() + ms;
+  }, []);
+
+  function scrollTrackToCard(track: HTMLDivElement, index: number, behavior: ScrollBehavior) {
+    const card = track.children[index] as HTMLElement | undefined;
+    if (!card) return;
+    const padLeft = parseFloat(getComputedStyle(track).paddingLeft) || 0;
+    const target = Math.max(0, card.offsetLeft - padLeft);
+    track.scrollTo({ left: target, behavior });
+  }
+
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track || count === 0) return;
+    if (idxChangeSourceRef.current === "scroll") {
+      idxChangeSourceRef.current = "external";
+      return;
+    }
+    suppressScrollSync(750);
+    requestAnimationFrame(() => {
+      scrollTrackToCard(track, activeIdx, "smooth");
+    });
+  }, [activeIdx, count, suppressScrollSync]);
+
+  useEffect(() => {
+    if (count <= 1) return;
+    const timer = setInterval(() => {
+      if (!pausedRef.current) {
+        idxChangeSourceRef.current = "external";
+        suppressScrollSync(750);
+        setActiveIdx((p) => (p + 1) % count);
+      }
+    }, intervalMs);
+    return () => clearInterval(timer);
+  }, [count, intervalMs, suppressScrollSync]);
+
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track || count <= 1) return;
+    let raf = 0;
+    const onScroll = () => {
+      pausedRef.current = true;
+      if (scrollPauseTimerRef.current) clearTimeout(scrollPauseTimerRef.current);
+      scrollPauseTimerRef.current = setTimeout(() => {
+        pausedRef.current = false;
+      }, 3800);
+      if (Date.now() < scrollSyncSuppressedUntilRef.current) return;
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const children = [...track.children] as HTMLElement[];
+        if (!children.length) return;
+        const center = track.scrollLeft + track.clientWidth / 2;
+        let best = 0;
+        let bestDist = Infinity;
+        children.forEach((el, i) => {
+          const mid = el.offsetLeft + el.offsetWidth / 2;
+          const d = Math.abs(mid - center);
+          if (d < bestDist) { bestDist = d; best = i; }
+        });
+        idxChangeSourceRef.current = "scroll";
+        setActiveIdx(best);
+      });
+    };
+    track.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(raf);
+      if (scrollPauseTimerRef.current) clearTimeout(scrollPauseTimerRef.current);
+      track.removeEventListener("scroll", onScroll);
+    };
+  }, [count]);
+
+  const pause = useCallback(() => { pausedRef.current = true; }, []);
+  const resume = useCallback(() => { pausedRef.current = false; }, []);
+  const pauseFor = useCallback((ms: number) => {
+    pausedRef.current = true;
+    setTimeout(() => { pausedRef.current = false; }, ms);
+  }, []);
+
+  const step = useCallback((delta: number) => {
+    idxChangeSourceRef.current = "external";
+    suppressScrollSync(750);
+    setActiveIdx((p) => Math.max(0, Math.min(count - 1, p + delta)));
+    pausedRef.current = true;
+    setTimeout(() => { pausedRef.current = false; }, 4500);
+  }, [count, suppressScrollSync]);
+
+  return { activeIdx, trackRef, pause, resume, pauseFor, step };
+}
+
+function useCarouselInteractionHint(): "swipe" | "drag" {
+  const [hint, setHint] = useState<"swipe" | "drag">("swipe");
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const apply = () => setHint(mq.matches ? "drag" : "swipe");
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+  return hint;
+}
+
+// ─── Video carousel card ─────────────────────────────────────────────────────
+
+function VideoCarouselCard({
+  video: v,
+  accent,
+  isActive,
+}: {
+  video: WatchVideo;
+  accent: string;
+  isActive: boolean;
+}) {
+  const thumb = resolveVideoThumbnailUrl(v.thumbnail_url, v.url);
+  return (
+    <a
+      href={v.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`flex-shrink-0 w-[min(268px,calc(100vw-3rem))] overflow-hidden rounded-[18px] border border-black/[0.06] bg-white text-left transition-opacity duration-200 shadow-[0_2px_12px_rgba(0,0,0,0.06)] snap-start flex flex-col ${
+        isActive ? "opacity-100" : "opacity-[0.9] hover:opacity-100"
+      }`}
+    >
+      <div
+        className="relative h-[148px] w-full shrink-0 overflow-hidden"
+        style={{
+          background: thumb
+            ? undefined
+            : `linear-gradient(155deg, ${accent} 0%, #1a1030 48%, #0f0a18 100%)`,
+        }}
+      >
+        {thumb ? (
+          <>
+            <img src={thumb} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-black/25" aria-hidden />
+          </>
+        ) : null}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="flex h-[52px] w-[52px] items-center justify-center rounded-full bg-white shadow-[0_6px_24px_rgba(0,0,0,0.2)]">
+            <span className="text-shadow text-[18px] leading-none pl-1" aria-hidden>▶</span>
+          </div>
+        </div>
+        {v.duration && (
+          <div className="absolute bottom-2 right-2 rounded bg-black/80 px-1.5 py-px font-mono text-[11px] font-medium text-white tabular-nums">
+            {v.duration}
+          </div>
+        )}
+      </div>
+      <div className="flex flex-col gap-1.5 px-3.5 pt-3 pb-3.5 bg-white">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="h-2 w-2 shrink-0 rounded-[2px]" style={{ backgroundColor: accent }} aria-hidden />
+          <span className="text-[10px] font-bold tracking-[0.12em] uppercase text-muted truncate">
+            {v.creator}
+          </span>
+        </div>
+        <div className="text-[15px] font-bold text-shadow leading-snug line-clamp-2">{v.title}</div>
+        {v.description && (
+          <p className="text-[12px] text-muted leading-relaxed line-clamp-2">{v.description}</p>
+        )}
+      </div>
+    </a>
+  );
+}
+
+// ─── Per-subcategory carousel ─────────────────────────────────────────────────
+
+function VideoSubcategoryCarousel({
+  subcategory,
+  videos,
+}: {
+  subcategory: { id: VideoSubcategory; label: string; color: string };
+  videos: WatchVideo[];
+}) {
+  const hint = useCarouselInteractionHint();
+  const { activeIdx, trackRef, pause, resume, pauseFor, step } = useCarousel(videos.length);
+
+  const arrowBtn =
+    "absolute top-[74px] z-[2] hidden md:flex h-10 w-10 items-center justify-center rounded-full bg-white text-shadow shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-black/[0.06] hover:bg-[#fafafa] transition-colors";
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2.5">
+        <span
+          className="w-1 h-5 rounded-full flex-shrink-0"
+          style={{ background: subcategory.color }}
+          aria-hidden
+        />
+        <h3
+          className="text-[13px] font-extrabold tracking-wide uppercase"
+          style={{ color: subcategory.color }}
+        >
+          {subcategory.label}
+        </h3>
+        <span className="text-[10px] font-semibold text-muted">
+          {videos.length} {videos.length === 1 ? "video" : "videos"}
+        </span>
+      </div>
+
+      <div
+        className="relative"
+        onMouseEnter={pause}
+        onMouseLeave={resume}
+        onTouchStart={() => pauseFor(4000)}
+      >
+        {videos.length > 1 && (
+          <>
+            <button
+              type="button"
+              className={`${arrowBtn} left-0 -translate-x-1`}
+              aria-label={`Previous ${subcategory.label} video`}
+              onClick={() => step(-1)}
+            >
+              <ChevronLeft size={20} strokeWidth={2.25} />
+            </button>
+            <button
+              type="button"
+              className={`${arrowBtn} right-0 translate-x-1`}
+              aria-label={`Next ${subcategory.label} video`}
+              onClick={() => step(1)}
+            >
+              <ChevronRight size={20} strokeWidth={2.25} />
+            </button>
+          </>
+        )}
+
+        <div
+          ref={trackRef}
+          className="flex gap-3 overflow-x-auto pb-1 scroll-pl-4 scroll-pr-4 pl-4 pr-4 md:scroll-pl-0 md:scroll-pr-0 md:pl-0 md:pr-0 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x snap-mandatory"
+        >
+          {videos.map((v, i) => (
+            <VideoCarouselCard
+              key={v.id}
+              video={v}
+              accent={subcategory.color}
+              isActive={i === activeIdx}
+            />
+          ))}
+        </div>
+
+        <div className="flex items-center mt-3 px-0">
+          <div
+            className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-semibold tabular-nums bg-[#1A1A1A] text-white/90 shadow-sm"
+            aria-live="polite"
+          >
+            <span style={{ color: subcategory.color }}>{String(activeIdx + 1).padStart(2, "0")}</span>
+            <span className="text-white/75">{` / ${String(videos.length).padStart(2, "0")}`}</span>
+            <span className="text-white/35 px-0.5">·</span>
+            <span className="text-white/80 font-medium">{hint}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── All subcategory carousels for a video list ────────────────────────────────
+
+function VideosByCategorySection({ videos }: { videos: WatchVideo[] }) {
+  const grouped = useMemo(() => {
+    const map = new Map<VideoSubcategory, WatchVideo[]>();
+    for (const sub of SUBCATEGORIES) map.set(sub.id, []);
+    for (const v of videos) {
+      const cat = normalizeSubcategory(v.subcategory);
+      map.get(cat)!.push(v);
+    }
+    return map;
+  }, [videos]);
+
+  const activeSubs = SUBCATEGORIES.filter((sub) => (grouped.get(sub.id)?.length ?? 0) > 0);
+
+  if (!activeSubs.length) {
+    return <p className="text-sm text-muted">No videos yet.</p>;
+  }
+
+  return (
+    <div className="space-y-10">
+      {activeSubs.map((sub) => (
+        <VideoSubcategoryCarousel
+          key={sub.id}
+          subcategory={sub}
+          videos={grouped.get(sub.id)!}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ─── Main LibraryHub ──────────────────────────────────────────────────────────
 
 export default function LibraryHub({
   news,
@@ -85,7 +407,7 @@ export default function LibraryHub({
     [resources],
   );
 
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>("videos");
   const [q, setQ] = useState("");
 
   const matches = (text: string | null | undefined) => {
@@ -113,14 +435,13 @@ export default function LibraryHub({
           placeholder="Search videos, articles, news..."
           className="w-full pl-11 pr-4 py-3 rounded-2xl text-sm bg-white border border-nborder shadow-sm
             focus:outline-none focus:ring-2 focus:ring-shadow/15 focus:border-shadow"
-          aria-label="Search library"
+          aria-label="Search insights"
         />
       </div>
 
       <div className="flex gap-2 flex-wrap mb-6">
         {(
           [
-            ["all", "All"],
             ["videos", "Videos"],
             ["articles", "Articles"],
             ["news", "News"],
@@ -139,63 +460,13 @@ export default function LibraryHub({
         ))}
       </div>
 
-      {filter === "all" && (
-        <div className="space-y-10">
-          {fVideos.length > 0 && (
-            <section>
-              <SectionTitle dotColor={ACCENT.videos} label="Videos" count={fVideos.length} />
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {fVideos.map((v, i) => (
-                  <VideoCard key={v.id} video={v} colorIndex={i} />
-                ))}
-              </div>
-            </section>
-          )}
-          {fArticles.length > 0 && (
-            <section>
-              <SectionTitle dotColor={ACCENT.articles} label="Articles & reads" count={fArticles.length} />
-              <div className="space-y-2.5">
-                {fArticles.map((r, i) => (
-                  <ArticleRow key={r.id} resource={r} colorIndex={i} />
-                ))}
-              </div>
-            </section>
-          )}
-          {fNews.length > 0 && (
-            <section>
-              <SectionTitle dotColor={ACCENT.news} label="News" count={fNews.length} />
-              <NewsBuckets items={fNews} />
-            </section>
-          )}
-          {fResources.length > 0 && (
-            <section>
-              <SectionTitle dotColor={ACCENT.resources} label="Learning resources" count={fResources.length} />
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {fResources.map((r, i) => (
-                  <ResourceTile key={r.id} resource={r} colorIndex={i} />
-                ))}
-              </div>
-            </section>
-          )}
-          {emptyLibrary(fVideos, fArticles, fNews, fResources) && (
-            <p className="text-sm text-muted py-6">
-              {q.trim() ? "Nothing matches your search." : "Nothing yet — check back soon."}
-            </p>
-          )}
-        </div>
-      )}
-
       {filter === "videos" && (
         <section>
-          <SectionTitle dotColor={ACCENT.videos} label="Videos" count={fVideos.length} />
+          <SectionTitle dotColor={ACCENT.videos} label="Videos" count={fVideos.length} isVideos />
           {fVideos.length === 0 ? (
             <p className="text-sm text-muted">No videos yet.</p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {fVideos.map((v, i) => (
-                <VideoCard key={v.id} video={v} colorIndex={i} />
-              ))}
-            </div>
+            <VideosByCategorySection videos={fVideos} />
           )}
         </section>
       )}
@@ -244,11 +515,22 @@ export default function LibraryHub({
   );
 }
 
-function emptyLibrary(v: WatchVideo[], a: Resource[], n: NewsItem[], r: Resource[]) {
-  return v.length === 0 && a.length === 0 && n.length === 0 && r.length === 0;
-}
 
-function SectionTitle({ dotColor, label, count }: { dotColor: string; label: string; count: number }) {
+function SectionTitle({ dotColor, label, count, isVideos = false }: { dotColor: string; label: string; count: number; isVideos?: boolean }) {
+  if (isVideos) {
+    return (
+      <div className="mb-6">
+        <p className="text-[10px] font-black tracking-[0.2em] uppercase mb-1" style={{ color: dotColor }}>
+          INSIGHTS
+        </p>
+        <div className="flex items-end gap-3">
+          <h2 className="text-2xl font-extrabold text-shadow leading-tight">{label}</h2>
+          <span className="text-[11px] font-bold text-muted mb-0.5">{count} total</span>
+        </div>
+        <div className="mt-3 h-px bg-nborder" />
+      </div>
+    );
+  }
   return (
     <div className="flex items-center gap-2 mb-3">
       <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: dotColor }} aria-hidden />
@@ -296,58 +578,6 @@ function bucketNews(news: NewsItem[]): { label: string; items: NewsItem[] }[] {
   if (lastWeek.length) out.push({ label: "LAST WEEK", items: lastWeek });
   if (older.length) out.push({ label: "OLDER", items: older });
   return out;
-}
-
-function VideoCard({ video: v, colorIndex }: { video: WatchVideo; colorIndex: number }) {
-  const fallbackColor = VIDEO_COLORS[colorIndex % VIDEO_COLORS.length];
-  const thumb = resolveVideoThumbnailUrl(v.thumbnail_url, v.url);
-  return (
-    <a
-      href={v.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="bg-white rounded-2xl overflow-hidden border border-nborder shadow-sm hover:shadow-md transition block group"
-    >
-      <div className="relative w-full aspect-video">
-        {thumb ? (
-          <img src={thumb} alt="" className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center" style={{ background: fallbackColor }}>
-            <Play size={32} className="text-white opacity-90" fill="white" />
-          </div>
-        )}
-        <div className="absolute inset-0 flex items-center justify-center bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-          <div className="w-12 h-12 rounded-full bg-white/95 flex items-center justify-center shadow-lg">
-            <Play size={22} className="text-shadow ml-0.5" fill="currentColor" />
-          </div>
-        </div>
-        <span className="absolute top-2 left-2 text-[9px] font-bold tracking-wide text-white bg-black/60 px-2 py-0.5 rounded-full">
-          VIDEO
-        </span>
-        {v.duration && (
-          <span className="absolute bottom-2 right-2 text-[10px] bg-black/75 text-white px-1.5 py-0.5 rounded font-semibold">
-            {v.duration}
-          </span>
-        )}
-      </div>
-      <div className="p-3.5">
-        <div className="text-[13px] font-bold text-shadow leading-snug mb-1.5 line-clamp-2">{v.title}</div>
-        {v.description && (
-          <div className="text-[11px] text-muted leading-snug line-clamp-2 mb-3">{v.description}</div>
-        )}
-        <div className="flex items-center gap-2">
-          <div
-            className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-extrabold flex-shrink-0"
-            style={{ background: VIDEO_COLORS[(v.creator.charCodeAt(0) || 0) % VIDEO_COLORS.length] }}
-          >
-            {v.creator[0]?.toUpperCase()}
-          </div>
-          <span className="text-[11px] text-muted font-medium truncate">{v.creator}</span>
-          <span className="text-[11px] text-muted ml-auto flex-shrink-0">{formatDate(v.published_at)}</span>
-        </div>
-      </div>
-    </a>
-  );
 }
 
 function NewsCard({ item: n }: { item: NewsItem }) {
@@ -456,10 +686,6 @@ function ResourceTile({ resource: r, colorIndex }: { resource: Resource; colorIn
       </div>
     </a>
   );
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
 function timeAgo(date: string) {

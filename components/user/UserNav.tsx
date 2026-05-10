@@ -7,7 +7,7 @@ import {
   // Flame, // future: streak row in sidebar footer
   GraduationCap,
   Home,
-  Library,
+  Lightbulb,
   // LogIn, // future: sidebar login link
   // LogOut, // sidebar sign out (commented out)
   // UserRound, // future: profile link
@@ -21,7 +21,7 @@ const items = [
   { href: "/learn", label: "Learn", icon: GraduationCap },
   { href: "/apply", label: "Apply", icon: Crosshair },
   { href: "/tools", label: "Tools", icon: Wrench },
-  { href: "/library", label: "Library", icon: Library },
+  { href: "/insights", label: "Insights", icon: Lightbulb },
 ];
 
 export default function UserNav({
@@ -105,11 +105,11 @@ export default function UserNav({
         </div>
       </aside>
 
-      {/* Mobile top nav (no horizontal scrolling) */}
-      <header className="sm:hidden fixed top-0 left-0 right-0 z-50">
+      {/* Mobile bottom nav (no horizontal scrolling) */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50">
         <nav
           aria-label="Primary"
-          className="bg-homeSidebar border-b border-homeInk/30 pt-[env(safe-area-inset-top)] px-2 pb-2 shadow-[0_10px_30px_rgba(0,0,0,0.28)]"
+          className="bg-homeSidebar border-t border-homeInk/30 pt-2 px-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] shadow-[0_-10px_30px_rgba(0,0,0,0.28)]"
         >
           <div className="grid grid-cols-5 gap-1">
             {items.map((it) => {
@@ -134,7 +134,7 @@ export default function UserNav({
             })}
           </div>
         </nav>
-      </header>
+      </div>
     </>
   );
 }

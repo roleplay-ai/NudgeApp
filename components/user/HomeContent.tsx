@@ -451,7 +451,7 @@ export default function HomeContent({
             <div className="flex items-center justify-between mb-3.5">
               <span className="text-[11px] font-bold text-homeInk">Watch this week</span>
               <Link
-                href="/library"
+                href="/insights"
                 className="text-xs font-semibold text-homeClay hover:underline inline-flex items-center gap-0.5 no-underline"
               >
                 All videos →

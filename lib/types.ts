@@ -152,6 +152,8 @@ export type WatchVideo = {
   published_at: string;
   is_published: boolean;
   order_index: number;
+  /** Library subcategory: gemini | chatgpt | claude | copilot | ai_foundations | useful */
+  subcategory?: string | null;
 };
 
 export type VideoOfDay = {
