@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import type {
   ApplyVideo,
@@ -11,6 +12,12 @@ import type {
   World,
 } from "@/lib/types";
 import HomeContent from "@/components/user/HomeContent";
+
+export const metadata: Metadata = {
+  verification: {
+    google: "pjfugdNsTndNEq6kBSvjVY12UmwRwP5cLjz4fMbGP8o",
+  },
+};
 
 export const dynamic = "force-dynamic";
 
