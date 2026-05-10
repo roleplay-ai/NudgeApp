@@ -1,20 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Crosshair,
-  // Flame, // future: streak row in sidebar footer
   GraduationCap,
   Home,
   Library,
-  // LogIn, // future: sidebar login link
-  // LogOut, // sidebar sign out (commented out)
-  // UserRound, // future: profile link
+  LogIn,
+  LogOut,
+  UserRound,
   Wrench,
 } from "lucide-react";
-// import { createClient } from "@/lib/supabase/client"; // with sidebar sign out
-// import { masteryFromScore } from "@/lib/masteryUi"; // future: mastery card in sidebar
+import { createClient } from "@/lib/supabase/client";
+import { useEffect } from "react";
+
+const REMEMBER_ME_KEY = "nudgeable_remember_me";
+const SESSION_ACTIVE_KEY = "nudgeable_session_active";
 
 const items = [
   { href: "/", label: "Home", icon: Home },
@@ -27,23 +29,41 @@ const items = [
 export default function UserNav({
   masteryScore: _masteryScore = 0,
   streakDays: _streakDays = 0,
-  isLoggedIn: _isLoggedIn = false,
+  isLoggedIn = false,
 }: {
-  /** Reserved for future sidebar mastery widget */
   masteryScore?: number;
-  /** Reserved for future sidebar streak row */
   streakDays?: number;
   isLoggedIn?: boolean;
 }) {
   const path = usePathname();
-  // const { displayScore, subline, barPct } = masteryFromScore(masteryScore); // future: mastery card
+  const router = useRouter();
 
-  // async function signOut() {
-  //   const supabase = createClient();
-  //   await supabase.auth.signOut();
-  //   router.refresh();
-  //   router.push("/");
-  // }
+  // "Remember me = false" enforcement:
+  // If the user didn't check "remember me", we sign them out when the browser
+  // is reopened (sessionStorage is cleared on browser close).
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    const rememberMe = localStorage.getItem(REMEMBER_ME_KEY);
+    const sessionActive = sessionStorage.getItem(SESSION_ACTIVE_KEY);
+
+    if (rememberMe === "false" && !sessionActive) {
+      // Browser was reopened without "remember me" — end the session
+      const supabase = createClient();
+      supabase.auth.signOut().then(() => {
+        router.refresh();
+      });
+    }
+  }, [isLoggedIn, router]);
+
+  async function signOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    localStorage.removeItem(REMEMBER_ME_KEY);
+    sessionStorage.removeItem(SESSION_ACTIVE_KEY);
+    router.push("/");
+    router.refresh();
+  }
 
   return (
     <>
@@ -56,6 +76,7 @@ export default function UserNav({
           <div className="text-[10px] font-bold tracking-[2px] text-homeClay">NUDGEABLE.AI</div>
           <div className="text-xl font-extrabold tracking-tight text-white">AI Fluency</div>
         </div>
+
         <nav className="flex flex-col gap-1 flex-1 min-h-0">
           {items.map((it) => {
             const Ic = it.icon;
@@ -81,31 +102,44 @@ export default function UserNav({
           })}
         </nav>
 
-        <div className="mt-auto space-y-3 pt-4 border-t border-homeInk/35">
-          {/*
-            FUTURE: sidebar footer — restore imports (Flame, LogIn, UserRound, masteryFromScore),
-            uncomment masteryFromScore(...) above, rename props from _masteryScore/_streakDays, then paste back:
-            — Mastery card (displayScore, barPct, subline)
-            — Streak row (Flame + streakDays)
-            — Profile Link + branch: Sign out when isLoggedIn else Log in
-            (Keep Sign out below live when re-enabling the full block, or fold it into that branch.)
-          */}
-
-          {/* {isLoggedIn ? (
-            <button
-              type="button"
-              onClick={() => signOut()}
-              className="flex items-center gap-2.5 px-2 py-2 rounded-lg text-[13px] font-semibold text-[#e0e0e0] hover:text-[#ffffff] hover:bg-white/[0.04] w-full text-left"
-              style={{ color: "#e0e0e0" }}
-            >
-              <LogOut size={17} className="shrink-0" style={{ color: "#bdbdbd" }} />
-              Sign out
-            </button>
-          ) : null} */}
+        <div className="mt-auto pt-4 border-t border-homeInk/35 space-y-1">
+          {isLoggedIn ? (
+            <>
+              <Link
+                href="/profile"
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition border no-underline
+                  ${path === "/profile"
+                    ? "bg-homeClay/15 border-homeClay/70 text-homeCanvas"
+                    : "border-transparent text-homeNavMuted hover:bg-white/[0.06] hover:text-homeCanvas"
+                  }`}
+              >
+                <UserRound size={18} strokeWidth={2} className="shrink-0 text-homeNavMuted" />
+                <span className="truncate">Profile</span>
+              </Link>
+              <button
+                type="button"
+                onClick={signOut}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition border border-transparent text-homeNavMuted hover:bg-white/[0.06] hover:text-homeCanvas w-full text-left"
+              >
+                <LogOut size={18} strokeWidth={2} className="shrink-0 text-homeNavMuted" />
+                <span className="truncate">Sign out</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition border border-transparent text-homeNavMuted hover:bg-white/[0.06] hover:text-homeCanvas no-underline"
+              >
+                <LogIn size={18} strokeWidth={2} className="shrink-0 text-homeNavMuted" />
+                <span className="truncate">Sign in</span>
+              </Link>
+            </>
+          )}
         </div>
       </aside>
 
-      {/* Mobile top nav (no horizontal scrolling) */}
+      {/* Mobile top nav */}
       <header className="sm:hidden fixed top-0 left-0 right-0 z-50">
         <nav
           aria-label="Primary"
