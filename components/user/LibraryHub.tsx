@@ -435,7 +435,7 @@ export default function LibraryHub({
           placeholder="Search videos, articles, news..."
           className="w-full pl-11 pr-4 py-3 rounded-2xl text-sm bg-white border border-nborder shadow-sm
             focus:outline-none focus:ring-2 focus:ring-shadow/15 focus:border-shadow"
-          aria-label="Search library"
+          aria-label="Search insights"
         />
       </div>
 
@@ -521,7 +521,7 @@ function SectionTitle({ dotColor, label, count, isVideos = false }: { dotColor: 
     return (
       <div className="mb-6">
         <p className="text-[10px] font-black tracking-[0.2em] uppercase mb-1" style={{ color: dotColor }}>
-          LIBRARY
+          INSIGHTS
         </p>
         <div className="flex items-end gap-3">
           <h2 className="text-2xl font-extrabold text-shadow leading-tight">{label}</h2>

@@ -19,6 +19,7 @@ import { track } from "@/lib/analytics";
 import { getModuleWithScreens } from "@/app/actions/getModule";
 import ModulePlayer from "@/components/user/ModulePlayer";
 import { ApplyVideoDetailModal } from "@/components/user/ApplyVideosFeed";
+import { GuestAccountMobileStrip } from "@/components/user/GuestAccountPromo";
 
 function formatBriefDate(iso: string | undefined) {
   if (!iso) return "";
@@ -451,7 +452,7 @@ export default function HomeContent({
             <div className="flex items-center justify-between mb-3.5">
               <span className="text-[11px] font-bold text-homeInk">Watch this week</span>
               <Link
-                href="/library"
+                href="/insights"
                 className="text-xs font-semibold text-homeClay hover:underline inline-flex items-center gap-0.5 no-underline"
               >
                 All videos →
@@ -493,6 +494,9 @@ export default function HomeContent({
           accent="purple"
         />
       </section>
+
+      {/* Fixed mobile promo sits above tab bar; spacer above keeps bottom content scrollable */}
+      <GuestAccountMobileStrip />
     </div>
   );
 }

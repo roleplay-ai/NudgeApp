@@ -6,13 +6,14 @@ import {
   Crosshair,
   GraduationCap,
   Home,
-  Library,
+  Lightbulb,
   LogIn,
   LogOut,
   UserRound,
   Wrench,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { GuestAccountSidebarCard } from "@/components/user/GuestAccountPromo";
 import { useEffect } from "react";
 
 const REMEMBER_ME_KEY = "nudgeable_remember_me";
@@ -23,7 +24,7 @@ const items = [
   { href: "/learn", label: "Learn", icon: GraduationCap },
   { href: "/apply", label: "Apply", icon: Crosshair },
   { href: "/tools", label: "Tools", icon: Wrench },
-  { href: "/library", label: "Library", icon: Library },
+  { href: "/insights", label: "Insights", icon: Lightbulb },
 ];
 
 export default function UserNav({
@@ -102,7 +103,10 @@ export default function UserNav({
           })}
         </nav>
 
-        <div className="mt-auto pt-4 border-t border-homeInk/35 space-y-1">
+        <div className="mt-auto pt-4 border-t border-homeInk/35 space-y-3">
+          {!isLoggedIn ? <GuestAccountSidebarCard /> : null}
+
+          <div className="space-y-1">
           {isLoggedIn ? (
             <>
               <Link
@@ -136,6 +140,7 @@ export default function UserNav({
               </Link>
             </>
           )}
+          </div>
         </div>
       </aside>
 
@@ -143,7 +148,7 @@ export default function UserNav({
       <header className="sm:hidden fixed top-0 left-0 right-0 z-50">
         <nav
           aria-label="Primary"
-          className="bg-homeSidebar border-b border-homeInk/30 pt-[env(safe-area-inset-top)] px-2 pb-2 shadow-[0_10px_30px_rgba(0,0,0,0.28)]"
+          className="bg-homeSidebar border-b border-homeInk/30 pt-[max(env(safe-area-inset-top),0.5rem)] px-2 pb-2 shadow-[0_8px_24px_rgba(0,0,0,0.2)]"
         >
           <div className="grid grid-cols-5 gap-1">
             {items.map((it) => {
