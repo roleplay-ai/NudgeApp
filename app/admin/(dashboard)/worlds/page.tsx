@@ -4,10 +4,10 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Input, Checkbox, Button, Toast, useToast } from "@/components/admin/Form";
 import type { World } from "@/lib/types";
-import { Trash2, Edit2, Plus, ChevronRight } from "lucide-react";
+import { Trash2, Edit2, Plus, ChevronRight, Lock } from "lucide-react";
 
 const empty = (): Partial<World> => ({
-  title: "", slug: "", emoji: "", color: "#23CE68", description: null, order_index: 0, is_published: false,
+  title: "", slug: "", emoji: "", color: "#23CE68", description: null, order_index: 0, is_published: false, is_locked: false,
 });
 
 export default function WorldsAdmin() {
@@ -71,8 +71,12 @@ export default function WorldsAdmin() {
           <Input label="Description (optional)" value={editing.description || ""} onChange={(e) => setEditing({ ...editing, description: e.target.value })} />
           <Input label="Order (lower = first)" type="number" value={editing.order_index ?? 0}
             onChange={(e) => setEditing({ ...editing, order_index: parseInt(e.target.value) || 0 })} />
-          <Checkbox label="Published (visible to users)" checked={editing.is_published ?? false}
-            onChange={(e) => setEditing({ ...editing, is_published: e.target.checked })} />
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            <Checkbox label="Published (visible to users)" checked={editing.is_published ?? false}
+              onChange={(e) => setEditing({ ...editing, is_published: e.target.checked })} />
+            <Checkbox label="Locked (guests see padlock, must log in to open)" checked={editing.is_locked ?? false}
+              onChange={(e) => setEditing({ ...editing, is_locked: e.target.checked })} />
+          </div>
           <div className="flex gap-2 pt-2">
             <Button onClick={save}>Save</Button>
             <Button variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
@@ -88,10 +92,15 @@ export default function WorldsAdmin() {
               {w.emoji || "🌐"}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-0.5">
+              <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                 <span className="font-bold text-sm">{w.title}</span>
                 <span className="text-[10px] text-muted font-mono">{w.slug}</span>
                 {!w.is_published && <span className="text-[10px] font-bold bg-muted text-white px-2 py-0.5 rounded-full">DRAFT</span>}
+                {w.is_locked && (
+                  <span className="text-[10px] font-bold bg-shadow text-amber px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                    <Lock size={9} strokeWidth={3} /> LOCKED
+                  </span>
+                )}
               </div>
               <div className="text-[10px] text-muted">{moduleCounts[w.id] || 0} modules</div>
             </div>

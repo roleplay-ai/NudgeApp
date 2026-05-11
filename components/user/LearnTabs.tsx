@@ -105,7 +105,8 @@ function WorldsView({ worlds, modules }: { worlds: World[]; modules: Module[] })
   } | null>(null);
 
   async function handleOpenModule(m: Module) {
-    if (m.is_locked || loadingId) return;
+    const parentWorld = worlds.find((w) => w.id === m.world_id);
+    if (m.is_locked || parentWorld?.is_locked || loadingId) return;
     setLoadingId(m.id);
     const data = await getModuleWithScreens(m.id);
     setLoadingId(null);
@@ -127,9 +128,10 @@ function WorldsView({ worlds, modules }: { worlds: World[]; modules: Module[] })
               {/* World header row */}
               <button
                 type="button"
-                onClick={() => setOpenId(isOpen ? null : w.id)}
-                className="w-full p-4 flex gap-3 items-center text-left transition"
-                style={{ background: isOpen ? `${w.color}06` : undefined }}
+                onClick={w.is_locked ? undefined : () => setOpenId(isOpen ? null : w.id)}
+                disabled={w.is_locked}
+                className={`w-full p-4 flex gap-3 items-center text-left transition ${w.is_locked ? "cursor-default opacity-60" : ""}`}
+                style={{ background: isOpen && !w.is_locked ? `${w.color}06` : undefined }}
               >
                 <div
                   className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-xl"
@@ -170,7 +172,7 @@ function WorldsView({ worlds, modules }: { worlds: World[]; modules: Module[] })
               </button>
 
               {/* Module list */}
-              {isOpen && (
+              {isOpen && !w.is_locked && (
                 <div
                   className="px-4 pb-4 border-t pt-3"
                   style={{
@@ -248,6 +250,20 @@ function WorldsView({ worlds, modules }: { worlds: World[]; modules: Module[] })
                   {wMods.length === 0 && (
                     <div className="text-xs text-muted py-2 px-2">No modules yet.</div>
                   )}
+                </div>
+              )}
+
+              {/* Locked-world banner — shown instead of module list */}
+              {w.is_locked && (
+                <div
+                  className="mx-4 mb-4 mt-2 flex items-center gap-3 rounded-xl border px-4 py-3"
+                  style={{ borderColor: `${w.color}30`, background: `${w.color}08` }}
+                >
+                  <Lock size={16} className="text-muted/50 shrink-0" />
+                  <p className="text-xs text-muted leading-snug">
+                    This world is locked. Log in to unlock{" "}
+                    <span className="font-semibold text-shadow">{wMods.length} module{wMods.length !== 1 ? "s" : ""}</span>.
+                  </p>
                 </div>
               )}
             </div>

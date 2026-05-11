@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Input, Textarea, Checkbox, Button, Toast, useToast } from "@/components/admin/Form";
 import type { WatchVideo } from "@/lib/types";
-import { Trash2, Edit2, Plus, Play } from "lucide-react";
+import { Trash2, Edit2, Plus, Play, Lock } from "lucide-react";
 
 const SUBCATEGORIES = [
   { id: "gemini",         label: "Gemini",        color: "#4285F4" },
@@ -20,9 +20,10 @@ function subcategoryColor(id: string | null | undefined): string {
 
 const empty = (): Partial<WatchVideo> => ({
   title: "", creator: "", duration: "", url: "", thumbnail_url: "", description: "",
-  is_published: true, order_index: 0,
+  is_published: true, is_locked: false, order_index: 0,
   subcategory: "useful",
   published_at: new Date().toISOString().slice(0, 10),
+  points_award: null,
 });
 
 export default function VideosAdmin() {
@@ -106,14 +107,32 @@ export default function VideosAdmin() {
               })}
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <Input label="Date" type="date" value={editing.published_at || ""}
               onChange={(e) => setEditing({ ...editing, published_at: e.target.value })} />
             <Input label="Order" type="number" value={editing.order_index ?? 0}
               onChange={(e) => setEditing({ ...editing, order_index: parseInt(e.target.value) || 0 })} />
+            <Input
+              label="Points override (blank = use rule)"
+              type="number"
+              value={editing.points_award ?? ""}
+              onChange={(e) => {
+                const v = e.target.value;
+                setEditing({ ...editing, points_award: v === "" ? null : parseInt(v, 10) });
+              }}
+              placeholder="Default from Points rules"
+            />
           </div>
-          <Checkbox label="Published (visible to users)" checked={editing.is_published ?? true}
-            onChange={(e) => setEditing({ ...editing, is_published: e.target.checked })} />
+          <p className="text-[10px] text-muted -mt-2">
+            Leave <span className="font-mono">Points override</span> empty to use the default in{" "}
+            <span className="font-mono">/admin/points</span>. Set to 0 to award no XP for this video.
+          </p>
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            <Checkbox label="Published (visible to users)" checked={editing.is_published ?? true}
+              onChange={(e) => setEditing({ ...editing, is_published: e.target.checked })} />
+            <Checkbox label="Locked (guests see padlock, must log in to watch)" checked={editing.is_locked ?? false}
+              onChange={(e) => setEditing({ ...editing, is_locked: e.target.checked })} />
+          </div>
           <div className="flex gap-2 pt-2">
             <Button onClick={save}>Save</Button>
             <Button variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
@@ -130,6 +149,11 @@ export default function VideosAdmin() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1 flex-wrap">
                 {!v.is_published && <span className="text-[10px] font-bold bg-muted text-white px-2 py-0.5 rounded-full">DRAFT</span>}
+                {v.is_locked && (
+                  <span className="text-[10px] font-bold bg-shadow text-amber px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                    <Lock size={9} strokeWidth={3} /> LOCKED
+                  </span>
+                )}
                 {v.subcategory && (
                   <span
                     className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
@@ -139,6 +163,11 @@ export default function VideosAdmin() {
                   </span>
                 )}
                 {v.duration && <span className="text-[10px] text-muted">{v.duration}</span>}
+                {v.points_award != null && (
+                  <span className="text-[10px] font-bold text-amber bg-amber/10 px-2 py-0.5 rounded-full">
+                    {v.points_award} pts
+                  </span>
+                )}
               </div>
               <div className="font-bold text-sm mb-1 line-clamp-1">{v.title}</div>
               <div className="text-xs text-muted">{v.creator}</div>

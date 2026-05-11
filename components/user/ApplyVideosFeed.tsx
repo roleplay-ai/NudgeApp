@@ -1,9 +1,15 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, Film, Lock, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import type { ApplyVideo } from "@/lib/types";
 import { youtubeEmbedSrc } from "@/lib/youtubeEmbed";
+import { createClient } from "@/lib/supabase/client";
+import { awardPoints, resolvePoints } from "@/lib/points";
+
+/** Default XP for an apply_video — must match point_rules seed in migration_026. */
+const APPLY_VIDEO_DEFAULT_POINTS = 15;
 
 const ACCENTS = ["#A855F7", "#EC4899", "#F59E0B", "#3B82F6", "#23CE68", "#ED4551"];
 const GROUP_ORDER = ["Features", "Apps", "Workflows", "Skills"] as const;
@@ -106,6 +112,31 @@ export function ApplyVideoDetailModal({ video, onClose }: { video: ApplyVideo; o
     whatBody.trim() ||
     stripVideoSeedFooter(video.description)?.replace(/^[^\n]+\n\n?/, "").trim() ||
     tagline;
+
+  const router = useRouter();
+  const [awarding, setAwarding] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
+  }, []);
+
+  async function handleGotIt() {
+    if (userId && !awarding) {
+      setAwarding(true);
+      const supabase = createClient();
+      await awardPoints(supabase, {
+        userId,
+        sourceType: "apply_video",
+        sourceId: video.id,
+        points: resolvePoints(video.points_award, APPLY_VIDEO_DEFAULT_POINTS),
+      });
+      router.refresh();
+      setAwarding(false);
+    }
+    onClose();
+  }
 
   return (
     <div
@@ -216,10 +247,11 @@ export function ApplyVideoDetailModal({ video, onClose }: { video: ApplyVideo; o
           </button>
           <button
             type="button"
-            onClick={onClose}
-            className="px-5 py-2.5 rounded-full bg-amber text-shadow text-sm font-bold hover:opacity-95 transition inline-flex items-center gap-1.5"
+            onClick={handleGotIt}
+            disabled={awarding}
+            className="px-5 py-2.5 rounded-full bg-amber text-shadow text-sm font-bold hover:opacity-95 transition inline-flex items-center gap-1.5 disabled:opacity-60"
           >
-            Got it <Check size={16} strokeWidth={3} />
+            {awarding ? "Saving…" : <>Got it <Check size={16} strokeWidth={3} /></>}
           </button>
         </div>
       </div>

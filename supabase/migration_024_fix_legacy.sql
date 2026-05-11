@@ -1,52 +1,22 @@
 -- ============================================================
--- Migration 024: Housekeeping — fix legacy migrations
--- Run this in the Supabase SQL Editor BEFORE migrations 025+.
+-- Migration 024: Housekeeping placeholder
 --
--- Two prior migrations referenced tables that don't exist:
---   * migration_020_news_brief.sql referred to public.news_items
---     (the real table is public.news).
---   * migration_016_home_weekly_watch_videos.sql referenced
---     public.watch_videos (the real table is public.videos).
+-- The original draft for 024 attempted to "fix" two earlier
+-- migrations under the assumption that the real tables were
+-- `public.news` and `public.videos`. In this database the actual
+-- tables are `public.news_items` and `public.watch_videos`, and
+-- both prior migrations (020, 016) were already correct:
+--   * public.news_items.brief         exists (migration 020)
+--   * public.home_weekly_watch_videos
+--     .watch_video_id → public.watch_videos(id)  (migration 016)
 --
--- This migration is idempotent — safe to re-run.
+-- Nothing to do here. This file is kept so the migration sequence
+-- (024 → 025 → 026 → 029) stays contiguous and self-documenting.
+-- Idempotent and safe to re-run.
 -- ============================================================
 
--- Add brief column to the real news table (was wrongly aimed at news_items).
-alter table public.news
-  add column if not exists brief text;
-
-comment on column public.news.brief is
-  'Short teaser line shown above the full body on the Today tab.';
-
--- Repair the home_weekly_watch_videos FK so it points at public.videos.
 do $$
 begin
-  if exists (
-    select 1
-    from information_schema.table_constraints
-    where table_schema = 'public'
-      and table_name = 'home_weekly_watch_videos'
-      and constraint_name = 'home_weekly_watch_videos_watch_video_id_fkey'
-  ) then
-    alter table public.home_weekly_watch_videos
-      drop constraint home_weekly_watch_videos_watch_video_id_fkey;
-  end if;
-exception when undefined_table then
-  -- table itself doesn't exist; nothing to do.
+  -- intentionally empty
   null;
-end$$;
-
-do $$
-begin
-  if exists (select 1 from information_schema.tables
-             where table_schema = 'public' and table_name = 'home_weekly_watch_videos')
-     and exists (select 1 from information_schema.columns
-                 where table_schema = 'public' and table_name = 'home_weekly_watch_videos'
-                   and column_name = 'watch_video_id')
-  then
-    alter table public.home_weekly_watch_videos
-      add constraint home_weekly_watch_videos_video_fk
-      foreign key (watch_video_id) references public.videos(id) on delete cascade;
-  end if;
-exception when duplicate_object then null;
 end$$;

@@ -20,6 +20,7 @@ import { getModuleWithScreens } from "@/app/actions/getModule";
 import ModulePlayer from "@/components/user/ModulePlayer";
 import { ApplyVideoDetailModal } from "@/components/user/ApplyVideosFeed";
 import { GuestAccountMobileStrip } from "@/components/user/GuestAccountPromo";
+import { UserPointsMobileStrip } from "@/components/user/UserPointsCard";
 import { MAIN_WEBSITE_ORIGIN, PRIVACY_CONTACT_EMAIL } from "@/lib/site";
 
 /** Use UTC so SSR (often UTC) and the browser agree — default locale TZ caused hydration mismatches. */
@@ -343,6 +344,9 @@ export default function HomeContent({
   applyMidVideos,
   applyVideosTotal,
   displayName,
+  isLoggedIn = false,
+  points = 0,
+  streak = 0,
 }: {
   briefNews: NewsItem[];
   briefHero: HomeBriefHero | null;
@@ -353,6 +357,11 @@ export default function HomeContent({
   applyMidVideos: ApplyVideo[];
   applyVideosTotal: number;
   displayName?: string | null;
+  isLoggedIn?: boolean;
+  /** `profiles.xp` for the signed-in viewer; drives the mobile points strip. */
+  points?: number;
+  /** `profiles.streak` for the signed-in viewer; secondary stat on the mobile strip. */
+  streak?: number;
 }) {
   const showBriefHero = briefNews.length > 0 || !!briefHero;
   const heroBadge = briefHero?.badge_label?.trim() || HERO_FALLBACK.badge_label;
@@ -565,8 +574,16 @@ export default function HomeContent({
         </div>
       </footer>
 
-      {/* Fixed mobile promo sits above tab bar; spacer above keeps bottom content scrollable */}
-      <GuestAccountMobileStrip />
+      {/* Fixed mobile banner above the tab bar — guest promo for visitors, points strip for logged-in users. */}
+      {isLoggedIn ? (
+        <UserPointsMobileStrip
+          points={points}
+          streak={streak}
+          displayName={displayName}
+        />
+      ) : (
+        <GuestAccountMobileStrip />
+      )}
     </div>
   );
 }
