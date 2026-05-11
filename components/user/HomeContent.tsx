@@ -19,11 +19,18 @@ import { track } from "@/lib/analytics";
 import { getModuleWithScreens } from "@/app/actions/getModule";
 import ModulePlayer from "@/components/user/ModulePlayer";
 import { ApplyVideoDetailModal } from "@/components/user/ApplyVideosFeed";
+import { GuestAccountMobileStrip } from "@/components/user/GuestAccountPromo";
 
-function formatBriefDate(iso: string | undefined) {
+/** Use UTC so SSR (often UTC) and the browser agree — default locale TZ caused hydration mismatches. */
+function formatBriefDateUtc(iso: string | undefined) {
   if (!iso) return "";
   try {
-    return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(iso));
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      timeZone: "UTC",
+    }).format(new Date(iso));
   } catch {
     return "";
   }
@@ -334,6 +341,7 @@ export default function HomeContent({
   modules,
   applyMidVideos,
   applyVideosTotal,
+  displayName,
 }: {
   briefNews: NewsItem[];
   briefHero: HomeBriefHero | null;
@@ -343,13 +351,14 @@ export default function HomeContent({
   modules: Module[];
   applyMidVideos: ApplyVideo[];
   applyVideosTotal: number;
+  displayName?: string | null;
 }) {
   const showBriefHero = briefNews.length > 0 || !!briefHero;
   const heroBadge = briefHero?.badge_label?.trim() || HERO_FALLBACK.badge_label;
   const heroTitle = briefHero?.title?.trim() || HERO_FALLBACK.title;
   const heroSubtitle = briefHero?.subtitle?.trim() || HERO_FALLBACK.subtitle;
   const bylineOverride = briefHero?.byline_override?.trim();
-  const todayByline = formatBriefDate(new Date().toISOString());
+  const todayByline = formatBriefDateUtc(new Date().toISOString());
   const heroByline = bylineOverride || todayByline;
 
   return (
@@ -357,7 +366,9 @@ export default function HomeContent({
       <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <h1 className="text-2xl md:text-[1.65rem] font-extrabold text-homeInk tracking-tight">
-            Welcome back
+            {displayName ? (
+              <>Hi <span className="text-homeClay">{displayName}</span>, welcome back</>
+            ) : "Welcome back"}
           </h1>
           <p className="text-[15px] leading-relaxed text-homeBodyMuted max-w-xl text-pretty">
             {"Here's what's happening in AI — and everything you need to get fluent."}
@@ -508,6 +519,9 @@ export default function HomeContent({
           </nav>
         </div>
       </footer>
+
+      {/* Fixed mobile promo sits above tab bar; spacer above keeps bottom content scrollable */}
+      <GuestAccountMobileStrip />
     </div>
   );
 }
@@ -899,7 +913,7 @@ function ProductsCarousel({ products }: { products: ProductOfDay[] }) {
       >
         <div
           ref={trackRef}
-          className="flex gap-3 overflow-x-auto pb-1 scroll-pl-4 scroll-pr-4 pl-4 pr-4 md:scroll-pl-0 md:scroll-pr-0 md:pl-0 md:pr-0 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x snap-mandatory"
+          className="flex gap-3 overflow-x-auto py-2 scroll-pl-4 scroll-pr-4 pl-4 pr-4 md:scroll-pl-0 md:scroll-pr-0 md:pl-0 md:pr-0 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x snap-mandatory"
         >
           {products.map((p, i) => {
             const href = p.url || "/tools";

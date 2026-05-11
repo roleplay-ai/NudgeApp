@@ -40,6 +40,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/admin", request.url));
   }
 
+  // If already logged in and visiting /login or /signup, redirect home
+  const isUserAuthPage = path === "/login" || path === "/signup";
+  if (isUserAuthPage && user) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
   // All other routes (user-facing app) are fully public — no redirect
 
   return response;

@@ -1,7 +1,10 @@
-/** Hostname shown in auth, legal pages, and navigation chrome. */
+/** Production hostname used for canonical URLs and metadata. */
 export const SITE_HOST_LABEL = "aicap.nudgeable.app";
 
 export const SITE_ORIGIN = `https://${SITE_HOST_LABEL}`;
+
+/** Uppercase brand line in sidebar, login, and admin chrome (SSR + client must match). */
+export const SITE_BRAND_MARK = "NUDGEABLE.AI";
 
 /** Product name shown in UI copy. */
 export const COMPANY_NAME = "Nudgeable";

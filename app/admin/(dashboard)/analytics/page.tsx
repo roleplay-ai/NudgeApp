@@ -8,7 +8,7 @@ type Row = Record<string, unknown>;
 type PageStat    = { page: string; views: number; unique_visitors: number };
 type EventStat   = { event: string; count: number };
 type ClickStat   = { title: string; event: string; count: number };
-type DailyStat   = { day: string; views: number; unique_visitors: number };
+type DailyStat   = { day: string; views: number; unique_visitors: number; unique_ips: number };
 
 const RANGES = [7, 14, 30] as const;
 type Range = (typeof RANGES)[number];
@@ -30,9 +30,10 @@ export default function AnalyticsAdmin() {
   const [clicks, setClicks]     = useState<ClickStat[]>([]);
   const [daily, setDaily]       = useState<DailyStat[]>([]);
   const [loading, setLoading]   = useState(true);
-  const [total, setTotal]       = useState(0);
-  const [uniq, setUniq]         = useState(0);
-  const [uniqUsers, setUniqUsers] = useState(0);
+  const [total, setTotal]           = useState(0);
+  const [uniq, setUniq]             = useState(0);
+  const [uniqUsers, setUniqUsers]   = useState(0);
+  const [loggedIn, setLoggedIn]     = useState(0);
 
   async function load(r: Range) {
     setLoading(true);
@@ -42,7 +43,7 @@ export default function AnalyticsAdmin() {
     // All rows in range (limit 20k to stay safe)
     const { data: rows, error } = await supabase
       .from("analytics_events")
-      .select("event, page, visitor_id, ip_address, meta, created_at")
+      .select("event, page, visitor_id, ip_address, user_id, meta, created_at")
       .gte("created_at", since)
       .order("created_at", { ascending: false })
       .limit(20000);
@@ -63,6 +64,11 @@ export default function AnalyticsAdmin() {
       pviews.map((e) => (e.ip_address ? String(e.ip_address) : "")).filter(Boolean)
     ).size;
     setUniqUsers(uniqueUsers);
+
+    const loggedInUsers = new Set(
+      all.map((e) => (e.user_id ? String(e.user_id) : "")).filter(Boolean)
+    ).size;
+    setLoggedIn(loggedInUsers);
 
     const pageMap = new Map<string, { views: number; visitors: Set<string> }>();
     for (const row of pviews) {
@@ -108,17 +114,23 @@ export default function AnalyticsAdmin() {
       .slice(0, 20);
     setClicks(clickStats);
 
-    // ── Daily page views ──────────────────────────────────────────
-    const dailyMap = new Map<string, { views: number; visitors: Set<string> }>();
+    // ── Daily page views + unique users ──────────────────────────
+    const dailyMap = new Map<string, { views: number; visitors: Set<string>; ips: Set<string> }>();
     for (const row of pviews) {
       const day = String(row.created_at || "").slice(0, 10);
-      if (!dailyMap.has(day)) dailyMap.set(day, { views: 0, visitors: new Set() });
+      if (!dailyMap.has(day)) dailyMap.set(day, { views: 0, visitors: new Set(), ips: new Set() });
       const entry = dailyMap.get(day)!;
       entry.views++;
       if (row.visitor_id) entry.visitors.add(row.visitor_id as string);
+      if (row.ip_address) entry.ips.add(row.ip_address as string);
     }
     const days: DailyStat[] = [...dailyMap.entries()]
-      .map(([day, { views, visitors }]) => ({ day, views, unique_visitors: visitors.size }))
+      .map(([day, { views, visitors, ips }]) => ({
+        day,
+        views,
+        unique_visitors: visitors.size,
+        unique_ips: ips.size,
+      }))
       .sort((a, b) => a.day.localeCompare(b.day));
     setDaily(days);
 
@@ -141,7 +153,7 @@ export default function AnalyticsAdmin() {
     tool_click:    "Tool click",
   };
 
-  const maxViews = Math.max(...daily.map((d) => d.views), 1);
+  const maxUniqIps = Math.max(...daily.map((d) => d.unique_ips), 1);
 
   return (
     <div>
@@ -168,12 +180,13 @@ export default function AnalyticsAdmin() {
       </div>
 
       {/* KPI strip */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
         {[
-          { label: "Page views", value: total, color: "bg-nblue" },
-          { label: "Unique sessions", value: uniq, color: "bg-emerald" },
-          { label: "Unique users", value: uniqUsers, color: "bg-amber" },
-          { label: "Events tracked", value: events.reduce((s, e) => s + e.count, 0), color: "bg-norange" },
+          { label: "Page views",      value: total,                                      color: "bg-nblue",    desc: "Total page view events" },
+          { label: "Unique visitors", value: uniq,                                       color: "bg-emerald",  desc: "Anonymous sessions (browser)" },
+          { label: "Unique users",    value: uniqUsers,                                  color: "bg-amber",    desc: "Distinct IPs seen" },
+          { label: "Logged-in users", value: loggedIn,                                   color: "bg-npurple",  desc: "Authenticated accounts" },
+          { label: "Events tracked",  value: events.reduce((s, e) => s + e.count, 0),   color: "bg-norange",  desc: "All event types combined" },
         ].map((k) => (
           <div key={k.label} className="bg-white rounded-2xl p-5 shadow-sm">
             <div className={`w-3 h-3 rounded-full ${k.color} mb-3`} />
@@ -181,27 +194,48 @@ export default function AnalyticsAdmin() {
               {loading ? "—" : k.value.toLocaleString()}
             </div>
             <div className="text-xs text-muted font-medium mt-1">{k.label}</div>
+            <div className="text-[10px] text-muted/60 mt-0.5">{k.desc}</div>
           </div>
         ))}
       </div>
 
-      {/* Daily trend */}
+      {/* Daily unique users chart */}
       {!loading && daily.length > 0 && (
         <div className="bg-white rounded-2xl p-5 shadow-sm mb-6">
-          <div className="text-sm font-bold mb-4">Daily page views</div>
-          <div className="flex items-end gap-1.5 h-24">
-            {daily.map((d) => (
-              <div key={d.day} className="flex flex-col items-center gap-1 flex-1 min-w-0">
-                <div
-                  className="w-full rounded-t-sm bg-nblue opacity-80 transition-all"
-                  style={{ height: `${Math.round((d.views / maxViews) * 80)}px`, minHeight: "2px" }}
-                  title={`${d.views} views`}
-                />
-                <span className="text-[9px] text-muted truncate w-full text-center">
-                  {formatDay(d.day)}
-                </span>
-              </div>
-            ))}
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-sm font-bold">Daily unique users</div>
+            <div className="flex items-center gap-1.5 text-[10px] text-muted">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber inline-block" />
+              Unique IPs per day
+            </div>
+          </div>
+          {/* chart area — extra top padding so labels above bars don't clip */}
+          <div className="flex items-end gap-1.5 pt-6" style={{ height: "120px" }}>
+            {daily.map((d) => {
+              const barH = Math.max(Math.round((d.unique_ips / maxUniqIps) * 72), 2);
+              return (
+                <div key={d.day} className="relative flex flex-col items-center flex-1 min-w-0" style={{ height: "100%" }}>
+                  {/* count label above bar */}
+                  <span
+                    className="absolute text-[9px] font-bold text-shadow leading-none"
+                    style={{ bottom: `${barH + 18}px` }}
+                  >
+                    {d.unique_ips > 0 ? d.unique_ips : ""}
+                  </span>
+                  {/* bar */}
+                  <div className="w-full mt-auto flex flex-col items-center gap-1">
+                    <div
+                      className="w-full rounded-t-sm bg-amber opacity-80 transition-all"
+                      style={{ height: `${barH}px` }}
+                      title={`${d.unique_ips} unique users`}
+                    />
+                    <span className="text-[9px] text-muted truncate w-full text-center">
+                      {formatDay(d.day)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

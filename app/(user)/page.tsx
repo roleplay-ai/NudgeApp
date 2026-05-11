@@ -48,6 +48,26 @@ function toolToWeeklyProduct(t: Tool): ProductOfDay {
 export default async function Home() {
   const supabase = await createClient();
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let displayName: string | null = null;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", user.id)
+      .maybeSingle();
+    const meta = user.user_metadata ?? {};
+    const raw =
+      profile?.full_name?.trim() ||
+      meta.full_name?.trim() ||
+      meta.name?.trim() ||
+      undefined;
+    displayName = raw || null;
+  }
+
   const [
     { data: newsBrief },
     { data: briefHeroRow },
@@ -148,6 +168,7 @@ export default async function Home() {
       modules={(modules || []) as Module[]}
       applyMidVideos={(applyMidVideos || []) as ApplyVideo[]}
       applyVideosTotal={applyVideosPublishedCount ?? (applyMidVideos || []).length}
+      displayName={displayName}
     />
   );
 }
