@@ -17,9 +17,15 @@ export async function POST(req: Request) {
     const ip_address = pickIp(req.headers);
 
     const supabase = await createClient();
+
+    // Capture authenticated user ID if the request comes from a logged-in user
+    const { data: { user } } = await supabase.auth.getUser();
+    const user_id = user?.id ?? null;
+
     const { error } = await supabase.from("analytics_events").insert({
       ...body,
       ip_address,
+      user_id,
     });
 
     if (error) {
