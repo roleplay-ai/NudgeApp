@@ -22,7 +22,12 @@ export default async function ProfilePage() {
       .eq("id", user.id)
       .single();
     isAdmin = profile?.role === "admin";
-    const raw = profile?.full_name?.trim() || user.user_metadata?.full_name?.trim();
+    const meta = user.user_metadata ?? {};
+    const raw =
+      profile?.full_name?.trim() ||
+      meta.full_name?.trim() ||
+      meta.name?.trim() ||
+      undefined;
     displayName = raw || null;
   }
 

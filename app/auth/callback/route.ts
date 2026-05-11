@@ -44,8 +44,25 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data: sessionData, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
+      // Sync the Google-provided name into profiles.full_name.
+      // Google sets raw_user_meta_data.name (not full_name), so we normalise here
+      // for both new and returning OAuth users.
+      const oauthUser = sessionData?.user;
+      if (oauthUser) {
+        const meta = oauthUser.user_metadata ?? {};
+        const name: string | undefined =
+          meta.full_name?.trim() || meta.name?.trim() || undefined;
+        if (name) {
+          await supabase
+            .from("profiles")
+            .update({ full_name: name })
+            .eq("id", oauthUser.id)
+            .is("full_name", null); // only fill in if not already set by user
+        }
+      }
+
       const res = NextResponse.redirect(`${origin}${next}`);
       res.cookies.set(OAUTH_NEXT_COOKIE, "", { path: "/", maxAge: 0 });
       return res;

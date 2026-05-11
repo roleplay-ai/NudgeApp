@@ -52,7 +52,12 @@ export default async function Home() {
       .select("full_name")
       .eq("id", user.id)
       .maybeSingle();
-    const raw = profile?.full_name?.trim() || user.user_metadata?.full_name?.trim();
+    const meta = user.user_metadata ?? {};
+    const raw =
+      profile?.full_name?.trim() ||
+      meta.full_name?.trim() ||
+      meta.name?.trim() ||
+      undefined;
     displayName = raw || null;
   }
 
