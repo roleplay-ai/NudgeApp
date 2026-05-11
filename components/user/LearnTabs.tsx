@@ -142,7 +142,15 @@ function WorldsView({ worlds, modules }: { worlds: World[]; modules: Module[] })
                   {w.emoji}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-extrabold text-shadow">{w.title}</div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-extrabold text-shadow">{w.title}</span>
+                    {w.is_locked && (
+                      <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-shadow/8 text-muted border border-shadow/10 uppercase tracking-wide">
+                        <Lock size={9} strokeWidth={2.5} />
+                        Locked
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span
                       className="text-[10px] font-bold px-2 py-0.5 rounded-full"
@@ -497,6 +505,34 @@ function ResourceLogo({
 
 function FeaturedResourceCard({ r }: { r: Resource }) {
   const title = resourceTitle(r);
+  if (r.is_locked) {
+    return (
+      <div
+        className="flex flex-col bg-white rounded-2xl border border-nborder shadow-sm overflow-hidden p-5 min-h-[180px] opacity-70"
+        style={{ borderTop: "3px solid #F68A29" }}
+      >
+        <div className="flex gap-4 flex-1">
+          <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm bg-shadow/6 border border-nborder">
+            <Lock size={22} className="text-muted/50" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <span className="text-base font-extrabold text-shadow leading-tight">{title}</span>
+              <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-shadow/8 text-muted border border-shadow/10 uppercase tracking-wide">
+                <Lock size={9} strokeWidth={2.5} /> Locked
+              </span>
+            </div>
+            <p className="text-[13px] text-muted leading-snug line-clamp-3">{r.description}</p>
+          </div>
+        </div>
+        <div className="flex items-center justify-end mt-4 pt-3 border-t border-nborder">
+          <span className="text-[11px] text-muted inline-flex items-center gap-1">
+            <Lock size={11} /> Login to unlock
+          </span>
+        </div>
+      </div>
+    );
+  }
   return (
     <a
       href={r.url}
@@ -552,6 +588,31 @@ function WideResourceRow({ r }: { r: Resource }) {
       ? `${r.duration_mins >= 120 ? "2~4" : r.duration_mins} ${r.duration_mins >= 120 ? "hrs" : "min"}`
       : null;
   const bg = ROW_COLORS[(title.charCodeAt(0) || 0) % ROW_COLORS.length];
+
+  if (r.is_locked) {
+    return (
+      <div
+        className="flex gap-4 items-center bg-white rounded-2xl border border-nborder p-4 shadow-sm opacity-65"
+        style={{ borderLeft: `3px solid ${bg}` }}
+      >
+        <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 bg-shadow/6 border border-nborder">
+          <Lock size={16} className="text-muted/50" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap mb-0.5">
+            <span className="text-sm font-extrabold text-shadow">{title}</span>
+            <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-shadow/8 text-muted border border-shadow/10 uppercase tracking-wide">
+              <Lock size={9} strokeWidth={2.5} /> Locked
+            </span>
+          </div>
+          <p className="text-[12px] text-muted leading-snug line-clamp-2">{r.description}</p>
+        </div>
+        <div className="shrink-0">
+          <Lock size={14} className="text-muted/40" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <a

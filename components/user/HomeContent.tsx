@@ -399,6 +399,18 @@ export default function HomeContent({
                 {briefNews.map((n) => {
                   const href = n.url || null;
                   const briefText = n.brief?.trim() || n.body?.trim() || null;
+                  if (n.is_locked) {
+                    return (
+                      <li key={n.id}>
+                        <div className="flex gap-2.5 items-start opacity-50">
+                          <Lock size={12} className="shrink-0 mt-[5px] text-homeClay/60" aria-hidden />
+                          <p className="text-[13px] text-homeWarmGray/70 leading-relaxed italic">
+                            Login to unlock this update
+                          </p>
+                        </div>
+                      </li>
+                    );
+                  }
                   return (
                     <li key={n.id}>
                       {href ? (
@@ -838,18 +850,19 @@ function ApplyVideosCarousel({
             const blurb = applyVideoBlurb(v.description);
             const cat = (v.category_tag || "Feature").trim();
             const durationLabel = v.duration?.trim() || "0:30";
+            const locked = v.is_locked;
             return (
               <button
                 key={v.id}
                 type="button"
-                onClick={() => {
+                disabled={locked}
+                onClick={locked ? undefined : () => {
                   setModalVideo(v);
                   goTo(i);
                   pauseFor(4000);
                   track("apply_click", { item_id: v.id, title: v.title });
                 }}
-                className={`flex-shrink-0 w-[min(268px,calc(100vw-3rem))] overflow-hidden rounded-[18px] border border-black/[0.06] bg-white text-left cursor-pointer transition-opacity duration-200 shadow-[0_2px_12px_rgba(0,0,0,0.06)] snap-start flex flex-col ${i === activeIdx ? "opacity-100" : "opacity-[0.9] hover:opacity-100"
-                  }`}
+                className={`flex-shrink-0 w-[min(268px,calc(100vw-3rem))] overflow-hidden rounded-[18px] border border-black/[0.06] bg-white text-left transition-opacity duration-200 shadow-[0_2px_12px_rgba(0,0,0,0.06)] snap-start flex flex-col ${locked ? "opacity-60 cursor-default" : `cursor-pointer ${i === activeIdx ? "opacity-100" : "opacity-[0.9] hover:opacity-100"}`}`}
               >
                 <div
                   className="relative h-[132px] w-full shrink-0 overflow-hidden"
@@ -869,15 +882,23 @@ function ApplyVideosCarousel({
                     </>
                   ) : null}
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="flex h-[52px] w-[52px] items-center justify-center rounded-full bg-white shadow-[0_6px_24px_rgba(0,0,0,0.2)]">
-                      <span className="text-homeInk text-[18px] leading-none pl-1" aria-hidden>
-                        ▶
-                      </span>
+                    {locked ? (
+                      <div className="flex h-[52px] w-[52px] items-center justify-center rounded-full bg-black/30 backdrop-blur-sm">
+                        <Lock size={20} className="text-white/80" />
+                      </div>
+                    ) : (
+                      <div className="flex h-[52px] w-[52px] items-center justify-center rounded-full bg-white shadow-[0_6px_24px_rgba(0,0,0,0.2)]">
+                        <span className="text-homeInk text-[18px] leading-none pl-1" aria-hidden>
+                          ▶
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  {!locked && (
+                    <div className="absolute bottom-2 right-2 rounded bg-black/80 px-1.5 py-px font-mono text-[11px] font-medium text-white tabular-nums">
+                      {durationLabel}
                     </div>
-                  </div>
-                  <div className="absolute bottom-2 right-2 rounded bg-black/80 px-1.5 py-px font-mono text-[11px] font-medium text-white tabular-nums">
-                    {durationLabel}
-                  </div>
+                  )}
                 </div>
 
                 <div className="flex flex-col gap-1.5 px-3.5 pt-3 pb-3.5 bg-white">
@@ -888,11 +909,13 @@ function ApplyVideosCarousel({
                       aria-hidden
                     />
                     <span className="text-[10px] font-bold tracking-[0.12em] uppercase text-homeBodyMuted truncate">
-                      {cat}
+                      {locked ? "Locked" : cat}
                     </span>
                   </div>
                   <div className="text-[15px] font-bold text-homeInk leading-snug">{v.title}</div>
-                  {blurb ? (
+                  {locked ? (
+                    <p className="text-[12px] text-homeBodyMuted leading-relaxed italic">Login to unlock</p>
+                  ) : blurb ? (
                     <p className="text-[12px] text-homeBodyMuted leading-relaxed line-clamp-2">{blurb}</p>
                   ) : null}
                 </div>
@@ -1034,6 +1057,31 @@ function WatchWeekThumb({ video }: { video: WatchVideo }) {
   const creatorColor =
     VIDEO_AVATAR_COLORS[(video.creator?.charCodeAt(0) || 0) % VIDEO_AVATAR_COLORS.length];
   const letter = video.creator?.[0]?.toUpperCase() || "?";
+
+  if (video.is_locked) {
+    return (
+      <div className="flex min-w-0 w-full flex-col overflow-hidden rounded-[10px] bg-homeInk shadow-[0_2px_8px_rgba(0,0,0,0.15)] opacity-60 cursor-default">
+        <div
+          className="relative flex h-[90px] w-full flex-shrink-0 items-center justify-center overflow-hidden"
+          style={thumb ? undefined : { background: `linear-gradient(135deg, ${creatorColor}22, #1c1814)` }}
+        >
+          {thumb ? (
+            <>
+              <img src={thumb} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              <div className="pointer-events-none absolute inset-0 bg-black/40" />
+            </>
+          ) : null}
+          <div className="relative z-[1] flex h-8 w-8 items-center justify-center rounded-full bg-white/10" aria-hidden>
+            <Lock size={14} className="text-white/70" />
+          </div>
+        </div>
+        <div className="px-3 py-2.5">
+          <div className="mb-1 truncate text-[11px] text-homeVideoMeta">{video.creator || "Nudgeable"}</div>
+          <div className="line-clamp-2 text-xs font-semibold leading-snug text-homeDivider">{video.title}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <a

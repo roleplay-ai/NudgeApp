@@ -26,6 +26,10 @@ export type NewsItem = {
   published_at: string;
   is_published: boolean;
   is_featured: boolean;
+  is_locked: boolean;
+  /** 'news' (short update) or 'article' (long-form). */
+  kind: "news" | "article";
+  points_award: number | null;
 };
 
 /** Singleton row: copy for the dark “Nudgeable Brief” hero on Home. */
@@ -70,6 +74,7 @@ export type Tool = {
   logo_url: string | null;
   is_published: boolean;
   is_featured: boolean;
+  is_locked: boolean;
   order_index: number;
   pros?: string[];
   cons?: string[];
@@ -151,9 +156,11 @@ export type WatchVideo = {
   thumbnail_url: string | null;
   published_at: string;
   is_published: boolean;
+  is_locked: boolean;
   order_index: number;
   /** Library subcategory: gemini | chatgpt | claude | copilot | ai_foundations | useful */
   subcategory?: string | null;
+  points_award: number | null;
 };
 
 export type VideoOfDay = {
@@ -197,6 +204,7 @@ export type World = {
   color: string;
   order_index: number;
   is_published: boolean;
+  is_locked: boolean;
 };
 
 export type Module = {
@@ -209,6 +217,7 @@ export type Module = {
   xp_reward: number;
   is_published: boolean;
   is_locked: boolean;
+  points_award: number | null;
 };
 
 export type ScreenType = "hook" | "idea" | "example" | "why" | "check" | "unlocked";
@@ -277,12 +286,14 @@ export type ApplyVideo = {
   duration: string | null;
   order_index: number;
   is_published: boolean;
+  is_locked: boolean;
   /** Filter chip: Features | Apps | Workflows | Skills */
   group_name?: string | null;
   /** Card pill, e.g. EDITING */
   category_tag?: string | null;
   /** Pipe- or comma-separated names for "Available in" (e.g. ChatGPT | Claude) */
   platforms?: string | null;
+  points_award: number | null;
 };
 
 // --- Resources ---
@@ -300,5 +311,38 @@ export type Resource = {
   duration_mins: number | null;
   is_featured: boolean;
   is_published: boolean;
+  is_locked: boolean;
   order_index: number;
+};
+
+// --- Points / Engagement ---
+
+export type PointRule = {
+  id: string;
+  content_type: string;
+  default_points: number;
+  updated_at: string;
+  updated_by: string | null;
+};
+
+export type PointTransaction = {
+  id: string;
+  user_id: string | null;
+  source_type: string;
+  source_id: string;
+  idempotency_key: string | null;
+  points: number;
+  awarded_at: string;
+};
+
+// --- Coupons ---
+
+export type Coupon = {
+  id: string;
+  code: string;
+  discount_percent: number | null;
+  valid_from: string;
+  valid_until: string | null;
+  is_active: boolean;
+  created_at: string;
 };
