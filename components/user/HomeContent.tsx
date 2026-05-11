@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Lock, Loader2, X } from "lucide-react";
 import RichText from "@/components/ui/RichText";
 import type {
   ApplyVideo,
+  Coupon,
   HomeBriefHero,
   Module,
   ModuleScreen,
@@ -14,6 +15,7 @@ import type {
   WatchVideo,
   World,
 } from "@/lib/types";
+import CouponBanner from "@/components/user/CouponBanner";
 import { resolveVideoThumbnailUrl } from "@/lib/videoThumbnails";
 import { track } from "@/lib/analytics";
 import { getModuleWithScreens } from "@/app/actions/getModule";
@@ -347,6 +349,8 @@ export default function HomeContent({
   isLoggedIn = false,
   points = 0,
   streak = 0,
+  coupon,
+  isEarlyPhase,
 }: {
   briefNews: NewsItem[];
   briefHero: HomeBriefHero | null;
@@ -362,6 +366,8 @@ export default function HomeContent({
   points?: number;
   /** `profiles.streak` for the signed-in viewer; secondary stat on the mobile strip. */
   streak?: number;
+  coupon?: Coupon | null;
+  isEarlyPhase?: boolean;
 }) {
   const showBriefHero = briefNews.length > 0 || !!briefHero;
   const heroBadge = briefHero?.badge_label?.trim() || HERO_FALLBACK.badge_label;
@@ -385,6 +391,9 @@ export default function HomeContent({
           </p>
         </div>
       </header>
+
+      {/* Coupon — logged-in users only; full card days 1–7, slim strip day 8+ */}
+      {coupon && <CouponBanner coupon={coupon} isEarlyPhase={isEarlyPhase ?? false} />}
 
       {/* Nudgeable Brief hero */}
       {showBriefHero && (

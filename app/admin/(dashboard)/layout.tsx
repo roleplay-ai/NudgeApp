@@ -49,6 +49,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     { href: "/admin/apply", label: "Apply videos" },
     { href: "/admin/apply-tiles", label: "Apply tiles" },
     { href: "/admin/points", label: "Points rules" },
+    { href: "/admin/coupons", label: "Coupons" },
   ];
 
   return (

@@ -12,6 +12,7 @@ import type {
   World,
 } from "@/lib/types";
 import HomeContent from "@/components/user/HomeContent";
+import { getActiveCoupon } from "@/app/actions/getCoupon";
 
 export const metadata: Metadata = {
   verification: {
@@ -71,6 +72,15 @@ export default async function Home() {
     points = Number(profile?.xp ?? 0);
     streak = Number(profile?.streak ?? 0);
   }
+
+  // Coupon — only meaningful for logged-in users (RLS returns null for guests)
+  const coupon = user ? await getActiveCoupon() : null;
+  if (process.env.NODE_ENV !== "production") {
+    console.log("[Home] coupon fetch result:", coupon ? `code=${coupon.code}` : "null (no active coupon or table empty)");
+  }
+  const isEarlyPhase = user
+    ? (Date.now() - new Date(user.created_at).getTime()) / (1000 * 60 * 60 * 24) < 8
+    : false;
 
   const [
     { data: newsBrief },
@@ -176,6 +186,8 @@ export default async function Home() {
       isLoggedIn={!!user}
       points={points}
       streak={streak}
+      coupon={coupon}
+      isEarlyPhase={isEarlyPhase}
     />
   );
 }
