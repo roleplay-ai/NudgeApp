@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
 
     const { data: sessionData, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      // Sync the Google-provided name into profiles.full_name.
+      // Sync the Google-provided name into profiles.display_name.
       // Google sets raw_user_meta_data.name (not full_name), so we normalise here
       // for both new and returning OAuth users.
       const oauthUser = sessionData?.user;
@@ -57,9 +57,9 @@ export async function GET(request: NextRequest) {
         if (name) {
           await supabase
             .from("profiles")
-            .update({ full_name: name })
+            .update({ display_name: name })
             .eq("id", oauthUser.id)
-            .is("full_name", null); // only fill in if not already set by user
+            .is("display_name", null); // only fill in if not already set by user
         }
       }
 

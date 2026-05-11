@@ -2,6 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import UserNav from "@/components/user/UserNav";
 import PageView from "@/components/user/PageView";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function UserLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
   const {
@@ -12,17 +15,20 @@ export default async function UserLayout({ children }: { children: React.ReactNo
   let streakDays = 0;
   let displayName: string | null = null;
   if (user) {
-    const { data: row } = await supabase
+    const { data: row, error: profileErr } = await supabase
       .from("profiles")
-      .select("xp, streak, full_name")
+      .select("xp, streak, display_name")
       .eq("id", user.id)
       .maybeSingle();
-    const r = row as { xp?: number; streak?: number; full_name?: string | null } | null;
+    if (profileErr) {
+      console.error("[UserLayout] profile fetch failed:", profileErr.message);
+    }
+    const r = row as { xp?: number; streak?: number; display_name?: string | null } | null;
     masteryScore = Number(r?.xp ?? 0);
     streakDays = Number(r?.streak ?? 0);
     const meta = user.user_metadata ?? {};
     displayName =
-      r?.full_name?.trim() ||
+      r?.display_name?.trim() ||
       meta.full_name?.trim() ||
       meta.name?.trim() ||
       null;

@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Check, ChevronLeft, Lightbulb, Sparkles, X, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { Module, ModuleScreen } from "@/lib/types";
-import { createClient } from "@/lib/supabase/client";
-import { awardPoints, resolvePoints } from "@/lib/points";
+import { awardPointsAction } from "@/app/actions/awardPointsAction";
 
 /** Default XP for a completed module — must match point_rules seed in migration_026. */
 const MODULE_DEFAULT_POINTS = 50;
@@ -30,32 +29,31 @@ export default function ModulePlayer({ module: mod, screens, onClose }: Props) {
   const [step, setStep] = useState(0);
   const [answer, setAnswer] = useState<number | null>(null);
   const [finishing, setFinishing] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
 
   const router = useRouter();
   const touchStartX = useRef<number>(0);
   const touchStartY = useRef<number>(0);
 
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
-  }, []);
-
   const total = screens.length;
 
   async function next() {
     if (step >= total - 1) {
-      if (userId && !finishing) {
+      if (!finishing) {
         setFinishing(true);
-        const supabase = createClient();
-        await awardPoints(supabase, {
-          userId,
-          sourceType: "module",
-          sourceId: mod.id,
-          points: resolvePoints(mod.points_award, MODULE_DEFAULT_POINTS),
-        });
-        router.refresh();
-        setFinishing(false);
+        try {
+          const result = await awardPointsAction({
+            sourceType: "module",
+            sourceId: mod.id,
+            pointsAward: mod.points_award,
+            defaultPoints: MODULE_DEFAULT_POINTS,
+          });
+          if (!result.success && result.error !== "Not authenticated") {
+            console.error("[ModulePlayer] award_points failed:", result.error);
+          }
+          router.refresh();
+        } finally {
+          setFinishing(false);
+        }
       }
       if (onClose) { onClose(); } else { window.location.href = "/learn"; }
       return;

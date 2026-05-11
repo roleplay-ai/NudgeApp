@@ -1,12 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Check, Film, Lock, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { ApplyVideo } from "@/lib/types";
 import { youtubeEmbedSrc } from "@/lib/youtubeEmbed";
-import { createClient } from "@/lib/supabase/client";
-import { awardPoints, resolvePoints } from "@/lib/points";
+import { awardPointsAction } from "@/app/actions/awardPointsAction";
 
 /** Default XP for an apply_video — must match point_rules seed in migration_026. */
 const APPLY_VIDEO_DEFAULT_POINTS = 15;
@@ -115,24 +114,22 @@ export function ApplyVideoDetailModal({ video, onClose }: { video: ApplyVideo; o
 
   const router = useRouter();
   const [awarding, setAwarding] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
-
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
-  }, []);
 
   async function handleGotIt() {
-    if (userId && !awarding) {
-      setAwarding(true);
-      const supabase = createClient();
-      await awardPoints(supabase, {
-        userId,
+    if (awarding) return;
+    setAwarding(true);
+    try {
+      const result = await awardPointsAction({
         sourceType: "apply_video",
         sourceId: video.id,
-        points: resolvePoints(video.points_award, APPLY_VIDEO_DEFAULT_POINTS),
+        pointsAward: video.points_award,
+        defaultPoints: APPLY_VIDEO_DEFAULT_POINTS,
       });
+      if (!result.success && result.error !== "Not authenticated") {
+        console.error("[ApplyVideoDetailModal] award_points failed:", result.error);
+      }
       router.refresh();
+    } finally {
       setAwarding(false);
     }
     onClose();
@@ -141,7 +138,7 @@ export function ApplyVideoDetailModal({ video, onClose }: { video: ApplyVideo; o
   return (
     <div
       className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-6 bg-black/50 backdrop-blur-sm"
-      onClick={onClose}
+      onClick={awarding ? undefined : onClose}
     >
       <div
         className="bg-white w-full md:max-w-2xl md:rounded-2xl rounded-t-3xl max-h-[92vh] overflow-hidden flex flex-col shadow-2xl border border-nborder"
@@ -151,7 +148,8 @@ export function ApplyVideoDetailModal({ video, onClose }: { video: ApplyVideo; o
           <button
             type="button"
             onClick={onClose}
-            className="absolute right-3 top-3 rounded-full p-2 text-muted hover:bg-chiffon hover:text-shadow"
+            disabled={awarding}
+            className="absolute right-3 top-3 rounded-full p-2 text-muted hover:bg-chiffon hover:text-shadow disabled:opacity-40 disabled:pointer-events-none"
             aria-label="Close"
           >
             <X size={18} />
@@ -241,7 +239,8 @@ export function ApplyVideoDetailModal({ video, onClose }: { video: ApplyVideo; o
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2.5 rounded-full border border-nborder text-sm font-semibold text-shadow hover:bg-white transition"
+            disabled={awarding}
+            className="px-5 py-2.5 rounded-full border border-nborder text-sm font-semibold text-shadow hover:bg-white transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Close
           </button>
