@@ -20,6 +20,7 @@ import { getModuleWithScreens } from "@/app/actions/getModule";
 import ModulePlayer from "@/components/user/ModulePlayer";
 import { ApplyVideoDetailModal } from "@/components/user/ApplyVideosFeed";
 import { GuestAccountMobileStrip } from "@/components/user/GuestAccountPromo";
+import { MAIN_WEBSITE_ORIGIN, PRIVACY_CONTACT_EMAIL } from "@/lib/site";
 
 /** Use UTC so SSR (often UTC) and the browser agree — default locale TZ caused hydration mismatches. */
 function formatBriefDateUtc(iso: string | undefined) {
@@ -508,10 +509,42 @@ export default function HomeContent({
       <footer className="pt-8 mt-4 border-t border-homeInk/10">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-[13px] text-homeBodyMuted">
           <p>© {new Date().getFullYear()} Nudgeable AI. All rights reserved.</p>
-          <nav aria-label="Legal">
+          <nav
+            aria-label="Site and legal"
+            className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-x-5 gap-y-2 text-[13px] text-homeBodyMuted"
+          >
+            <span>
+              Contact us at{" "}
+              <a
+                href={`mailto:${PRIVACY_CONTACT_EMAIL}`}
+                className="font-semibold text-homeInk hover:underline underline-offset-2"
+                onClick={() =>
+                  track("link_click", {
+                    title: "Contact us",
+                    url: `mailto:${PRIVACY_CONTACT_EMAIL}`,
+                  })
+                }
+              >
+                {PRIVACY_CONTACT_EMAIL}
+              </a>
+            </span>
+            <span>
+              More about us at{" "}
+              <a
+                href={MAIN_WEBSITE_ORIGIN}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-homeInk hover:underline underline-offset-2"
+                onClick={() =>
+                  track("link_click", { title: "More about us", url: MAIN_WEBSITE_ORIGIN })
+                }
+              >
+                nudgeable.ai
+              </a>
+            </span>
             <Link
               href="/privacy"
-              className="font-semibold text-homeInk hover:underline underline-offset-2"
+              className="font-semibold text-homeInk hover:underline underline-offset-2 sm:shrink-0"
               onClick={() => track("link_click", { title: "Privacy policy", url: "/privacy" })}
             >
               Privacy policy
