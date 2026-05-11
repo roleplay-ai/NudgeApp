@@ -1,9 +1,15 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
-import { Check, Film, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Check, Film, Lock, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import type { ApplyVideo } from "@/lib/types";
 import { youtubeEmbedSrc } from "@/lib/youtubeEmbed";
+import { createClient } from "@/lib/supabase/client";
+import { awardPoints, resolvePoints } from "@/lib/points";
+
+/** Default XP for an apply_video — must match point_rules seed in migration_026. */
+const APPLY_VIDEO_DEFAULT_POINTS = 15;
 
 const ACCENTS = ["#A855F7", "#EC4899", "#F59E0B", "#3B82F6", "#23CE68", "#ED4551"];
 const GROUP_ORDER = ["Features", "Apps", "Workflows", "Skills"] as const;
@@ -106,6 +112,31 @@ export function ApplyVideoDetailModal({ video, onClose }: { video: ApplyVideo; o
     whatBody.trim() ||
     stripVideoSeedFooter(video.description)?.replace(/^[^\n]+\n\n?/, "").trim() ||
     tagline;
+
+  const router = useRouter();
+  const [awarding, setAwarding] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
+  }, []);
+
+  async function handleGotIt() {
+    if (userId && !awarding) {
+      setAwarding(true);
+      const supabase = createClient();
+      await awardPoints(supabase, {
+        userId,
+        sourceType: "apply_video",
+        sourceId: video.id,
+        points: resolvePoints(video.points_award, APPLY_VIDEO_DEFAULT_POINTS),
+      });
+      router.refresh();
+      setAwarding(false);
+    }
+    onClose();
+  }
 
   return (
     <div
@@ -216,10 +247,11 @@ export function ApplyVideoDetailModal({ video, onClose }: { video: ApplyVideo; o
           </button>
           <button
             type="button"
-            onClick={onClose}
-            className="px-5 py-2.5 rounded-full bg-amber text-shadow text-sm font-bold hover:opacity-95 transition inline-flex items-center gap-1.5"
+            onClick={handleGotIt}
+            disabled={awarding}
+            className="px-5 py-2.5 rounded-full bg-amber text-shadow text-sm font-bold hover:opacity-95 transition inline-flex items-center gap-1.5 disabled:opacity-60"
           >
-            Got it <Check size={16} strokeWidth={3} />
+            {awarding ? "Saving…" : <>Got it <Check size={16} strokeWidth={3} /></>}
           </button>
         </div>
       </div>
@@ -300,6 +332,7 @@ export default function ApplyVideosFeed({
             const tag = (v.category_tag || "").trim();
             const dur = (v.duration || "").trim();
             const pill = tag ? tag.toUpperCase() : "Guide";
+            const locked = v.is_locked;
             /** Fixed line boxes so line-clamp ellipsis lines up; avoids flex-1 “dead air” above the footer. */
             const titleBox = "h-[2.7rem] text-[15px] leading-[1.35]";
             /** Integer line metrics + outer clip: avoids 4th-line subpixel bleed from -webkit-line-clamp. */
@@ -309,30 +342,35 @@ export default function ApplyVideosFeed({
               <button
                 key={v.id}
                 type="button"
-                onClick={() => setModalVideo(v)}
-                className="relative text-left rounded-2xl overflow-hidden border border-white/10 min-h-[220px] h-full p-5 pt-6 flex flex-col shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] cursor-pointer hover:border-amber/40 transition w-full min-w-0 text-white"
+                disabled={locked}
+                onClick={locked ? undefined : () => setModalVideo(v)}
+                className={`relative text-left rounded-2xl overflow-hidden border min-h-[220px] h-full p-5 pt-6 flex flex-col shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] w-full min-w-0 text-white transition ${locked ? "border-white/5 opacity-50 cursor-default" : "border-white/10 cursor-pointer hover:border-amber/40"}`}
                 style={{ backgroundColor: "#121212" }}
               >
                 <div
                   className="pointer-events-none absolute -right-10 -bottom-10 h-36 w-36 rounded-full opacity-45 blur-2xl"
-                  style={{ background: accent }}
+                  style={{ background: locked ? "#555" : accent }}
                 />
                 <div className="relative flex justify-start items-start mb-3 shrink-0">
                   <div
                     className="w-11 h-11 rounded-xl flex items-center justify-center text-white text-[15px] font-black shadow-lg shrink-0"
                     style={{ background: accent }}
                   >
-                    {letter.toUpperCase()}
+                    {locked ? <Lock size={18} className="text-white/50" /> : letter.toUpperCase()}
                   </div>
                 </div>
                 <div className="relative mb-3 min-w-0 shrink-0 space-y-1.5">
                   <div
-                    className={`font-extrabold text-amber tracking-tight line-clamp-2 overflow-hidden ${titleBox}`}
+                    className={`font-extrabold tracking-tight line-clamp-2 overflow-hidden ${titleBox} ${locked ? "text-white/50" : "text-amber"}`}
                     title={v.title}
                   >
                     {v.title}
                   </div>
-                  {caption ? (
+                  {locked ? (
+                    <div className={captionClip}>
+                      <p className="text-[13px] leading-[17px] text-white/40 italic m-0 p-0">Login to unlock</p>
+                    </div>
+                  ) : caption ? (
                     <div className={captionClip}>
                       <p className={captionText} title={caption}>
                         {caption}
@@ -348,7 +386,7 @@ export default function ApplyVideosFeed({
                     style={{ borderColor: `${accent}88`, color: accent }}
                     title={pill}
                   >
-                    {pill}
+                    {locked ? "LOCKED" : pill}
                   </span>
                   <span
                     className="text-[11px] font-bold tabular-nums text-white/90 shrink-0 truncate max-w-[28%]"
@@ -373,31 +411,39 @@ export default function ApplyVideosFeed({
       {videos.map((v) => (
         <article
           key={v.id}
-          className="bg-white rounded-2xl shadow-sm overflow-hidden border border-nborder flex flex-col min-w-0"
+          className={`bg-white rounded-2xl shadow-sm overflow-hidden border border-nborder flex flex-col min-w-0 ${v.is_locked ? "opacity-60" : ""}`}
         >
           <div className="relative w-full bg-black aspect-video">
-            <video
-              ref={(el) => registerRef(v.id, el)}
-              src={v.video_url}
-              controls
-              controlsList="nodownload"
-              playsInline
-              preload="metadata"
-              poster={v.thumbnail_url ?? undefined}
-              className="absolute inset-0 h-full w-full object-contain"
-              onPlay={() => pauseOthers(v.id)}
-            >
-              Your browser does not support embedded video.
-            </video>
+            {v.is_locked ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-shadow/20">
+                <Lock size={28} className="text-white/60" />
+              </div>
+            ) : (
+              <video
+                ref={(el) => registerRef(v.id, el)}
+                src={v.video_url}
+                controls
+                controlsList="nodownload"
+                playsInline
+                preload="metadata"
+                poster={v.thumbnail_url ?? undefined}
+                className="absolute inset-0 h-full w-full object-contain"
+                onPlay={() => pauseOthers(v.id)}
+              >
+                Your browser does not support embedded video.
+              </video>
+            )}
           </div>
           <div className="p-3 sm:p-4 space-y-1.5 flex-1 flex flex-col min-w-0">
             <h2 className="font-bold text-sm text-shadow leading-snug line-clamp-2">{v.title}</h2>
-            {v.description ? (
+            {v.is_locked ? (
+              <p className="text-xs text-muted italic">Login to unlock</p>
+            ) : v.description ? (
               <p className="text-xs text-muted leading-relaxed line-clamp-3 overflow-hidden min-w-0 flex-1">
                 {v.description}
               </p>
             ) : null}
-            {v.duration ? <p className="text-[10px] font-bold text-norange">{v.duration}</p> : null}
+            {!v.is_locked && v.duration ? <p className="text-[10px] font-bold text-norange">{v.duration}</p> : null}
           </div>
         </article>
       ))}

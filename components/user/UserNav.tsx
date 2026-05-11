@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { GuestAccountSidebarCard } from "@/components/user/GuestAccountPromo";
+import { UserPointsSidebarCard } from "@/components/user/UserPointsCard";
 import { useEffect } from "react";
 import { SITE_BRAND_MARK } from "@/lib/site";
 
@@ -29,12 +30,16 @@ const items = [
 ];
 
 export default function UserNav({
-  masteryScore: _masteryScore = 0,
-  streakDays: _streakDays = 0,
+  masteryScore = 0,
+  streakDays = 0,
+  displayName = null,
   isLoggedIn = false,
 }: {
+  /** Running total of XP from `profiles.xp`; drives the FlipCounter on the sidebar card. */
   masteryScore?: number;
+  /** `profiles.streak`; shown as secondary stat alongside points. */
   streakDays?: number;
+  displayName?: string | null;
   isLoggedIn?: boolean;
 }) {
   const path = usePathname();
@@ -105,7 +110,15 @@ export default function UserNav({
         </nav>
 
         <div className="mt-auto pt-4 border-t border-homeInk/35 space-y-3">
-          {!isLoggedIn ? <GuestAccountSidebarCard /> : null}
+          {isLoggedIn ? (
+            <UserPointsSidebarCard
+              points={masteryScore}
+              streak={streakDays}
+              displayName={displayName}
+            />
+          ) : (
+            <GuestAccountSidebarCard />
+          )}
 
           {isLoggedIn ? (
             <div className="space-y-1">

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import type {
   ApplyVideo,
@@ -11,6 +12,12 @@ import type {
   World,
 } from "@/lib/types";
 import HomeContent from "@/components/user/HomeContent";
+
+export const metadata: Metadata = {
+  verification: {
+    google: "pjfugdNsTndNEq6kBSvjVY12UmwRwP5cLjz4fMbGP8o",
+  },
+};
 
 export const dynamic = "force-dynamic";
 
@@ -46,10 +53,12 @@ export default async function Home() {
   } = await supabase.auth.getUser();
 
   let displayName: string | null = null;
+  let points = 0;
+  let streak = 0;
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("full_name")
+      .select("full_name, xp, streak")
       .eq("id", user.id)
       .maybeSingle();
     const meta = user.user_metadata ?? {};
@@ -59,6 +68,8 @@ export default async function Home() {
       meta.name?.trim() ||
       undefined;
     displayName = raw || null;
+    points = Number(profile?.xp ?? 0);
+    streak = Number(profile?.streak ?? 0);
   }
 
   const [
@@ -162,6 +173,9 @@ export default async function Home() {
       applyMidVideos={(applyMidVideos || []) as ApplyVideo[]}
       applyVideosTotal={applyVideosPublishedCount ?? (applyMidVideos || []).length}
       displayName={displayName}
+      isLoggedIn={!!user}
+      points={points}
+      streak={streak}
     />
   );
 }

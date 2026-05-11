@@ -4,10 +4,10 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Input, Checkbox, Button, Toast, useToast } from "@/components/admin/Form";
 import type { Module, World } from "@/lib/types";
-import { Trash2, Edit2, Plus, ArrowLeft, ChevronRight } from "lucide-react";
+import { Trash2, Edit2, Plus, ArrowLeft, ChevronRight, Lock } from "lucide-react";
 
 const empty = (world_id: string): Partial<Module> => ({
-  world_id, slug: "", title: "", concepts: [], xp_reward: 10, order_index: 0, is_published: false,
+  world_id, slug: "", title: "", concepts: [], xp_reward: 10, order_index: 0, is_published: false, is_locked: false, points_award: null,
 });
 
 export default function WorldDetail({ params }: { params: { id: string } }) {
@@ -119,14 +119,32 @@ export default function WorldDetail({ params }: { params: { id: string } }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Input label="XP reward" type="number" value={editing.xp_reward ?? 10}
+          <div className="grid grid-cols-3 gap-3">
+            <Input label="XP reward (legacy)" type="number" value={editing.xp_reward ?? 10}
               onChange={(e) => setEditing({ ...editing, xp_reward: parseInt(e.target.value) || 10 })} />
+            <Input
+              label="Points override (blank = use rule)"
+              type="number"
+              value={editing.points_award ?? ""}
+              onChange={(e) => {
+                const v = e.target.value;
+                setEditing({ ...editing, points_award: v === "" ? null : parseInt(v, 10) });
+              }}
+              placeholder="Default from Points rules"
+            />
             <Input label="Order" type="number" value={editing.order_index ?? 0}
               onChange={(e) => setEditing({ ...editing, order_index: parseInt(e.target.value) || 0 })} />
           </div>
-          <Checkbox label="Published" checked={editing.is_published ?? false}
-            onChange={(e) => setEditing({ ...editing, is_published: e.target.checked })} />
+          <p className="text-[10px] text-muted -mt-2">
+            Leave <span className="font-mono">Points override</span> empty to use the default in{" "}
+            <span className="font-mono">/admin/points</span>. Set to 0 to award no XP for this module.
+          </p>
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            <Checkbox label="Published" checked={editing.is_published ?? false}
+              onChange={(e) => setEditing({ ...editing, is_published: e.target.checked })} />
+            <Checkbox label="Locked (guests see padlock, must log in to open)" checked={editing.is_locked ?? false}
+              onChange={(e) => setEditing({ ...editing, is_locked: e.target.checked })} />
+          </div>
           <div className="flex gap-2 pt-2">
             <Button onClick={save}>Save</Button>
             <Button variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
@@ -141,13 +159,19 @@ export default function WorldDetail({ params }: { params: { id: string } }) {
               {m.order_index}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-0.5">
+              <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                 <span className="font-bold text-sm">{m.title}</span>
                 <span className="text-[10px] font-mono text-muted">{m.slug}</span>
                 {!m.is_published && <span className="text-[10px] font-bold bg-muted text-white px-2 py-0.5 rounded-full">DRAFT</span>}
+                {m.is_locked && (
+                  <span className="text-[10px] font-bold bg-shadow text-amber px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                    <Lock size={9} strokeWidth={3} /> LOCKED
+                  </span>
+                )}
               </div>
               <div className="text-[10px] text-muted">
                 {screenCounts[m.id] || 0} screens · {m.xp_reward} XP
+                {m.points_award != null && ` · ${m.points_award} pts override`}
               </div>
             </div>
             <Link href={`/admin/worlds/${id}/modules/${m.id}`} className="text-xs font-semibold text-shadow flex items-center gap-1">

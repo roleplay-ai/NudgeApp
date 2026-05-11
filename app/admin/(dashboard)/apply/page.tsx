@@ -5,7 +5,7 @@ import { Input, Textarea, Checkbox, Button, Toast, useToast, Select } from "@/co
 import ImageUploader from "@/components/admin/ImageUploader";
 import VideoUploader from "@/components/admin/VideoUploader";
 import type { ApplyVideo } from "@/lib/types";
-import { Edit2, Plus, Trash2, Film } from "lucide-react";
+import { Edit2, Plus, Trash2, Film, Lock } from "lucide-react";
 
 const GROUPS = ["Features", "Apps", "Workflows", "Skills"] as const;
 
@@ -18,9 +18,11 @@ const emptyVideo = (): Partial<ApplyVideo> => ({
   duration: "",
   order_index: 0,
   is_published: true,
+  is_locked: false,
   task_id: null,
   group_name: "Features",
   category_tag: "",
+  points_award: null,
 });
 
 export default function ApplyVideosAdmin() {
@@ -59,10 +61,15 @@ export default function ApplyVideosAdmin() {
       duration: editingVideo.duration || null,
       order_index: editingVideo.order_index ?? 0,
       is_published: editingVideo.is_published ?? true,
+      is_locked: editingVideo.is_locked ?? false,
       task_id: editingVideo.task_id ?? null,
       group_name: (editingVideo.group_name as string) || "Features",
       category_tag: editingVideo.category_tag?.trim() || null,
       platforms: editingVideo.platforms?.trim() || null,
+      points_award:
+        editingVideo.points_award == null || Number.isNaN(editingVideo.points_award)
+          ? null
+          : editingVideo.points_award,
     };
     if (editingVideo.id) {
       const { error } = await supabase.from("apply_videos").update(payload).eq("id", editingVideo.id);
@@ -197,13 +204,35 @@ export default function ApplyVideosAdmin() {
               value={editingVideo.order_index ?? 0}
               onChange={(e) => setEditingVideo({ ...editingVideo, order_index: parseInt(e.target.value, 10) || 0 })}
             />
-            <div className="flex items-end pb-1">
-              <Checkbox
-                label="Published"
-                checked={editingVideo.is_published ?? true}
-                onChange={(e) => setEditingVideo({ ...editingVideo, is_published: e.target.checked })}
-              />
-            </div>
+            <Input
+              label="Points override (blank = use rule)"
+              type="number"
+              value={editingVideo.points_award ?? ""}
+              onChange={(e) => {
+                const v = e.target.value;
+                setEditingVideo({
+                  ...editingVideo,
+                  points_award: v === "" ? null : parseInt(v, 10),
+                });
+              }}
+              placeholder="Default from Points rules"
+            />
+          </div>
+          <p className="text-[10px] text-muted -mt-2">
+            Leave <span className="font-mono">Points override</span> empty to use the default in{" "}
+            <span className="font-mono">/admin/points</span>. Set to 0 to award no XP for this video.
+          </p>
+          <div className="flex flex-wrap gap-x-6 gap-y-2 pt-1">
+            <Checkbox
+              label="Published"
+              checked={editingVideo.is_published ?? true}
+              onChange={(e) => setEditingVideo({ ...editingVideo, is_published: e.target.checked })}
+            />
+            <Checkbox
+              label="Locked (guests see padlock, must log in to watch)"
+              checked={editingVideo.is_locked ?? false}
+              onChange={(e) => setEditingVideo({ ...editingVideo, is_locked: e.target.checked })}
+            />
           </div>
           <div className="flex gap-2 pt-2">
             <Button onClick={saveVideo}>Save</Button>
@@ -235,6 +264,16 @@ export default function ApplyVideosAdmin() {
                 ) : null}
                 {!v.is_published ? (
                   <span className="text-[10px] font-bold bg-muted text-white px-2 py-0.5 rounded-full">DRAFT</span>
+                ) : null}
+                {v.is_locked ? (
+                  <span className="text-[10px] font-bold bg-shadow text-amber px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                    <Lock size={9} strokeWidth={3} /> LOCKED
+                  </span>
+                ) : null}
+                {v.points_award != null ? (
+                  <span className="text-[10px] font-bold text-amber bg-amber/10 px-2 py-0.5 rounded-full">
+                    {v.points_award} pts
+                  </span>
                 ) : null}
               </div>
               {v.description ? (
