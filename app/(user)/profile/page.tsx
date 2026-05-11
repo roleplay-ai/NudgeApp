@@ -12,14 +12,26 @@ export default async function ProfilePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isAdmin = user
-    ? (await supabase.from("profiles").select("role").eq("id", user.id).single()).data?.role === "admin"
-    : false;
+  let displayName: string | null = null;
+  let isAdmin = false;
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role, full_name")
+      .eq("id", user.id)
+      .single();
+    isAdmin = profile?.role === "admin";
+    const raw = profile?.full_name?.trim() || user.user_metadata?.full_name?.trim();
+    displayName = raw || null;
+  }
 
   return (
     <div>
       <div className="text-[11px] font-bold tracking-[2px] text-norange">PROFILE</div>
-      <h1 className="text-2xl md:text-3xl font-extrabold text-shadow mb-2 tracking-tight">Your account</h1>
+      <h1 className="text-2xl md:text-3xl font-extrabold text-shadow mb-2 tracking-tight">
+        {displayName ? `Hi, ${displayName}` : "Your account"}
+      </h1>
       <p className="text-sm text-muted mb-6 max-w-xl">Manage your account and access your learning progress.</p>
 
       <div className="bg-white rounded-2xl p-6 border border-nborder shadow-sm mb-4">
@@ -30,7 +42,12 @@ export default async function ProfilePage() {
           <div className="flex-1 min-w-0">
             {user ? (
               <>
-                <div className="font-semibold text-shadow text-sm truncate">{user.email}</div>
+                {displayName && (
+                  <div className="font-bold text-shadow text-base truncate">{displayName}</div>
+                )}
+                <div className={`truncate ${displayName ? "text-xs text-muted" : "font-semibold text-shadow text-sm"}`}>
+                  {user.email}
+                </div>
                 <div className="text-xs text-muted mt-0.5">Signed in · progress saving enabled</div>
               </>
             ) : (

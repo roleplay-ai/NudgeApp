@@ -341,6 +341,7 @@ export default function HomeContent({
   modules,
   applyMidVideos,
   applyVideosTotal,
+  displayName,
 }: {
   briefNews: NewsItem[];
   briefHero: HomeBriefHero | null;
@@ -350,6 +351,7 @@ export default function HomeContent({
   modules: Module[];
   applyMidVideos: ApplyVideo[];
   applyVideosTotal: number;
+  displayName?: string | null;
 }) {
   const showBriefHero = briefNews.length > 0 || !!briefHero;
   const heroBadge = briefHero?.badge_label?.trim() || HERO_FALLBACK.badge_label;
@@ -364,7 +366,7 @@ export default function HomeContent({
       <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <h1 className="text-2xl md:text-[1.65rem] font-extrabold text-homeInk tracking-tight">
-            Welcome back
+            {displayName ? `Hi ${displayName}, welcome back` : "Welcome back"}
           </h1>
           <p className="text-[15px] leading-relaxed text-homeBodyMuted max-w-xl text-pretty">
             {"Here's what's happening in AI — and everything you need to get fluent."}

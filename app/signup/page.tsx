@@ -10,6 +10,7 @@ import { SITE_BRAND_MARK } from "@/lib/site";
 import { Eye, EyeOff, Loader2, CheckCircle2 } from "lucide-react";
 
 export default function SignupPage() {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -24,6 +25,10 @@ export default function SignupPage() {
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
+    if (!name.trim()) {
+      setErr("Please enter your name.");
+      return;
+    }
     if (password !== confirmPassword) {
       setErr("Passwords do not match.");
       return;
@@ -42,6 +47,7 @@ export default function SignupPage() {
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
+        data: { full_name: name.trim() },
       },
     });
 
@@ -191,6 +197,16 @@ export default function SignupPage() {
 
         {/* Email / password form */}
         <form onSubmit={handleSignup} className="space-y-3">
+          <input
+            type="text"
+            required
+            autoComplete="name"
+            placeholder="Your name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-[#fdf9f0] outline-none transition placeholder:text-white/45 focus:border-homeClay"
+          />
+
           <input
             type="email"
             required
