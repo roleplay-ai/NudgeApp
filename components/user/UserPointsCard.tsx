@@ -160,50 +160,75 @@ function PointsBurst({ delta, tone }: { delta: number; tone: FlipTone }) {
 
 // ── Shared stat row (Points | Streak) ─────────────────────────────────────────
 
+type StatSize = "sm" | "md";
+
 function StatRow({
   points,
   streak,
   tone,
+  size = "sm",
 }: {
   points: number;
   streak: number;
   tone: FlipTone;
+  /** "sm" (default) — mobile strip; "md" — desktop sidebar (more legible). */
+  size?: StatSize;
 }) {
   const burst = usePointsBurst(points);
-  const labelColor = tone === "dark" ? "text-white/30" : "text-muted";
+  const labelColor = tone === "dark" ? "text-white/40" : "text-muted";
   const dividerColor = tone === "dark" ? "bg-white/[0.07]" : "bg-nborder";
   const streakColor = tone === "dark" ? "#FFCE00" : "#221D23";
 
+  const dims = size === "md"
+    ? {
+        flip: 22,
+        streakFont: 24,
+        streakIcon: 16,
+        labelClass: "text-[11px]",
+        divider: "h-[40px]",
+        gap: "gap-4",
+        unitClass: "text-[11px]",
+      }
+    : {
+        flip: 13,
+        streakFont: 14,
+        streakIcon: 11,
+        labelClass: "text-[8px]",
+        divider: "h-[26px]",
+        gap: "gap-3",
+        unitClass: "text-[9px]",
+      };
+
   return (
-    <div className="flex items-center gap-3">
+    <div className={`flex items-center ${dims.gap}`}>
       <div className="relative">
         {burst ? <PointsBurst delta={burst.delta} tone={tone} /> : null}
         <div
-          className={`mb-1 text-[8px] font-semibold uppercase tracking-[0.06em] ${labelColor}`}
+          className={`mb-1 ${dims.labelClass} font-semibold uppercase tracking-[0.06em] ${labelColor}`}
         >
           Points
         </div>
-        <FlipCounter value={points} size={13} tone={tone} />
+        <FlipCounter value={points} size={dims.flip} tone={tone} />
       </div>
 
-      <div className={`h-[26px] w-px ${dividerColor}`} aria-hidden />
+      <div className={`${dims.divider} w-px ${dividerColor}`} aria-hidden />
 
       <div>
         <div
-          className={`mb-1 text-[8px] font-semibold uppercase tracking-[0.06em] ${labelColor}`}
+          className={`mb-1 ${dims.labelClass} font-semibold uppercase tracking-[0.06em] ${labelColor}`}
         >
           Streak
         </div>
         <div className="flex items-baseline gap-1">
-          <Flame size={11} className="self-center" style={{ color: streakColor }} />
+          <Flame size={dims.streakIcon} className="self-center" style={{ color: streakColor }} />
           <span
             className="font-extrabold tabular-nums leading-none"
-            style={{ fontSize: 14, color: streakColor }}
+            style={{ fontSize: dims.streakFont, color: streakColor }}
           >
             {streak}
           </span>
           <span
-            className="text-[9px] font-semibold lowercase"
+            className={`${dims.unitClass} font-semibold lowercase`}
             style={{ color: tone === "dark" ? "rgba(255,255,255,0.5)" : "#6B6B6B" }}
           >
             {streak === 1 ? "day" : "days"}
@@ -235,18 +260,18 @@ export function UserPointsSidebarCard({
   return (
     <div className="overflow-hidden rounded-2xl border border-white/5 bg-[#1e1a1f] shadow-[0_8px_28px_rgba(0,0,0,0.35)]">
       <div className="h-[3px] w-full bg-amber" aria-hidden />
-      <div className="space-y-3 px-3.5 pt-3.5 pb-4">
-        <div className="inline-flex items-center gap-1.5 text-[8px] font-bold uppercase tracking-[0.1em] text-white/30">
-          <Trophy size={10} strokeWidth={2.25} className="text-norange" aria-hidden />
+      <div className="space-y-3 px-4 pt-4 pb-4">
+        <div className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-white/45">
+          <Trophy size={12} strokeWidth={2.25} className="text-norange" aria-hidden />
           <span className="leading-none">{greeting}</span>
         </div>
-        <StatRow points={points} streak={streak} tone="dark" />
+        <StatRow points={points} streak={streak} tone="dark" size="md" />
         <Link
           href="/profile"
-          className="mt-1 flex w-full items-center justify-center gap-1 rounded-full bg-white/[0.04] py-2 text-[11px] font-bold text-amber no-underline transition-colors hover:bg-white/[0.08]"
+          className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-full bg-white/[0.05] py-2 text-[12px] font-bold text-amber no-underline transition-colors hover:bg-white/[0.1]"
         >
           See your profile
-          <ArrowRight size={12} strokeWidth={2.5} aria-hidden />
+          <ArrowRight size={13} strokeWidth={2.5} aria-hidden />
         </Link>
       </div>
     </div>
