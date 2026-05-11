@@ -56,15 +56,19 @@ comment on column public.point_transactions.idempotency_key is
   'Optional key for repeating sources (e.g. weekly streak: ''streak:2026-W19'').';
 
 -- 3. PER-ITEM OVERRIDES --------------------------------------
+-- Note: in this database the real tables are `news_items` (not `news`)
+-- and `watch_videos` (not `videos`). The point_rules.content_type
+-- keys ('video', 'news', ...) remain the short logical names used
+-- everywhere else in the app.
 alter table public.modules        add column if not exists points_award int;
-alter table public.videos         add column if not exists points_award int;
-alter table public.news           add column if not exists points_award int;
+alter table public.watch_videos   add column if not exists points_award int;
+alter table public.news_items     add column if not exists points_award int;
 alter table public.apply_videos   add column if not exists points_award int;
 
-comment on column public.modules.points_award       is 'Per-item override; null → use point_rules(''module'').';
-comment on column public.videos.points_award        is 'Per-item override; null → use point_rules(''video'').';
-comment on column public.news.points_award          is 'Per-item override; null → use point_rules(''news'').';
-comment on column public.apply_videos.points_award  is 'Per-item override; null → use point_rules(''apply_video'').';
+comment on column public.modules.points_award        is 'Per-item override; null → use point_rules(''module'').';
+comment on column public.watch_videos.points_award   is 'Per-item override; null → use point_rules(''video'').';
+comment on column public.news_items.points_award     is 'Per-item override; null → use point_rules(''news'').';
+comment on column public.apply_videos.points_award   is 'Per-item override; null → use point_rules(''apply_video'').';
 
 -- 4. award_points() ------------------------------------------
 -- Single chokepoint: locks the profile row, inserts a transaction
