@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2, MailCheck, ArrowLeft } from "lucide-react";
-import { SITE_HOST_LABEL } from "@/lib/site";
+import { SITE_BRAND_MARK } from "@/lib/site";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -40,7 +40,7 @@ export default function ForgotPasswordPage() {
             <MailCheck size={30} className="text-homeClay" />
           </div>
           <div className="text-[10px] font-bold tracking-[2px] text-homeClay mb-2 break-all">
-            {SITE_HOST_LABEL}
+            {SITE_BRAND_MARK}
           </div>
           <h1 className="text-2xl font-extrabold text-white mb-2 tracking-tight">
             Check your inbox
@@ -67,7 +67,7 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <div className="text-[10px] font-bold tracking-[2px] text-homeClay mb-1 break-all">
-            {SITE_HOST_LABEL}
+            {SITE_BRAND_MARK}
           </div>
           <h1 className="text-3xl font-extrabold text-white tracking-tight">
             Forgot password?

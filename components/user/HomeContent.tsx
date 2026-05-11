@@ -21,10 +21,16 @@ import ModulePlayer from "@/components/user/ModulePlayer";
 import { ApplyVideoDetailModal } from "@/components/user/ApplyVideosFeed";
 import { GuestAccountMobileStrip } from "@/components/user/GuestAccountPromo";
 
-function formatBriefDate(iso: string | undefined) {
+/** Use UTC so SSR (often UTC) and the browser agree — default locale TZ caused hydration mismatches. */
+function formatBriefDateUtc(iso: string | undefined) {
   if (!iso) return "";
   try {
-    return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(iso));
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      timeZone: "UTC",
+    }).format(new Date(iso));
   } catch {
     return "";
   }
@@ -350,7 +356,7 @@ export default function HomeContent({
   const heroTitle = briefHero?.title?.trim() || HERO_FALLBACK.title;
   const heroSubtitle = briefHero?.subtitle?.trim() || HERO_FALLBACK.subtitle;
   const bylineOverride = briefHero?.byline_override?.trim();
-  const todayByline = formatBriefDate(new Date().toISOString());
+  const todayByline = formatBriefDateUtc(new Date().toISOString());
   const heroByline = bylineOverride || todayByline;
 
   return (
