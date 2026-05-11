@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Lock, Loader2, X } from "lucide-react";
 import RichText from "@/components/ui/RichText";
 import type {
   ApplyVideo,
+  Coupon,
   HomeBriefHero,
   Module,
   ModuleScreen,
@@ -14,6 +15,7 @@ import type {
   WatchVideo,
   World,
 } from "@/lib/types";
+import CouponBanner from "@/components/user/CouponBanner";
 import { resolveVideoThumbnailUrl } from "@/lib/videoThumbnails";
 import { track } from "@/lib/analytics";
 import { getModuleWithScreens } from "@/app/actions/getModule";
@@ -343,6 +345,9 @@ export default function HomeContent({
   applyMidVideos,
   applyVideosTotal,
   displayName,
+  coupon,
+  isEarlyPhase,
+  isLoggedIn,
 }: {
   briefNews: NewsItem[];
   briefHero: HomeBriefHero | null;
@@ -353,6 +358,9 @@ export default function HomeContent({
   applyMidVideos: ApplyVideo[];
   applyVideosTotal: number;
   displayName?: string | null;
+  coupon?: Coupon | null;
+  isEarlyPhase?: boolean;
+  isLoggedIn?: boolean;
 }) {
   const showBriefHero = briefNews.length > 0 || !!briefHero;
   const heroBadge = briefHero?.badge_label?.trim() || HERO_FALLBACK.badge_label;
@@ -376,6 +384,9 @@ export default function HomeContent({
           </p>
         </div>
       </header>
+
+      {/* Coupon — logged-in users only; full card days 1–7, slim strip day 8+ */}
+      {coupon && <CouponBanner coupon={coupon} isEarlyPhase={isEarlyPhase ?? false} />}
 
       {/* Nudgeable Brief hero */}
       {showBriefHero && (
@@ -565,8 +576,8 @@ export default function HomeContent({
         </div>
       </footer>
 
-      {/* Fixed mobile promo sits above tab bar; spacer above keeps bottom content scrollable */}
-      <GuestAccountMobileStrip />
+      {/* Fixed mobile promo — guests only */}
+      {!isLoggedIn && <GuestAccountMobileStrip />}
     </div>
   );
 }

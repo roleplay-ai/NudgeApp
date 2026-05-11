@@ -14,8 +14,10 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { GuestAccountSidebarCard } from "@/components/user/GuestAccountPromo";
+import { CouponSidebarStrip } from "@/components/user/CouponBanner";
 import { useEffect } from "react";
 import { SITE_BRAND_MARK } from "@/lib/site";
+import type { Coupon } from "@/lib/types";
 
 const REMEMBER_ME_KEY = "nudgeable_remember_me";
 const SESSION_ACTIVE_KEY = "nudgeable_session_active";
@@ -32,10 +34,14 @@ export default function UserNav({
   masteryScore: _masteryScore = 0,
   streakDays: _streakDays = 0,
   isLoggedIn = false,
+  coupon = null,
+  isEarlyPhase = false,
 }: {
   masteryScore?: number;
   streakDays?: number;
   isLoggedIn?: boolean;
+  coupon?: Coupon | null;
+  isEarlyPhase?: boolean;
 }) {
   const path = usePathname();
   const router = useRouter();
@@ -106,6 +112,9 @@ export default function UserNav({
 
         <div className="mt-auto pt-4 border-t border-homeInk/35 space-y-3">
           {!isLoggedIn ? <GuestAccountSidebarCard /> : null}
+
+          {/* Coupon strip — day 8+ only (full card shows in the feed for days 1–7) */}
+          {isLoggedIn && coupon && !isEarlyPhase && <CouponSidebarStrip coupon={coupon} />}
 
           {isLoggedIn ? (
             <div className="space-y-1">
