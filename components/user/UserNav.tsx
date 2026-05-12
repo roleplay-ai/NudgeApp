@@ -81,6 +81,7 @@ export default function UserNav({
   avatarUrl = null,
   isLoggedIn = false,
   coupon = null,
+  topPercent = null,
 }: {
   /** Running total of XP from `profiles.xp`; drives the FlipCounter on the sidebar card. */
   masteryScore?: number;
@@ -91,6 +92,8 @@ export default function UserNav({
   avatarUrl?: string | null;
   isLoggedIn?: boolean;
   coupon?: Coupon | null;
+  /** "Top X%" bucket from `get_user_top_percent` RPC; null hides the badge. */
+  topPercent?: number | null;
 }) {
   const path = usePathname();
   const router = useRouter();
@@ -167,6 +170,7 @@ export default function UserNav({
             <UserPointsSidebarCard
               points={masteryScore}
               displayName={displayName}
+              topPercent={topPercent}
             />
           ) : (
             <GuestAccountSidebarCard />

@@ -18,8 +18,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
-import { ArrowRight, Flame, Trophy, X } from "lucide-react";
+import { Flame, Trophy, X } from "lucide-react";
 
 // ── FlipCounter primitive ─────────────────────────────────────────────────────
 
@@ -252,12 +251,21 @@ function StatRow({
 export function UserPointsSidebarCard({
   points,
   displayName,
+  topPercent = null,
 }: {
   points: number;
   displayName?: string | null;
+  /** "Top X%" from `get_user_top_percent` RPC. Null skips the pill (e.g. solo user, RPC error). */
+  topPercent?: number | null;
 }) {
   const greeting = displayName?.trim() ? `Welcome back, ${displayName.split(" ")[0]}` : "Your progress";
   const burst = usePointsBurst(points);
+  // Clamp defensively in case the RPC ever returns 0 / >100; the pill should
+  // always read like a sensible percentile, never "top 0%".
+  const topPctClamped =
+    topPercent !== null && Number.isFinite(topPercent)
+      ? Math.min(100, Math.max(1, Math.round(topPercent)))
+      : null;
 
   return (
     <div className="overflow-hidden rounded-2xl border border-white/5 bg-[#1e1a1f] shadow-[0_8px_28px_rgba(0,0,0,0.35)]">
@@ -276,13 +284,14 @@ export function UserPointsSidebarCard({
             <FlipCounter value={points} size={30} tone="dark" />
           </div>
         </div>
-        <Link
-          href="/profile"
-          className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-full bg-white/[0.05] py-2 text-[12px] font-bold text-amber no-underline transition-colors hover:bg-white/[0.1]"
-        >
-          See your profile
-          <ArrowRight size={13} strokeWidth={2.5} aria-hidden />
-        </Link>
+        {topPctClamped !== null && (
+          <div
+            className="mt-1 flex w-full items-center justify-center gap-1 rounded-full bg-white/[0.05] py-2 text-[12px] font-bold text-white/70"
+            aria-label={`You are in the top ${topPctClamped} percent of users`}
+          >
+            You are in top <span className="text-amber">{topPctClamped}%</span>
+          </div>
+        )}
       </div>
     </div>
   );

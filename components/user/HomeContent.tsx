@@ -641,9 +641,9 @@ function WorldsCarousel({
                 onClick={worldLocked ? undefined : () => handleSelectWorld(w, i)}
                 disabled={worldLocked}
                 className={`flex-shrink-0 flex items-center gap-3 rounded-[18px] pl-3 pr-3 py-3 text-left transition-[opacity,box-shadow] duration-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] snap-start ${worldLocked
-                  ? "cursor-default"
-                  : "cursor-pointer"
-                  } ${activeIdx === i ? "opacity-100" : "opacity-[0.88] hover:opacity-100"}`}
+                  ? "cursor-default opacity-45 hover:opacity-55"
+                  : `cursor-pointer ${activeIdx === i ? "opacity-100" : "opacity-[0.88] hover:opacity-100"}`
+                  }`}
                 style={{
                   width: "min(300px, calc(100vw - 3rem))",
                   borderTopWidth: 3,
@@ -665,14 +665,6 @@ function WorldsCarousel({
                   aria-hidden
                 >
                   {w.emoji}
-                  {worldLocked && (
-                    <span
-                      className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center bg-white shadow ring-1 ring-homeInk/15"
-                      aria-hidden
-                    >
-                      <Lock size={10} strokeWidth={2.5} className="text-homeInk" />
-                    </span>
-                  )}
                 </div>
                 <div className="flex-1 min-w-0 py-0.5">
                   <div className="text-[14px] font-bold text-homeInk leading-snug line-clamp-2">{w.title}</div>
@@ -686,12 +678,16 @@ function WorldsCarousel({
                   </div>
                 </div>
                 <div
-                  className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center text-white shadow-inner"
-                  style={{ backgroundColor: w.color }}
+                  className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center shadow-inner"
+                  style={
+                    worldLocked
+                      ? { backgroundColor: "#1c1814", color: "#FFCE00" }
+                      : { backgroundColor: w.color, color: "#ffffff" }
+                  }
                   aria-hidden
                 >
                   {worldLocked ? (
-                    <Lock size={18} strokeWidth={2.5} />
+                    <Lock size={20} strokeWidth={2.75} />
                   ) : (
                     <ChevronRight size={22} strokeWidth={2.5} className="-mr-px" />
                   )}

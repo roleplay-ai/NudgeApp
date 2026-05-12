@@ -19,17 +19,24 @@ export default async function UserLayout({ children }: { children: React.ReactNo
   let displayName: string | null = null;
   let avatarUrl: string | null = null;
   let coupon: Coupon | null = null;
+  let topPercent: number | null = null;
   if (user) {
-    const [profileResult, couponResult] = await Promise.all([
+    const [profileResult, couponResult, topPercentResult] = await Promise.all([
       supabase
         .from("profiles")
         .select("xp, streak, display_name, avatar_url")
         .eq("id", user.id)
         .maybeSingle(),
       getActiveCoupon(),
+      // RPC backed by migration_033_user_top_percent.sql. Returns 1..100
+      // ("top X%") computed from profiles.xp across all users.
+      supabase.rpc("get_user_top_percent", { p_user: user.id }),
     ]);
     if (profileResult.error) {
       console.error("[UserLayout] profile fetch failed:", profileResult.error.message);
+    }
+    if (topPercentResult.error) {
+      console.error("[UserLayout] get_user_top_percent failed:", topPercentResult.error.message);
     }
     const r = profileResult.data as {
       xp?: number;
@@ -51,6 +58,8 @@ export default async function UserLayout({ children }: { children: React.ReactNo
       meta.picture?.trim() ||
       null;
     coupon = couponResult;
+    const topPctRaw = topPercentResult.data;
+    topPercent = typeof topPctRaw === "number" ? topPctRaw : null;
   }
 
   return (
@@ -62,6 +71,7 @@ export default async function UserLayout({ children }: { children: React.ReactNo
         avatarUrl={avatarUrl}
         isLoggedIn={!!user}
         coupon={coupon}
+        topPercent={topPercent}
       />
       <PageView />
       <main className="sm:ml-64 pb-[calc(76px+env(safe-area-inset-bottom))] sm:pb-8 min-h-screen bg-homeCanvas">
