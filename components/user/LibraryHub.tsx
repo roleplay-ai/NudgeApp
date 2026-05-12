@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, ExternalLink, Lock, Search } from "lucide-react";
 import type { NewsItem, Resource, WatchVideo } from "@/lib/types";
 import { resolveVideoThumbnailUrl } from "@/lib/videoThumbnails";
+import { DEFAULT_POINTS, useAwardOnClick } from "@/lib/useAwardOnClick";
 
 function getFaviconUrl(url: string): string | null {
   try {
@@ -214,6 +215,12 @@ function VideoCarouselCard({
   isActive: boolean;
 }) {
   const thumb = resolveVideoThumbnailUrl(v.thumbnail_url, v.url);
+  const awardOnClick = useAwardOnClick({
+    sourceType: "video",
+    sourceId: v.id,
+    pointsAward: v.points_award,
+    defaultPoints: DEFAULT_POINTS.video,
+  });
 
   if (v.is_locked) {
     return (
@@ -261,6 +268,7 @@ function VideoCarouselCard({
       href={v.url}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={awardOnClick}
       className={`flex-shrink-0 w-[min(268px,calc(100vw-3rem))] overflow-hidden rounded-[18px] border border-black/[0.06] bg-white text-left transition-opacity duration-200 shadow-[0_2px_12px_rgba(0,0,0,0.06)] snap-start flex flex-col ${
         isActive ? "opacity-100" : "opacity-[0.9] hover:opacity-100"
       }`}
@@ -623,6 +631,13 @@ function bucketNews(news: NewsItem[]): { label: string; items: NewsItem[] }[] {
 }
 
 function NewsCard({ item: n }: { item: NewsItem }) {
+  const awardOnClick = useAwardOnClick({
+    sourceType: "news",
+    sourceId: n.id,
+    pointsAward: n.points_award,
+    defaultPoints: DEFAULT_POINTS.news,
+  });
+
   if (n.is_locked) {
     return (
       <div className="block bg-white rounded-2xl p-4 border border-nborder shadow-sm opacity-55">
@@ -646,6 +661,7 @@ function NewsCard({ item: n }: { item: NewsItem }) {
       href={n.url || "#"}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={awardOnClick}
       className="block bg-white rounded-2xl p-4 border border-nborder shadow-sm hover:shadow-md transition"
     >
       <div className="flex items-center gap-2 mb-2">
@@ -669,6 +685,12 @@ function ArticleRow({ resource: r, colorIndex }: { resource: Resource; colorInde
   const color = VIDEO_COLORS[colorIndex % VIDEO_COLORS.length];
   const pill = (r.category || r.resource_type || "article").toUpperCase();
   const readLabel = r.duration_mins != null ? `${r.duration_mins} min read` : "Read";
+  const awardOnClick = useAwardOnClick({
+    sourceType: "resource",
+    sourceId: r.id,
+    pointsAward: r.points_award,
+    defaultPoints: DEFAULT_POINTS.resource,
+  });
 
   if (r.is_locked) {
     return (
@@ -695,6 +717,7 @@ function ArticleRow({ resource: r, colorIndex }: { resource: Resource; colorInde
       href={r.url}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={awardOnClick}
       className="flex gap-4 items-center bg-white rounded-2xl p-4 border border-nborder shadow-sm hover:shadow-md transition"
     >
       <ResourceLogo
@@ -730,6 +753,12 @@ function ResourceTile({ resource: r, colorIndex }: { resource: Resource; colorIn
   const title = resourceTitle(r);
   const color = VIDEO_COLORS[colorIndex % VIDEO_COLORS.length];
   const type = (r.resource_type || "resource").toLowerCase();
+  const awardOnClick = useAwardOnClick({
+    sourceType: "resource",
+    sourceId: r.id,
+    pointsAward: r.points_award,
+    defaultPoints: DEFAULT_POINTS.resource,
+  });
 
   if (r.is_locked) {
     return (
@@ -758,6 +787,7 @@ function ResourceTile({ resource: r, colorIndex }: { resource: Resource; colorIn
       href={r.url}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={awardOnClick}
       className="flex flex-col bg-white rounded-2xl p-4 border border-nborder shadow-sm hover:shadow-md transition h-full"
     >
       <div className="flex gap-3 mb-3">

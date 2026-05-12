@@ -77,6 +77,7 @@ export type Tool = {
   order_index: number;
   pros?: string[];
   cons?: string[];
+  points_award: number | null;
 };
 
 // --- Apply tiles (browse grid + slide decks) ---
@@ -312,6 +313,7 @@ export type Resource = {
   is_published: boolean;
   is_locked: boolean;
   order_index: number;
+  points_award: number | null;
 };
 
 // --- Points / Engagement ---

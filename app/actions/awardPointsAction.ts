@@ -25,7 +25,15 @@ export async function awardPointsAction({
   defaultPoints,
   idempotencyKey,
 }: {
-  sourceType: "module" | "video" | "news" | "apply_video" | "quiz_question" | string;
+  sourceType:
+    | "module"
+    | "video"
+    | "news"
+    | "apply_video"
+    | "quiz_question"
+    | "resource"
+    | "tool"
+    | string;
   sourceId: string;
   /** Per-item `points_award` column value (may be null). */
   pointsAward?: number | null;
