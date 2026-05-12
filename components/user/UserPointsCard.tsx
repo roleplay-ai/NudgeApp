@@ -18,8 +18,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
-import { ArrowRight, Flame, Trophy, X } from "lucide-react";
+import { Flame, Trophy, X } from "lucide-react";
 
 // ── FlipCounter primitive ─────────────────────────────────────────────────────
 
@@ -177,7 +176,9 @@ function StatRow({
   const burst = usePointsBurst(points);
   const labelColor = tone === "dark" ? "text-white/40" : "text-muted";
   const dividerColor = tone === "dark" ? "bg-white/[0.07]" : "bg-nborder";
-  const streakColor = tone === "dark" ? "#FFCE00" : "#221D23";
+  // Streak is always rendered in amber so the mobile (light) strip matches the
+  // desktop sidebar's yellow flame/number treatment.
+  const streakColor = "#FFCE00";
 
   const dims = size === "md"
     ? {
@@ -190,10 +191,10 @@ function StatRow({
         unitClass: "text-[11px]",
       }
     : {
-        flip: 13,
+        flip: 20,
         streakFont: 14,
         streakIcon: 11,
-        labelClass: "text-[8px]",
+        labelClass: "text-[9px]",
         divider: "h-[26px]",
         gap: "gap-3",
         unitClass: "text-[9px]",
@@ -201,13 +202,14 @@ function StatRow({
 
   return (
     <div className={`flex items-center ${dims.gap}`}>
-      <div className="relative">
+      {/* Points — label on the left of a bigger flip counter. */}
+      <div className="relative flex items-center gap-2">
         {burst ? <PointsBurst delta={burst.delta} tone={tone} /> : null}
-        <div
-          className={`mb-1 ${dims.labelClass} font-semibold uppercase tracking-[0.06em] ${labelColor}`}
+        <span
+          className={`${dims.labelClass} font-semibold uppercase tracking-[0.06em] ${labelColor}`}
         >
           Points
-        </div>
+        </span>
         <FlipCounter value={points} size={dims.flip} tone={tone} />
       </div>
 
@@ -248,14 +250,22 @@ function StatRow({
  */
 export function UserPointsSidebarCard({
   points,
-  streak,
   displayName,
+  topPercent = null,
 }: {
   points: number;
-  streak: number;
   displayName?: string | null;
+  /** "Top X%" from `get_user_top_percent` RPC. Null skips the pill (e.g. solo user, RPC error). */
+  topPercent?: number | null;
 }) {
   const greeting = displayName?.trim() ? `Welcome back, ${displayName.split(" ")[0]}` : "Your progress";
+  const burst = usePointsBurst(points);
+  // Clamp defensively in case the RPC ever returns 0 / >100; the pill should
+  // always read like a sensible percentile, never "top 0%".
+  const topPctClamped =
+    topPercent !== null && Number.isFinite(topPercent)
+      ? Math.min(100, Math.max(1, Math.round(topPercent)))
+      : null;
 
   return (
     <div className="overflow-hidden rounded-2xl border border-white/5 bg-[#1e1a1f] shadow-[0_8px_28px_rgba(0,0,0,0.35)]">
@@ -265,14 +275,23 @@ export function UserPointsSidebarCard({
           <Trophy size={12} strokeWidth={2.25} className="text-norange" aria-hidden />
           <span className="leading-none">{greeting}</span>
         </div>
-        <StatRow points={points} streak={streak} tone="dark" size="md" />
-        <Link
-          href="/profile"
-          className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-full bg-white/[0.05] py-2 text-[12px] font-bold text-amber no-underline transition-colors hover:bg-white/[0.1]"
-        >
-          See your profile
-          <ArrowRight size={13} strokeWidth={2.5} aria-hidden />
-        </Link>
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-white/45">
+            Points
+          </span>
+          <div className="relative">
+            {burst ? <PointsBurst delta={burst.delta} tone="dark" /> : null}
+            <FlipCounter value={points} size={30} tone="dark" />
+          </div>
+        </div>
+        {topPctClamped !== null && (
+          <div
+            className="mt-1 flex w-full items-center justify-center gap-1 rounded-full bg-white/[0.05] py-2 text-[12px] font-bold text-white/70"
+            aria-label={`You are in the top ${topPctClamped} percent of users`}
+          >
+            You are in top <span className="text-amber">{topPctClamped}%</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -280,12 +299,10 @@ export function UserPointsSidebarCard({
 
 // ── Mobile bottom strip (light) ───────────────────────────────────────────────
 
-const MOBILE_DISMISS_KEY = "nudgeable_points_strip_dismissed";
-
 /**
  * Fixed mobile strip shown above the bottom nav for logged-in users.
  * Replaces {@link GuestAccountMobileStrip} when the user has a session.
- * Dismissal is session-only (sessionStorage) so it returns each visit.
+ * Dismissal is in-memory only — the strip reappears on every page refresh.
  */
 export function UserPointsMobileStrip({
   points,
@@ -297,12 +314,6 @@ export function UserPointsMobileStrip({
   displayName?: string | null;
 }) {
   const [dismissed, setDismissed] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined" && sessionStorage.getItem(MOBILE_DISMISS_KEY) === "1") {
-      setDismissed(true);
-    }
-  }, []);
 
   if (dismissed) return null;
 
@@ -322,14 +333,7 @@ export function UserPointsMobileStrip({
             <button
               type="button"
               aria-label="Dismiss progress strip"
-              onClick={() => {
-                setDismissed(true);
-                try {
-                  sessionStorage.setItem(MOBILE_DISMISS_KEY, "1");
-                } catch {
-                  /* sessionStorage unavailable; ignore */
-                }
-              }}
+              onClick={() => setDismissed(true)}
               className="absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-homeSubtle/90 transition-colors hover:bg-homeInk/[0.06] hover:text-homeInk"
             >
               <X size={15} strokeWidth={2.25} aria-hidden />

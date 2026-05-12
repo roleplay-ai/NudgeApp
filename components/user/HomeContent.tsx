@@ -24,6 +24,7 @@ import { ApplyVideoDetailModal } from "@/components/user/ApplyVideosFeed";
 import { GuestAccountMobileStrip } from "@/components/user/GuestAccountPromo";
 import { UserPointsMobileStrip } from "@/components/user/UserPointsCard";
 import { MAIN_WEBSITE_ORIGIN, PRIVACY_CONTACT_EMAIL } from "@/lib/site";
+import { DEFAULT_POINTS, useAwardOnClick } from "@/lib/useAwardOnClick";
 
 /** Use UTC so SSR (often UTC) and the browser agree — default locale TZ caused hydration mismatches. */
 function formatBriefDateUtc(iso: string | undefined) {
@@ -350,7 +351,6 @@ export default function HomeContent({
   points = 0,
   streak = 0,
   coupon,
-  isEarlyPhase,
 }: {
   briefNews: NewsItem[];
   briefHero: HomeBriefHero | null;
@@ -367,7 +367,6 @@ export default function HomeContent({
   /** `profiles.streak` for the signed-in viewer; secondary stat on the mobile strip. */
   streak?: number;
   coupon?: Coupon | null;
-  isEarlyPhase?: boolean;
 }) {
   const showBriefHero = briefNews.length > 0 || !!briefHero;
   const heroBadge = briefHero?.badge_label?.trim() || HERO_FALLBACK.badge_label;
@@ -392,13 +391,13 @@ export default function HomeContent({
         </div>
       </header>
 
-      {/* Coupon — logged-in users only; full card days 1–7, slim strip day 8+ */}
-      {coupon && <CouponBanner coupon={coupon} isEarlyPhase={isEarlyPhase ?? false} />}
+      {/* Coupon — logged-in users only. Top banner until dismissed; sidebar strip after. */}
+      {isLoggedIn && coupon && <CouponBanner coupon={coupon} className="!mt-3 md:!mt-4" />}
 
       {/* Nudgeable Brief hero */}
       {showBriefHero && (
-        <section aria-labelledby="brief-hero-heading">
-          <div className="rounded-2xl border border-homeInk/10 shadow-md overflow-hidden bg-homeInk px-5 pt-6 pb-6 md:px-8 md:pt-8 md:pb-7">
+        <section aria-labelledby="brief-hero-heading" className="!mt-3 md:!mt-4">
+          <div className="rounded-2xl border border-homeInk/10 shadow-md overflow-hidden bg-homeInk px-5 pt-2 pb-6 md:px-8 md:pt-8 md:pb-7">
             <div className="flex flex-wrap items-center gap-2 mb-3">
               <span className="text-[10px] font-bold tracking-[0.2em] px-3 py-1.5 rounded-md bg-homeClay text-white">
                 {heroBadge}
@@ -414,47 +413,9 @@ export default function HomeContent({
 
             {briefNews.length > 0 ? (
               <ul className="mt-4 space-y-3 list-none">
-                {briefNews.map((n) => {
-                  const href = n.url || null;
-                  const briefText = n.brief?.trim() || n.body?.trim() || null;
-                  if (n.is_locked) {
-                    return (
-                      <li key={n.id}>
-                        <div className="flex gap-2.5 items-start opacity-50">
-                          <Lock size={12} className="shrink-0 mt-[5px] text-homeClay/60" aria-hidden />
-                          <p className="text-[13px] text-homeWarmGray/70 leading-relaxed italic">
-                            Login to unlock this update
-                          </p>
-                        </div>
-                      </li>
-                    );
-                  }
-                  return (
-                    <li key={n.id}>
-                      {href ? (
-                        <a
-                          href={href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex gap-2.5 items-start group no-underline"
-                          onClick={() => track("news_click", { item_id: n.id, title: n.title, url: href })}
-                        >
-                          <span className="shrink-0 mt-[7px] h-1.5 w-1.5 rounded-full bg-homeClay group-hover:bg-amber transition-colors" aria-hidden />
-                          <p className="text-[13px] text-homeWarmGray leading-relaxed group-hover:text-white/90 transition-colors">
-                            {briefText || n.title}
-                          </p>
-                        </a>
-                      ) : (
-                        <div className="flex gap-2.5 items-start">
-                          <span className="shrink-0 mt-[7px] h-1.5 w-1.5 rounded-full bg-homeClay" aria-hidden />
-                          <p className="text-[13px] text-homeWarmGray leading-relaxed">
-                            {briefText || n.title}
-                          </p>
-                        </div>
-                      )}
-                    </li>
-                  );
-                })}
+                {briefNews.map((n) => (
+                  <BriefNewsItem key={n.id} item={n} isLoggedIn={isLoggedIn} />
+                ))}
               </ul>
             ) : (
               <RichText
@@ -507,7 +468,7 @@ export default function HomeContent({
             </div>
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               {libraryVideos.slice(0, 4).map((v) => (
-                <WatchWeekThumb key={v.id} video={v} />
+                <WatchWeekThumb key={v.id} video={v} isLoggedIn={isLoggedIn} />
               ))}
             </div>
           </div>
@@ -680,9 +641,9 @@ function WorldsCarousel({
                 onClick={worldLocked ? undefined : () => handleSelectWorld(w, i)}
                 disabled={worldLocked}
                 className={`flex-shrink-0 flex items-center gap-3 rounded-[18px] pl-3 pr-3 py-3 text-left transition-[opacity,box-shadow] duration-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] snap-start ${worldLocked
-                    ? "cursor-default"
-                    : "cursor-pointer"
-                  } ${activeIdx === i ? "opacity-100" : "opacity-[0.88] hover:opacity-100"}`}
+                  ? "cursor-default opacity-45 hover:opacity-55"
+                  : `cursor-pointer ${activeIdx === i ? "opacity-100" : "opacity-[0.88] hover:opacity-100"}`
+                  }`}
                 style={{
                   width: "min(300px, calc(100vw - 3rem))",
                   borderTopWidth: 3,
@@ -704,14 +665,6 @@ function WorldsCarousel({
                   aria-hidden
                 >
                   {w.emoji}
-                  {worldLocked && (
-                    <span
-                      className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center bg-white shadow ring-1 ring-homeInk/15"
-                      aria-hidden
-                    >
-                      <Lock size={10} strokeWidth={2.5} className="text-homeInk" />
-                    </span>
-                  )}
                 </div>
                 <div className="flex-1 min-w-0 py-0.5">
                   <div className="text-[14px] font-bold text-homeInk leading-snug line-clamp-2">{w.title}</div>
@@ -725,12 +678,16 @@ function WorldsCarousel({
                   </div>
                 </div>
                 <div
-                  className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center text-white shadow-inner"
-                  style={{ backgroundColor: w.color }}
+                  className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center shadow-inner"
+                  style={
+                    worldLocked
+                      ? { backgroundColor: "#1c1814", color: "#FFCE00" }
+                      : { backgroundColor: w.color, color: "#ffffff" }
+                  }
                   aria-hidden
                 >
                   {worldLocked ? (
-                    <Lock size={18} strokeWidth={2.5} />
+                    <Lock size={20} strokeWidth={2.75} />
                   ) : (
                     <ChevronRight size={22} strokeWidth={2.5} className="-mr-px" />
                   )}
@@ -1113,14 +1070,79 @@ function ProductsCarousel({ products }: { products: ProductOfDay[] }) {
   );
 }
 
+// ─── Nudgeable Brief news item ─────────────────────────────────────────────────
+
+// Single brief-list row. Lives in its own component so we can `useAwardOnClick`
+// per news item (hooks can't be called inside `.map(() => ...)`).
+function BriefNewsItem({ item: n, isLoggedIn }: { item: NewsItem; isLoggedIn: boolean }) {
+  const href = n.url || null;
+  const briefText = n.brief?.trim() || n.body?.trim() || null;
+  const awardOnClick = useAwardOnClick({
+    sourceType: "news",
+    sourceId: n.id,
+    pointsAward: n.points_award,
+    defaultPoints: DEFAULT_POINTS.news,
+    isLoggedIn,
+  });
+
+  if (n.is_locked) {
+    return (
+      <li>
+        <div className="flex gap-2.5 items-start opacity-50">
+          <Lock size={12} className="shrink-0 mt-[5px] text-homeClay/60" aria-hidden />
+          <p className="text-[13px] text-homeWarmGray/70 leading-relaxed italic">
+            Login to unlock this update
+          </p>
+        </div>
+      </li>
+    );
+  }
+
+  return (
+    <li>
+      {href ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex gap-2.5 items-start group no-underline"
+          onClick={() => {
+            awardOnClick();
+            track("news_click", { item_id: n.id, title: n.title, url: href });
+          }}
+        >
+          <span className="shrink-0 mt-[7px] h-1.5 w-1.5 rounded-full bg-homeClay group-hover:bg-amber transition-colors" aria-hidden />
+          <p className="text-[13px] text-homeWarmGray leading-relaxed group-hover:text-white/90 transition-colors">
+            {briefText || n.title}
+          </p>
+        </a>
+      ) : (
+        <div className="flex gap-2.5 items-start">
+          <span className="shrink-0 mt-[7px] h-1.5 w-1.5 rounded-full bg-homeClay" aria-hidden />
+          <p className="text-[13px] text-homeWarmGray leading-relaxed">
+            {briefText || n.title}
+          </p>
+        </div>
+      )}
+    </li>
+  );
+}
+
 // ─── Watch this week thumb ─────────────────────────────────────────────────────
 
-function WatchWeekThumb({ video }: { video: WatchVideo }) {
+function WatchWeekThumb({ video, isLoggedIn }: { video: WatchVideo; isLoggedIn: boolean }) {
   const thumb = resolveVideoThumbnailUrl(video.thumbnail_url, video.url);
   const href = video.url || "#";
   const creatorColor =
     VIDEO_AVATAR_COLORS[(video.creator?.charCodeAt(0) || 0) % VIDEO_AVATAR_COLORS.length];
   const letter = video.creator?.[0]?.toUpperCase() || "?";
+  const awardOnClick = useAwardOnClick({
+    sourceType: "video",
+    sourceId: video.id,
+    pointsAward: video.points_award,
+    defaultPoints: DEFAULT_POINTS.video,
+    isLoggedIn,
+  });
 
   if (video.is_locked) {
     return (
@@ -1153,7 +1175,10 @@ function WatchWeekThumb({ video }: { video: WatchVideo }) {
       target="_blank"
       rel="noopener noreferrer"
       className="group flex min-w-0 w-full flex-col overflow-hidden rounded-[10px] bg-homeInk shadow-[0_2px_8px_rgba(0,0,0,0.15)] transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.25)] no-underline"
-      onClick={() => track("video_click", { item_id: video.id, title: video.title, creator: video.creator })}
+      onClick={() => {
+        awardOnClick();
+        track("video_click", { item_id: video.id, title: video.title, creator: video.creator });
+      }}
     >
       <div
         className="relative flex h-[90px] w-full flex-shrink-0 items-center justify-center overflow-hidden"

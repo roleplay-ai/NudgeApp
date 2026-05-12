@@ -6,19 +6,34 @@ import { useRouter } from "next/navigation";
 import type { ApplyVideo } from "@/lib/types";
 import { youtubeEmbedSrc } from "@/lib/youtubeEmbed";
 import { awardPointsAction } from "@/app/actions/awardPointsAction";
+import { resolveVideoThumbnailUrl } from "@/lib/videoThumbnails";
 
 /** Default XP for an apply_video — must match point_rules seed in migration_026. */
 const APPLY_VIDEO_DEFAULT_POINTS = 15;
 
-const ACCENTS = ["#A855F7", "#EC4899", "#F59E0B", "#3B82F6", "#23CE68", "#ED4551"];
 const GROUP_ORDER = ["Features", "Apps", "Workflows", "Skills"] as const;
 
+// Kept in sync with HomeContent.GROUP_COLORS so the Apply page card accent
+// is identical to the same card on Home (same hexes, same fallback).
 const GROUP_ACCENT: Record<string, string> = {
   Features: "#A855F7",
   Apps: "#EC4899",
-  Workflows: "#F59E0B",
-  Skills: "#3B82F6",
+  Workflows: "#F68A29",
+  Skills: "#3699FC",
 };
+const GROUP_ACCENT_FALLBACK = "#623CEA";
+
+function featureAccent(group: string | null | undefined): string {
+  return GROUP_ACCENT[(group || "").trim()] || GROUP_ACCENT_FALLBACK;
+}
+
+/** Short description blurb for the card body (first line, truncated). */
+function applyVideoBlurb(description: string | null | undefined): string {
+  if (!description?.trim()) return "";
+  const cleaned = stripVideoSeedFooter(description) ?? "";
+  const line = cleaned.split(/\n+/)[0]?.replace(/\s+/g, " ").trim() ?? "";
+  return line.length > 96 ? `${line.slice(0, 94)}…` : line;
+}
 
 const PLATFORM_COLORS: Record<string, string> = {
   ChatGPT: "#23CE68",
@@ -86,15 +101,6 @@ function parseApplyVideoDescription(description: string | null | undefined) {
   const bodyBlocks = platIdx >= 0 ? blocks.slice(1, platIdx) : blocks.slice(1);
   const whatBody = bodyBlocks.join("\n\n").trim() || "";
   return { tagline, whatBody, platformNames };
-}
-
-/** First paragraph of description (tagline) for compact cards; modal still uses full description. */
-function walkthroughCaption(description: string | null | undefined): string | null {
-  if (!description?.trim()) return null;
-  const head = description.split(/\n\n+/)[0]?.trim();
-  if (!head) return null;
-  const oneLine = head.replace(/\s+/g, " ").trim();
-  return oneLine.length > 0 ? oneLine : null;
 }
 
 export function ApplyVideoDetailModal({ video, onClose }: { video: ApplyVideo; onClose: () => void }) {
@@ -326,76 +332,81 @@ export default function ApplyVideosFeed({
         {filteredDarkVideos.length === 0 ? (
           <p className="text-sm text-muted py-8 text-center">No cards in this category. Try &quot;All&quot; or pick another filter.</p>
         ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 items-stretch">
-          {filteredDarkVideos.map((v, i) => {
-            const accent = ACCENTS[i % ACCENTS.length];
-            const letter = (v.title || "V").replace(/[^A-Za-z]/g, "").slice(0, 1) || "V";
-            const caption = walkthroughCaption(v.description);
-            const tag = (v.category_tag || "").trim();
-            const dur = (v.duration || "").trim();
-            const pill = tag ? tag.toUpperCase() : "Guide";
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-stretch">
+          {filteredDarkVideos.map((v) => {
+            // Visual treatment matches HomeContent.ApplyVideosCarousel — same
+            // thumbnail+play layout, accent map, category label, and blurb, so
+            // a feature looks identical whether the viewer sees it on Home or
+            // on the dedicated Apply page.
+            const accent = featureAccent(v.group_name);
+            const thumb = resolveVideoThumbnailUrl(v.thumbnail_url, v.video_url);
+            const blurb = applyVideoBlurb(v.description);
+            const cat = (v.category_tag || "Feature").trim();
+            const durationLabel = v.duration?.trim() || "0:30";
             const locked = v.is_locked && !isLoggedIn;
-            /** Fixed line boxes so line-clamp ellipsis lines up; avoids flex-1 “dead air” above the footer. */
-            const titleBox = "h-[2.7rem] text-[15px] leading-[1.35]";
-            /** Integer line metrics + outer clip: avoids 4th-line subpixel bleed from -webkit-line-clamp. */
-            const captionClip = "h-[51px] overflow-hidden min-w-0 shrink-0 [contain:paint]";
-            const captionText = "text-[13px] leading-[17px] text-white/88 line-clamp-3 m-0 p-0";
             return (
               <button
                 key={v.id}
                 type="button"
                 disabled={locked}
                 onClick={locked ? undefined : () => setModalVideo(v)}
-                className={`relative text-left rounded-2xl overflow-hidden border min-h-[220px] h-full p-5 pt-6 flex flex-col shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] w-full min-w-0 text-white transition ${locked ? "border-white/5 opacity-50 cursor-default" : "border-white/10 cursor-pointer hover:border-amber/40"}`}
-                style={{ backgroundColor: "#121212" }}
+                className={`text-left w-full overflow-hidden rounded-[18px] border border-black/[0.06] bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)] flex flex-col transition-[opacity,transform] duration-150 ${locked ? "opacity-60 cursor-default" : "cursor-pointer hover:-translate-y-0.5"}`}
               >
                 <div
-                  className="pointer-events-none absolute -right-10 -bottom-10 h-36 w-36 rounded-full opacity-45 blur-2xl"
-                  style={{ background: locked ? "#555" : accent }}
-                />
-                <div className="relative flex justify-start items-start mb-3 shrink-0">
-                  <div
-                    className="w-11 h-11 rounded-xl flex items-center justify-center text-white text-[15px] font-black shadow-lg shrink-0"
-                    style={{ background: accent }}
-                  >
-                    {locked ? <Lock size={18} className="text-white/50" /> : letter.toUpperCase()}
+                  className="relative h-[132px] w-full shrink-0 overflow-hidden"
+                  style={{
+                    background: thumb
+                      ? undefined
+                      : `linear-gradient(155deg, ${accent} 0%, #1a1030 48%, #0f0a18 100%)`,
+                  }}
+                >
+                  {thumb ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={thumb} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                      <div
+                        className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-black/25"
+                        aria-hidden
+                      />
+                    </>
+                  ) : null}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    {locked ? (
+                      <div className="flex h-[52px] w-[52px] items-center justify-center rounded-full bg-black/30 backdrop-blur-sm">
+                        <Lock size={20} className="text-white/80" />
+                      </div>
+                    ) : (
+                      <div className="flex h-[52px] w-[52px] items-center justify-center rounded-full bg-white shadow-[0_6px_24px_rgba(0,0,0,0.2)]">
+                        <span className="text-shadow text-[18px] leading-none pl-1" aria-hidden>
+                          ▶
+                        </span>
+                      </div>
+                    )}
                   </div>
-                </div>
-                <div className="relative mb-3 min-w-0 shrink-0 space-y-1.5">
-                  <div
-                    className={`font-extrabold tracking-tight line-clamp-2 overflow-hidden ${titleBox} ${locked ? "text-white/50" : "text-amber"}`}
-                    title={v.title}
-                  >
-                    {v.title}
-                  </div>
-                  {locked ? (
-                    <div className={captionClip}>
-                      <p className="text-[13px] leading-[17px] text-white/40 italic m-0 p-0">Login to unlock</p>
+                  {!locked && (
+                    <div className="absolute bottom-2 right-2 rounded bg-black/80 px-1.5 py-px font-mono text-[11px] font-medium text-white tabular-nums">
+                      {durationLabel}
                     </div>
-                  ) : caption ? (
-                    <div className={captionClip}>
-                      <p className={captionText} title={caption}>
-                        {caption}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className={captionClip} aria-hidden />
                   )}
                 </div>
-                <div className="relative flex items-end justify-between gap-2 mt-auto pt-1 min-w-0 shrink-0">
-                  <span
-                    className="text-[10px] font-bold tracking-wider px-2.5 py-0.5 rounded-full border bg-black/30 min-w-0 max-w-[72%] truncate"
-                    style={{ borderColor: `${accent}88`, color: accent }}
-                    title={pill}
-                  >
-                    {locked ? "LOCKED" : pill}
-                  </span>
-                  <span
-                    className="text-[11px] font-bold tabular-nums text-white/90 shrink-0 truncate max-w-[28%]"
-                    title={dur || undefined}
-                  >
-                    {dur || "—"}
-                  </span>
+
+                <div className="flex flex-col gap-1.5 px-3.5 pt-3 pb-3.5 bg-white flex-1">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span
+                      className="h-2 w-2 shrink-0 rounded-[2px]"
+                      style={{ backgroundColor: accent }}
+                      aria-hidden
+                    />
+                    <span className="text-[10px] font-bold tracking-[0.12em] uppercase text-muted truncate">
+                      {locked ? "Locked" : cat}
+                    </span>
+                  </div>
+                  <div className="text-[15px] font-bold text-shadow leading-snug line-clamp-2">{v.title}</div>
+                  {locked ? (
+                    <p className="text-[12px] text-muted leading-relaxed italic">Login to unlock</p>
+                  ) : blurb ? (
+                    <p className="text-[12px] text-muted leading-relaxed line-clamp-2">{blurb}</p>
+                  ) : null}
                 </div>
               </button>
             );

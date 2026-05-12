@@ -4,28 +4,72 @@ import { useEffect, useState } from "react";
 import type { Coupon } from "@/lib/types";
 
 const COURSE_URL = "https://nudgeable.ai/ai-mastery-course";
+const DISMISS_EVENT = "nudgeable:coupon-dismissed";
+const dismissKey = (id: string) => `nudgeable_coupon_dismissed_${id}`;
 
 function useCopyCode(code: string) {
   const [copied, setCopied] = useState(false);
   function copy() {
-    navigator.clipboard?.writeText(code).catch(() => {});
+    navigator.clipboard?.writeText(code).catch(() => { });
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
   return { copied, copy };
 }
 
-// ── Full card — feed, days 1–7 ─────────────────────────────────────────────────
+// Shared dismissed-state for the coupon. The top banner (feed) and the sidebar
+// strip both consume this hook, so dismissing the banner immediately reveals
+// the sidebar strip without a refresh — and a sibling tab dismissing the coupon
+// is picked up via the browser's `storage` event.
+function useCouponDismissed(couponId: string) {
+  const key = dismissKey(couponId);
+  const [dismissed, setDismissed] = useState(false);
 
-function CouponCardFull({ coupon, onDismiss }: { coupon: Coupon; onDismiss: () => void }) {
+  useEffect(() => {
+    setDismissed(localStorage.getItem(key) === "1");
+
+    function sync() {
+      setDismissed(localStorage.getItem(key) === "1");
+    }
+    function onStorage(e: StorageEvent) {
+      if (e.key === key) sync();
+    }
+    window.addEventListener(DISMISS_EVENT, sync);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener(DISMISS_EVENT, sync);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [key]);
+
+  function dismiss() {
+    localStorage.setItem(key, "1");
+    setDismissed(true);
+    window.dispatchEvent(new Event(DISMISS_EVENT));
+  }
+
+  return { dismissed, dismiss };
+}
+
+// ── Full card — top of the feed (shown until dismissed) ───────────────────────
+
+function CouponCardFull({
+  coupon,
+  onDismiss,
+  className,
+}: {
+  coupon: Coupon;
+  /** When omitted, the × dismiss button isn't rendered (used on the profile page). */
+  onDismiss?: () => void;
+  className?: string;
+}) {
   const { copied, copy } = useCopyCode(coupon.code);
   const headline = coupon.discount_percent
     ? `${coupon.discount_percent}% off the AI for Work Course`
     : "Exclusive offer — AI for Work Course";
 
   return (
-    <div className="flex rounded-[14px] border border-homeShellLine bg-white shadow-[0_2px_12px_rgba(34,29,35,0.07)] overflow-hidden">
-      {/* amber left bar */}
+    <div className={`flex rounded-[14px] border border-homeShellLine bg-white shadow-[0_2px_12px_rgba(34,29,35,0.07)] overflow-hidden${className ? ` ${className}` : ""}`}>
       <div className="w-1 shrink-0 bg-amber" />
       <div className="flex-1 px-[18px] py-4">
         <div className="flex items-start justify-between gap-3 mb-2.5">
@@ -37,14 +81,16 @@ function CouponCardFull({ coupon, onDismiss }: { coupon: Coupon; onDismiss: () =
             <div className="text-[15px] font-extrabold text-homeInk leading-tight tracking-tight">{headline}</div>
             <div className="text-[11px] text-homeBodyMuted mt-0.5">Use your exclusive code at checkout. Limited time.</div>
           </div>
-          <button
-            type="button"
-            onClick={onDismiss}
-            aria-label="Dismiss coupon"
-            className="shrink-0 text-homeBodyMuted text-[20px] leading-none bg-transparent border-0 cursor-pointer pl-3 hover:text-homeInk transition-colors"
-          >
-            ×
-          </button>
+          {onDismiss && (
+            <button
+              type="button"
+              onClick={onDismiss}
+              aria-label="Dismiss coupon"
+              className="shrink-0 text-homeBodyMuted text-[20px] leading-none bg-transparent border-0 cursor-pointer pl-3 hover:text-homeInk transition-colors"
+            >
+              ×
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
@@ -75,55 +121,20 @@ function CouponCardFull({ coupon, onDismiss }: { coupon: Coupon; onDismiss: () =
   );
 }
 
-// ── Slim one-liner — feed, day 8+ ─────────────────────────────────────────────
-
-function CouponSlim({ coupon }: { coupon: Coupon }) {
-  const { copied, copy } = useCopyCode(coupon.code);
-  const discountText = coupon.discount_percent ? `· ${coupon.discount_percent}% off` : "";
-
-  return (
-    <div
-      className="flex items-center justify-between rounded-lg px-2.5 py-[7px]"
-      style={{ background: "rgba(255,206,0,0.08)", border: "1px dashed rgba(255,206,0,0.3)" }}
-    >
-      <div className="flex items-center gap-1.5">
-        <span className="text-[9px]" aria-hidden>🎁</span>
-        <span className="text-[10px] font-black text-homeInk tracking-[0.06em] font-mono">{coupon.code}</span>
-        {discountText && <span className="text-[9px] text-homeBodyMuted">{discountText}</span>}
-      </div>
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={copy}
-          className="text-[9px] font-bold border-0 bg-transparent cursor-pointer p-0 transition-colors"
-          style={{ color: copied ? "#23CE68" : "#F68A29" }}
-        >
-          {copied ? "✓ Copied" : "Copy"}
-        </button>
-        <span className="text-homeShellLine text-[10px]">|</span>
-        <a
-          href={COURSE_URL}
-          target="_blank"
-          rel="noreferrer"
-          className="text-[9px] font-bold text-homeBodyMuted no-underline hover:underline"
-        >
-          View →
-        </a>
-      </div>
-    </div>
-  );
-}
-
-// ── Sidebar strip — desktop sidebar, day 8+ ────────────────────────────────────
+// ── Sidebar strip — appears once the top banner is dismissed ──────────────────
 
 export function CouponSidebarStrip({ coupon }: { coupon: Coupon }) {
+  const { dismissed } = useCouponDismissed(coupon.id);
   const { copied, copy } = useCopyCode(coupon.code);
+
+  if (!dismissed) return null;
+
   return (
     <div
-      className="mt-2 rounded-lg px-2.5 py-2"
+      className="rounded-lg px-2.5 py-2"
       style={{ background: "rgba(255,206,0,0.07)", border: "1px dashed rgba(255,206,0,0.25)" }}
     >
-      <div className="text-[8px] font-semibold text-white/30 uppercase tracking-[0.08em] mb-1">Your discount</div>
+      <div className="text-[8px] font-semibold text-white/30 uppercase tracking-[0.08em] mb-1">AI Mastery Course Discount</div>
       <div className="flex items-center justify-between gap-1.5">
         <span className="text-[10px] font-black text-white/60 tracking-[0.06em] font-mono">{coupon.code}</span>
         <div className="flex gap-1.5 items-center">
@@ -150,32 +161,36 @@ export function CouponSidebarStrip({ coupon }: { coupon: Coupon }) {
   );
 }
 
-// ── Main export — picks variant based on phase ─────────────────────────────────
+// ── Top banner — shown until the user dismisses it ────────────────────────────
 
 export default function CouponBanner({
   coupon,
-  isEarlyPhase,
+  className,
 }: {
   coupon: Coupon;
-  isEarlyPhase: boolean;
+  className?: string;
 }) {
-  const storageKey = `nudgeable_coupon_dismissed_${coupon.id}`;
-  const [dismissed, setDismissed] = useState(false);
+  const { dismissed, dismiss } = useCouponDismissed(coupon.id);
+  if (dismissed) return null;
+  return <CouponCardFull coupon={coupon} onDismiss={dismiss} className={className} />;
+}
 
-  // Read localStorage only on the client to avoid hydration mismatch
-  useEffect(() => {
-    setDismissed(localStorage.getItem(storageKey) === "1");
-  }, [storageKey]);
+// ── Profile page card — reappears once the home banner has been dismissed ─────
 
-  function dismiss() {
-    localStorage.setItem(storageKey, "1");
-    setDismissed(true);
-  }
-
-  if (isEarlyPhase) {
-    if (dismissed) return null;
-    return <CouponCardFull coupon={coupon} onDismiss={dismiss} />;
-  }
-
-  return <CouponSlim coupon={coupon} />;
+/**
+ * Full coupon card surfaced on the profile page so users who dismissed the
+ * home banner can still find their code. Renders nothing until the coupon has
+ * been dismissed elsewhere; once shown, there is no × button — the profile
+ * page is the "permanent" home for the coupon.
+ */
+export function CouponProfileCard({
+  coupon,
+  className,
+}: {
+  coupon: Coupon;
+  className?: string;
+}) {
+  const { dismissed } = useCouponDismissed(coupon.id);
+  if (!dismissed) return null;
+  return <CouponCardFull coupon={coupon} className={className} />;
 }

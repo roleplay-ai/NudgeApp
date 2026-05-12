@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import UserNav from "@/components/user/UserNav";
 import PageView from "@/components/user/PageView";
 import { getActiveCoupon } from "@/app/actions/getCoupon";
+import { resolveDisplayName } from "@/lib/displayName";
 import type { Coupon } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -16,36 +17,49 @@ export default async function UserLayout({ children }: { children: React.ReactNo
   let masteryScore = 0;
   let streakDays = 0;
   let displayName: string | null = null;
+  let avatarUrl: string | null = null;
   let coupon: Coupon | null = null;
-  let isEarlyPhase = false;
+  let topPercent: number | null = null;
   if (user) {
-    const [profileResult, couponResult] = await Promise.all([
+    const [profileResult, couponResult, topPercentResult] = await Promise.all([
       supabase
         .from("profiles")
-        .select("xp, streak, display_name")
+        .select("xp, streak, display_name, avatar_url")
         .eq("id", user.id)
         .maybeSingle(),
       getActiveCoupon(),
+      // RPC backed by migration_033_user_top_percent.sql. Returns 1..100
+      // ("top X%") computed from profiles.xp across all users.
+      supabase.rpc("get_user_top_percent", { p_user: user.id }),
     ]);
     if (profileResult.error) {
       console.error("[UserLayout] profile fetch failed:", profileResult.error.message);
+    }
+    if (topPercentResult.error) {
+      console.error("[UserLayout] get_user_top_percent failed:", topPercentResult.error.message);
     }
     const r = profileResult.data as {
       xp?: number;
       streak?: number;
       display_name?: string | null;
+      avatar_url?: string | null;
     } | null;
     masteryScore = Number(r?.xp ?? 0);
     streakDays = Number(r?.streak ?? 0);
     const meta = user.user_metadata ?? {};
-    displayName =
-      r?.display_name?.trim() ||
-      meta.full_name?.trim() ||
-      meta.name?.trim() ||
+    displayName = resolveDisplayName({
+      profileDisplayName: r?.display_name,
+      metaFullName: meta.full_name,
+      metaName: meta.name,
+    });
+    avatarUrl =
+      r?.avatar_url?.trim() ||
+      meta.avatar_url?.trim() ||
+      meta.picture?.trim() ||
       null;
     coupon = couponResult;
-    isEarlyPhase =
-      (Date.now() - new Date(user.created_at).getTime()) / (1000 * 60 * 60 * 24) < 8;
+    const topPctRaw = topPercentResult.data;
+    topPercent = typeof topPctRaw === "number" ? topPctRaw : null;
   }
 
   return (
@@ -54,9 +68,10 @@ export default async function UserLayout({ children }: { children: React.ReactNo
         masteryScore={masteryScore}
         streakDays={streakDays}
         displayName={displayName}
+        avatarUrl={avatarUrl}
         isLoggedIn={!!user}
         coupon={coupon}
-        isEarlyPhase={isEarlyPhase}
+        topPercent={topPercent}
       />
       <PageView />
       <main className="sm:ml-64 pb-[calc(76px+env(safe-area-inset-bottom))] sm:pb-8 min-h-screen bg-homeCanvas">

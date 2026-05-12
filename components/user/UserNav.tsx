@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Crosshair,
+  Flame,
   GraduationCap,
   Home,
   Lightbulb,
@@ -31,22 +32,68 @@ const items = [
   { href: "/insights", label: "Insights", icon: Lightbulb },
 ];
 
+// Small avatar for the sidebar profile row and mobile bottom nav.
+// Uses the user's `avatar_url` when available, otherwise falls back to the
+// first letter of their display name on a clay-tinted circle. If neither is
+// available we render a neutral UserRound icon so the row never looks broken.
+// `size`:
+//   - "md" (default) — 28px, used by the desktop sidebar profile row.
+//   - "sm"           — 22px, used in the mobile bottom nav tile.
+function ProfileAvatar({
+  avatarUrl,
+  displayName,
+  size = "md",
+}: {
+  avatarUrl?: string | null;
+  displayName?: string | null;
+  size?: "sm" | "md";
+}) {
+  const initial = displayName?.trim()?.[0]?.toUpperCase();
+  const sizing =
+    size === "sm"
+      ? { box: "h-[22px] w-[22px]", text: "text-[10px]", iconPx: 12 }
+      : { box: "h-7 w-7", text: "text-[12px]", iconPx: 14 };
+
+  if (avatarUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={avatarUrl}
+        alt=""
+        referrerPolicy="no-referrer"
+        className={`${sizing.box} shrink-0 rounded-full object-cover border border-white/10 bg-white/5`}
+      />
+    );
+  }
+  return (
+    <div
+      className={`${sizing.box} shrink-0 rounded-full bg-homeClay/20 border border-homeClay/40 flex items-center justify-center ${sizing.text} font-bold text-amber leading-none`}
+    >
+      {initial ?? <UserRound size={sizing.iconPx} strokeWidth={2.25} className="text-homeNavMuted" />}
+    </div>
+  );
+}
+
 export default function UserNav({
   masteryScore = 0,
   streakDays = 0,
   displayName = null,
+  avatarUrl = null,
   isLoggedIn = false,
   coupon = null,
-  isEarlyPhase = false,
+  topPercent = null,
 }: {
   /** Running total of XP from `profiles.xp`; drives the FlipCounter on the sidebar card. */
   masteryScore?: number;
-  /** `profiles.streak`; shown as secondary stat alongside points. */
+  /** `profiles.streak`; rendered next to the profile row in the sidebar. */
   streakDays?: number;
   displayName?: string | null;
+  /** Avatar URL (profile.avatar_url, falling back to OAuth metadata). */
+  avatarUrl?: string | null;
   isLoggedIn?: boolean;
   coupon?: Coupon | null;
-  isEarlyPhase?: boolean;
+  /** "Top X%" bucket from `get_user_top_percent` RPC; null hides the badge. */
+  topPercent?: number | null;
 }) {
   const path = usePathname();
   const router = useRouter();
@@ -116,31 +163,43 @@ export default function UserNav({
         </nav>
 
         <div className="mt-auto pt-4 border-t border-homeInk/35 space-y-3">
+          {/* Coupon strip — renders itself only after the top banner is dismissed. */}
+          {isLoggedIn && coupon && <CouponSidebarStrip coupon={coupon} />}
+
           {isLoggedIn ? (
             <UserPointsSidebarCard
               points={masteryScore}
-              streak={streakDays}
               displayName={displayName}
+              topPercent={topPercent}
             />
           ) : (
             <GuestAccountSidebarCard />
           )}
 
-          {/* Coupon strip — day 8+ only (full card shows in the feed for days 1–7) */}
-          {isLoggedIn && coupon && !isEarlyPhase && <CouponSidebarStrip coupon={coupon} />}
-
           {isLoggedIn ? (
             <div className="space-y-1">
               <Link
                 href="/profile"
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition border no-underline
+                className={`flex items-center gap-3 px-2.5 py-2 rounded-xl font-semibold text-sm transition border no-underline
                   ${path === "/profile"
                     ? "bg-homeClay/15 border-homeClay/70 text-homeCanvas"
                     : "border-transparent text-homeNavMuted hover:bg-white/[0.06] hover:text-homeCanvas"
                   }`}
               >
-                <UserRound size={18} strokeWidth={2} className="shrink-0 text-homeNavMuted" />
-                <span className="truncate">Profile</span>
+                <ProfileAvatar avatarUrl={avatarUrl} displayName={displayName} />
+                <span className="truncate flex-1 min-w-0 text-[13px]">
+                  {displayName?.trim() || "Profile"}
+                </span>
+                <span
+                  className="flex items-center gap-1 shrink-0 tabular-nums"
+                  aria-label={`${streakDays} day streak`}
+                  title={`${streakDays} day streak`}
+                >
+                  <Flame size={13} strokeWidth={2.25} className="text-amber" aria-hidden />
+                  <span className="text-[12px] font-bold text-amber leading-none">
+                    {streakDays}
+                  </span>
+                </span>
               </Link>
               <button
                 type="button"
@@ -185,13 +244,14 @@ export default function UserNav({
             {isLoggedIn ? (
               <Link
                 href="/profile"
+                aria-label="Profile"
                 className={`flex flex-col items-center justify-center gap-0.5 rounded-xl border px-0.5 py-2 transition-[transform,background-color,color,border-color] duration-150 no-underline min-w-0 transform hover:scale-[1.04] active:scale-[0.98]
                   ${path === "/profile"
                     ? "bg-homeClay/25 border-homeClay text-white"
                     : "border-homeInk/20 text-homeCanvas/90 hover:bg-white/[0.06] hover:text-white"
                   }`}
               >
-                <UserRound size={17} strokeWidth={2.2} className={path === "/profile" ? "text-amber" : "text-homeCanvas/85"} />
+                <ProfileAvatar avatarUrl={avatarUrl} displayName={displayName} size="sm" />
                 <span className="text-[10px] font-bold leading-tight w-full text-center truncate">Profile</span>
               </Link>
             ) : (
