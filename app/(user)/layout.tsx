@@ -17,7 +17,6 @@ export default async function UserLayout({ children }: { children: React.ReactNo
   let streakDays = 0;
   let displayName: string | null = null;
   let coupon: Coupon | null = null;
-  let isEarlyPhase = false;
   if (user) {
     const [profileResult, couponResult] = await Promise.all([
       supabase
@@ -44,8 +43,6 @@ export default async function UserLayout({ children }: { children: React.ReactNo
       meta.name?.trim() ||
       null;
     coupon = couponResult;
-    isEarlyPhase =
-      (Date.now() - new Date(user.created_at).getTime()) / (1000 * 60 * 60 * 24) < 8;
   }
 
   return (
@@ -56,7 +53,6 @@ export default async function UserLayout({ children }: { children: React.ReactNo
         displayName={displayName}
         isLoggedIn={!!user}
         coupon={coupon}
-        isEarlyPhase={isEarlyPhase}
       />
       <PageView />
       <main className="sm:ml-64 pb-[calc(76px+env(safe-area-inset-bottom))] sm:pb-8 min-h-screen bg-homeCanvas">

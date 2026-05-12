@@ -81,9 +81,6 @@ export default async function Home() {
   if (process.env.NODE_ENV !== "production") {
     console.log("[Home] coupon fetch result:", coupon ? `code=${coupon.code}` : "null (no active coupon or table empty)");
   }
-  const isEarlyPhase = user
-    ? (Date.now() - new Date(user.created_at).getTime()) / (1000 * 60 * 60 * 24) < 8
-    : false;
 
   const [
     { data: newsBrief },
@@ -190,7 +187,6 @@ export default async function Home() {
       points={points}
       streak={streak}
       coupon={coupon}
-      isEarlyPhase={isEarlyPhase}
     />
   );
 }

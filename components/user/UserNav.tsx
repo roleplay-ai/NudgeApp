@@ -37,7 +37,6 @@ export default function UserNav({
   displayName = null,
   isLoggedIn = false,
   coupon = null,
-  isEarlyPhase = false,
 }: {
   /** Running total of XP from `profiles.xp`; drives the FlipCounter on the sidebar card. */
   masteryScore?: number;
@@ -46,7 +45,6 @@ export default function UserNav({
   displayName?: string | null;
   isLoggedIn?: boolean;
   coupon?: Coupon | null;
-  isEarlyPhase?: boolean;
 }) {
   const path = usePathname();
   const router = useRouter();
@@ -126,8 +124,8 @@ export default function UserNav({
             <GuestAccountSidebarCard />
           )}
 
-          {/* Coupon strip — day 8+ only (full card shows in the feed for days 1–7) */}
-          {isLoggedIn && coupon && !isEarlyPhase && <CouponSidebarStrip coupon={coupon} />}
+          {/* Coupon strip — renders itself only after the top banner is dismissed. */}
+          {isLoggedIn && coupon && <CouponSidebarStrip coupon={coupon} />}
 
           {isLoggedIn ? (
             <div className="space-y-1">

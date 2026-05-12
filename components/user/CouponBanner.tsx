@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import type { Coupon } from "@/lib/types";
 
 const COURSE_URL = "https://nudgeable.ai/ai-mastery-course";
+const DISMISS_EVENT = "nudgeable:coupon-dismissed";
+const dismissKey = (id: string) => `nudgeable_coupon_dismissed_${id}`;
 
 function useCopyCode(code: string) {
   const [copied, setCopied] = useState(false);
@@ -15,7 +17,41 @@ function useCopyCode(code: string) {
   return { copied, copy };
 }
 
-// ── Full card — feed, days 1–7 ─────────────────────────────────────────────────
+// Shared dismissed-state for the coupon. The top banner (feed) and the sidebar
+// strip both consume this hook, so dismissing the banner immediately reveals
+// the sidebar strip without a refresh — and a sibling tab dismissing the coupon
+// is picked up via the browser's `storage` event.
+function useCouponDismissed(couponId: string) {
+  const key = dismissKey(couponId);
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    setDismissed(localStorage.getItem(key) === "1");
+
+    function sync() {
+      setDismissed(localStorage.getItem(key) === "1");
+    }
+    function onStorage(e: StorageEvent) {
+      if (e.key === key) sync();
+    }
+    window.addEventListener(DISMISS_EVENT, sync);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener(DISMISS_EVENT, sync);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [key]);
+
+  function dismiss() {
+    localStorage.setItem(key, "1");
+    setDismissed(true);
+    window.dispatchEvent(new Event(DISMISS_EVENT));
+  }
+
+  return { dismissed, dismiss };
+}
+
+// ── Full card — top of the feed (shown until dismissed) ───────────────────────
 
 function CouponCardFull({ coupon, onDismiss }: { coupon: Coupon; onDismiss: () => void }) {
   const { copied, copy } = useCopyCode(coupon.code);
@@ -25,7 +61,6 @@ function CouponCardFull({ coupon, onDismiss }: { coupon: Coupon; onDismiss: () =
 
   return (
     <div className="flex rounded-[14px] border border-homeShellLine bg-white shadow-[0_2px_12px_rgba(34,29,35,0.07)] overflow-hidden">
-      {/* amber left bar */}
       <div className="w-1 shrink-0 bg-amber" />
       <div className="flex-1 px-[18px] py-4">
         <div className="flex items-start justify-between gap-3 mb-2.5">
@@ -75,49 +110,14 @@ function CouponCardFull({ coupon, onDismiss }: { coupon: Coupon; onDismiss: () =
   );
 }
 
-// ── Slim one-liner — feed, day 8+ ─────────────────────────────────────────────
-
-function CouponSlim({ coupon }: { coupon: Coupon }) {
-  const { copied, copy } = useCopyCode(coupon.code);
-  const discountText = coupon.discount_percent ? `· ${coupon.discount_percent}% off` : "";
-
-  return (
-    <div
-      className="flex items-center justify-between rounded-lg px-2.5 py-[7px]"
-      style={{ background: "rgba(255,206,0,0.08)", border: "1px dashed rgba(255,206,0,0.3)" }}
-    >
-      <div className="flex items-center gap-1.5">
-        <span className="text-[9px]" aria-hidden>🎁</span>
-        <span className="text-[10px] font-black text-homeInk tracking-[0.06em] font-mono">{coupon.code}</span>
-        {discountText && <span className="text-[9px] text-homeBodyMuted">{discountText}</span>}
-      </div>
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={copy}
-          className="text-[9px] font-bold border-0 bg-transparent cursor-pointer p-0 transition-colors"
-          style={{ color: copied ? "#23CE68" : "#F68A29" }}
-        >
-          {copied ? "✓ Copied" : "Copy"}
-        </button>
-        <span className="text-homeShellLine text-[10px]">|</span>
-        <a
-          href={COURSE_URL}
-          target="_blank"
-          rel="noreferrer"
-          className="text-[9px] font-bold text-homeBodyMuted no-underline hover:underline"
-        >
-          View →
-        </a>
-      </div>
-    </div>
-  );
-}
-
-// ── Sidebar strip — desktop sidebar, day 8+ ────────────────────────────────────
+// ── Sidebar strip — appears once the top banner is dismissed ──────────────────
 
 export function CouponSidebarStrip({ coupon }: { coupon: Coupon }) {
+  const { dismissed } = useCouponDismissed(coupon.id);
   const { copied, copy } = useCopyCode(coupon.code);
+
+  if (!dismissed) return null;
+
   return (
     <div
       className="mt-2 rounded-lg px-2.5 py-2"
@@ -150,32 +150,10 @@ export function CouponSidebarStrip({ coupon }: { coupon: Coupon }) {
   );
 }
 
-// ── Main export — picks variant based on phase ─────────────────────────────────
+// ── Top banner — shown until the user dismisses it ────────────────────────────
 
-export default function CouponBanner({
-  coupon,
-  isEarlyPhase,
-}: {
-  coupon: Coupon;
-  isEarlyPhase: boolean;
-}) {
-  const storageKey = `nudgeable_coupon_dismissed_${coupon.id}`;
-  const [dismissed, setDismissed] = useState(false);
-
-  // Read localStorage only on the client to avoid hydration mismatch
-  useEffect(() => {
-    setDismissed(localStorage.getItem(storageKey) === "1");
-  }, [storageKey]);
-
-  function dismiss() {
-    localStorage.setItem(storageKey, "1");
-    setDismissed(true);
-  }
-
-  if (isEarlyPhase) {
-    if (dismissed) return null;
-    return <CouponCardFull coupon={coupon} onDismiss={dismiss} />;
-  }
-
-  return <CouponSlim coupon={coupon} />;
+export default function CouponBanner({ coupon }: { coupon: Coupon }) {
+  const { dismissed, dismiss } = useCouponDismissed(coupon.id);
+  if (dismissed) return null;
+  return <CouponCardFull coupon={coupon} onDismiss={dismiss} />;
 }

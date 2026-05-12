@@ -350,7 +350,6 @@ export default function HomeContent({
   points = 0,
   streak = 0,
   coupon,
-  isEarlyPhase,
 }: {
   briefNews: NewsItem[];
   briefHero: HomeBriefHero | null;
@@ -367,7 +366,6 @@ export default function HomeContent({
   /** `profiles.streak` for the signed-in viewer; secondary stat on the mobile strip. */
   streak?: number;
   coupon?: Coupon | null;
-  isEarlyPhase?: boolean;
 }) {
   const showBriefHero = briefNews.length > 0 || !!briefHero;
   const heroBadge = briefHero?.badge_label?.trim() || HERO_FALLBACK.badge_label;
@@ -392,13 +390,13 @@ export default function HomeContent({
         </div>
       </header>
 
-      {/* Coupon — logged-in users only; full card days 1–7, slim strip day 8+ */}
-      {coupon && <CouponBanner coupon={coupon} isEarlyPhase={isEarlyPhase ?? false} />}
+      {/* Coupon — logged-in users only. Top banner until dismissed; sidebar strip after. */}
+      {isLoggedIn && coupon && <CouponBanner coupon={coupon} />}
 
       {/* Nudgeable Brief hero */}
       {showBriefHero && (
-        <section aria-labelledby="brief-hero-heading">
-          <div className="rounded-2xl border border-homeInk/10 shadow-md overflow-hidden bg-homeInk px-5 pt-6 pb-6 md:px-8 md:pt-8 md:pb-7">
+        <section aria-labelledby="brief-hero-heading" className="!mt-3 md:!mt-4">
+          <div className="rounded-2xl border border-homeInk/10 shadow-md overflow-hidden bg-homeInk px-5 pt-2 pb-6 md:px-8 md:pt-8 md:pb-7">
             <div className="flex flex-wrap items-center gap-2 mb-3">
               <span className="text-[10px] font-bold tracking-[0.2em] px-3 py-1.5 rounded-md bg-homeClay text-white">
                 {heroBadge}
@@ -680,8 +678,8 @@ function WorldsCarousel({
                 onClick={worldLocked ? undefined : () => handleSelectWorld(w, i)}
                 disabled={worldLocked}
                 className={`flex-shrink-0 flex items-center gap-3 rounded-[18px] pl-3 pr-3 py-3 text-left transition-[opacity,box-shadow] duration-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] snap-start ${worldLocked
-                    ? "cursor-default"
-                    : "cursor-pointer"
+                  ? "cursor-default"
+                  : "cursor-pointer"
                   } ${activeIdx === i ? "opacity-100" : "opacity-[0.88] hover:opacity-100"}`}
                 style={{
                   width: "min(300px, calc(100vw - 3rem))",
