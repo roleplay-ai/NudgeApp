@@ -351,6 +351,7 @@ export default function HomeContent({
   points = 0,
   streak = 0,
   coupon,
+  topPercent = null,
 }: {
   briefNews: NewsItem[];
   briefHero: HomeBriefHero | null;
@@ -367,6 +368,8 @@ export default function HomeContent({
   /** `profiles.streak` for the signed-in viewer; secondary stat on the mobile strip. */
   streak?: number;
   coupon?: Coupon | null;
+  /** "Top X%" from `get_user_top_percent` RPC; rendered in the mobile strip in place of the greeting. */
+  topPercent?: number | null;
 }) {
   const showBriefHero = briefNews.length > 0 || !!briefHero;
   const heroBadge = briefHero?.badge_label?.trim() || HERO_FALLBACK.badge_label;
@@ -397,7 +400,7 @@ export default function HomeContent({
       {/* Nudgeable Brief hero */}
       {showBriefHero && (
         <section aria-labelledby="brief-hero-heading" className="!mt-3 md:!mt-4">
-          <div className="rounded-2xl border border-homeInk/10 shadow-md overflow-hidden bg-homeInk px-5 pt-2 pb-6 md:px-8 md:pt-8 md:pb-7">
+          <div className="rounded-2xl border border-homeInk/10 shadow-md overflow-hidden bg-homeInk px-5 pt-6 pb-6 md:px-8 md:pt-8 md:pb-7">
             <div className="flex flex-wrap items-center gap-2 mb-3">
               <span className="text-[10px] font-bold tracking-[0.2em] px-3 py-1.5 rounded-md bg-homeClay text-white">
                 {heroBadge}
@@ -555,7 +558,7 @@ export default function HomeContent({
         <UserPointsMobileStrip
           points={points}
           streak={streak}
-          displayName={displayName}
+          topPercent={topPercent}
         />
       ) : (
         <GuestAccountMobileStrip />

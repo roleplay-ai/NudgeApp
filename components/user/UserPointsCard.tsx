@@ -307,17 +307,22 @@ export function UserPointsSidebarCard({
 export function UserPointsMobileStrip({
   points,
   streak,
-  displayName,
+  topPercent = null,
 }: {
   points: number;
   streak: number;
-  displayName?: string | null;
+  /** "Top X%" from `get_user_top_percent` RPC. Falls back to "Your progress" when null. */
+  topPercent?: number | null;
 }) {
   const [dismissed, setDismissed] = useState(false);
 
   if (dismissed) return null;
 
-  const greeting = displayName?.trim() ? `Hi, ${displayName.split(" ")[0]}` : "Your progress";
+  // Defensive clamp — mirrors the sidebar card so the strip never reads "top 0%".
+  const topPctClamped =
+    topPercent !== null && Number.isFinite(topPercent)
+      ? Math.min(100, Math.max(1, Math.round(topPercent)))
+      : null;
 
   return (
     <>
@@ -340,10 +345,33 @@ export function UserPointsMobileStrip({
             </button>
 
             <div className="min-w-0">
-              <p className="m-0 inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-[0.06em] text-muted whitespace-nowrap">
-                <Trophy size={10} strokeWidth={2.25} className="text-norange" aria-hidden />
-                {greeting}
-              </p>
+              {topPctClamped !== null ? (
+                <div
+                  className="flex items-center gap-1.5"
+                  aria-label={`You are in the top ${topPctClamped} percent of users`}
+                >
+                  <Trophy size={11} strokeWidth={2.25} className="text-norange shrink-0" aria-hidden />
+                  {/* Two-line stack keeps the strip compact while still spelling out
+                      that *the viewer* is the one in the top bucket — not a generic
+                      label. The small caption sits above the percentile number. */}
+                  <div className="flex flex-col leading-none">
+                    <span className="text-[7px] font-semibold uppercase tracking-[0.08em] text-muted whitespace-nowrap">
+                      You are in
+                    </span>
+                    {/* "Top" inherits the same muted tone as the caption above so
+                        the percentile number is the only thing that pops in brand
+                        norange. */}
+                    <span className="mt-[3px] text-[13px] font-extrabold tabular-nums whitespace-nowrap text-muted">
+                      Top <span className="text-norange">{topPctClamped}%</span>
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <p className="m-0 inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-[0.06em] text-muted whitespace-nowrap">
+                  <Trophy size={10} strokeWidth={2.25} className="text-norange" aria-hidden />
+                  Your progress
+                </p>
+              )}
             </div>
 
             <div className="ml-auto mr-1 shrink-0">

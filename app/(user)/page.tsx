@@ -57,14 +57,24 @@ export default async function Home() {
   let displayName: string | null = null;
   let points = 0;
   let streak = 0;
+  let topPercent: number | null = null;
   if (user) {
-    const { data: profile, error: profileErr } = await supabase
-      .from("profiles")
-      .select("display_name, xp, streak")
-      .eq("id", user.id)
-      .maybeSingle();
+    // Profile read and percentile RPC happen in parallel since they're both
+    // small one-shot queries keyed by `user.id`.
+    const [profileResult, topPercentResult] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("display_name, xp, streak")
+        .eq("id", user.id)
+        .maybeSingle(),
+      supabase.rpc("get_user_top_percent", { p_user: user.id }),
+    ]);
+    const { data: profile, error: profileErr } = profileResult;
     if (profileErr) {
       console.error("[HomePage] profile fetch failed:", profileErr.message);
+    }
+    if (topPercentResult.error) {
+      console.error("[HomePage] get_user_top_percent failed:", topPercentResult.error.message);
     }
     const meta = user.user_metadata ?? {};
     displayName = resolveDisplayName({
@@ -74,6 +84,8 @@ export default async function Home() {
     });
     points = Number(profile?.xp ?? 0);
     streak = Number(profile?.streak ?? 0);
+    const topPctRaw = topPercentResult.data;
+    topPercent = typeof topPctRaw === "number" ? topPctRaw : null;
   }
 
   // Coupon — only meaningful for logged-in users (RLS returns null for guests)
@@ -187,6 +199,7 @@ export default async function Home() {
       points={points}
       streak={streak}
       coupon={coupon}
+      topPercent={topPercent}
     />
   );
 }
