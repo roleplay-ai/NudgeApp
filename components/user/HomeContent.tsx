@@ -391,7 +391,7 @@ export default function HomeContent({
       </header>
 
       {/* Coupon — logged-in users only. Top banner until dismissed; sidebar strip after. */}
-      {isLoggedIn && coupon && <CouponBanner coupon={coupon} />}
+      {isLoggedIn && coupon && <CouponBanner coupon={coupon} className="!mt-3 md:!mt-4" />}
 
       {/* Nudgeable Brief hero */}
       {showBriefHero && (

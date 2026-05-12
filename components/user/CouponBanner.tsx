@@ -53,14 +53,22 @@ function useCouponDismissed(couponId: string) {
 
 // ── Full card — top of the feed (shown until dismissed) ───────────────────────
 
-function CouponCardFull({ coupon, onDismiss }: { coupon: Coupon; onDismiss: () => void }) {
+function CouponCardFull({
+  coupon,
+  onDismiss,
+  className,
+}: {
+  coupon: Coupon;
+  onDismiss: () => void;
+  className?: string;
+}) {
   const { copied, copy } = useCopyCode(coupon.code);
   const headline = coupon.discount_percent
     ? `${coupon.discount_percent}% off the AI for Work Course`
     : "Exclusive offer — AI for Work Course";
 
   return (
-    <div className="flex rounded-[14px] border border-homeShellLine bg-white shadow-[0_2px_12px_rgba(34,29,35,0.07)] overflow-hidden">
+    <div className={`flex rounded-[14px] border border-homeShellLine bg-white shadow-[0_2px_12px_rgba(34,29,35,0.07)] overflow-hidden${className ? ` ${className}` : ""}`}>
       <div className="w-1 shrink-0 bg-amber" />
       <div className="flex-1 px-[18px] py-4">
         <div className="flex items-start justify-between gap-3 mb-2.5">
@@ -152,8 +160,14 @@ export function CouponSidebarStrip({ coupon }: { coupon: Coupon }) {
 
 // ── Top banner — shown until the user dismisses it ────────────────────────────
 
-export default function CouponBanner({ coupon }: { coupon: Coupon }) {
+export default function CouponBanner({
+  coupon,
+  className,
+}: {
+  coupon: Coupon;
+  className?: string;
+}) {
   const { dismissed, dismiss } = useCouponDismissed(coupon.id);
   if (dismissed) return null;
-  return <CouponCardFull coupon={coupon} onDismiss={dismiss} />;
+  return <CouponCardFull coupon={coupon} onDismiss={dismiss} className={className} />;
 }
