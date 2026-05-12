@@ -16,15 +16,18 @@ export default async function ProfilePage() {
   let isAdmin = false;
 
   if (user) {
-    const { data: profile } = await supabase
+    const { data: profile, error: profileErr } = await supabase
       .from("profiles")
-      .select("role, full_name")
+      .select("role, display_name")
       .eq("id", user.id)
       .single();
+    if (profileErr) {
+      console.error("[ProfilePage] profile fetch failed:", profileErr.message);
+    }
     isAdmin = profile?.role === "admin";
     const meta = user.user_metadata ?? {};
     const raw =
-      profile?.full_name?.trim() ||
+      profile?.display_name?.trim() ||
       meta.full_name?.trim() ||
       meta.name?.trim() ||
       undefined;

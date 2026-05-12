@@ -8,7 +8,6 @@ export type Profile = {
   role: "user" | "admin";
   xp: number;
   streak: number;
-  last_active: string | null;
 };
 
 // --- News ---

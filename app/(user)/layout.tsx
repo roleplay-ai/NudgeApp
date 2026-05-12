@@ -4,6 +4,9 @@ import PageView from "@/components/user/PageView";
 import { getActiveCoupon } from "@/app/actions/getCoupon";
 import type { Coupon } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function UserLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
   const {
@@ -19,21 +22,24 @@ export default async function UserLayout({ children }: { children: React.ReactNo
     const [profileResult, couponResult] = await Promise.all([
       supabase
         .from("profiles")
-        .select("xp, streak, full_name")
+        .select("xp, streak, display_name")
         .eq("id", user.id)
         .maybeSingle(),
       getActiveCoupon(),
     ]);
+    if (profileResult.error) {
+      console.error("[UserLayout] profile fetch failed:", profileResult.error.message);
+    }
     const r = profileResult.data as {
       xp?: number;
       streak?: number;
-      full_name?: string | null;
+      display_name?: string | null;
     } | null;
     masteryScore = Number(r?.xp ?? 0);
     streakDays = Number(r?.streak ?? 0);
     const meta = user.user_metadata ?? {};
     displayName =
-      r?.full_name?.trim() ||
+      r?.display_name?.trim() ||
       meta.full_name?.trim() ||
       meta.name?.trim() ||
       null;

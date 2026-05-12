@@ -57,14 +57,17 @@ export default async function Home() {
   let points = 0;
   let streak = 0;
   if (user) {
-    const { data: profile } = await supabase
+    const { data: profile, error: profileErr } = await supabase
       .from("profiles")
-      .select("full_name, xp, streak")
+      .select("display_name, xp, streak")
       .eq("id", user.id)
       .maybeSingle();
+    if (profileErr) {
+      console.error("[HomePage] profile fetch failed:", profileErr.message);
+    }
     const meta = user.user_metadata ?? {};
     const raw =
-      profile?.full_name?.trim() ||
+      profile?.display_name?.trim() ||
       meta.full_name?.trim() ||
       meta.name?.trim() ||
       undefined;

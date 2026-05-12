@@ -70,6 +70,13 @@ comment on column public.watch_videos.points_award   is 'Per-item override; null
 comment on column public.news_items.points_award     is 'Per-item override; null → use point_rules(''news'').';
 comment on column public.apply_videos.points_award   is 'Per-item override; null → use point_rules(''apply_video'').';
 
+-- 3b. PROFILES — streak bookkeeping -----------------------------
+-- Older projects may have `profiles` without this column even though schema.sql includes it.
+-- award_points() below reads/writes `last_active_date` alongside `xp` / `streak`.
+alter table public.profiles add column if not exists last_active_date date;
+comment on column public.profiles.last_active_date is
+  'UTC calendar date when XP was last granted; daily streak resets when this gaps.';
+
 -- 4. award_points() ------------------------------------------
 -- Single chokepoint: locks the profile row, inserts a transaction
 -- (idempotent), increments xp, updates streak.
