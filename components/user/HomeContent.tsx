@@ -476,11 +476,17 @@ export default function HomeContent({
       )}
 
       {/* Worlds horizontal auto-scroll carousel */}
-      {worlds.length > 0 && <WorldsCarousel worlds={worlds} modules={modules} />}
+      {worlds.length > 0 && (
+        <WorldsCarousel worlds={worlds} modules={modules} isLoggedIn={isLoggedIn} />
+      )}
 
       {/* Apply videos horizontal auto-scroll carousel */}
       {applyMidVideos.length > 0 && (
-        <ApplyVideosCarousel videos={applyMidVideos} applyVideosTotal={applyVideosTotal} />
+        <ApplyVideosCarousel
+          videos={applyMidVideos}
+          applyVideosTotal={applyVideosTotal}
+          isLoggedIn={isLoggedIn}
+        />
       )}
 
       {/* Products horizontal auto-scroll carousel */}
@@ -599,7 +605,15 @@ export default function HomeContent({
 
 // ─── Worlds carousel ──────────────────────────────────────────────────────────
 
-function WorldsCarousel({ worlds, modules }: { worlds: World[]; modules: Module[] }) {
+function WorldsCarousel({
+  worlds,
+  modules,
+  isLoggedIn,
+}: {
+  worlds: World[];
+  modules: Module[];
+  isLoggedIn: boolean;
+}) {
   const hint = useCarouselInteractionHint();
   const { activeIdx, trackRef, pause, resume, pauseFor, goTo, step } = useCarousel(worlds.length);
   const [selectedWorld, setSelectedWorld] = useState<World | null>(null);
@@ -610,7 +624,8 @@ function WorldsCarousel({ worlds, modules }: { worlds: World[]; modules: Module[
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
   async function handleOpenModule(m: Module) {
-    if (m.is_locked || loadingId) return;
+    const moduleLocked = m.is_locked && !isLoggedIn;
+    if (moduleLocked || loadingId) return;
     setLoadingId(m.id);
     const data = await getModuleWithScreens(m.id);
     setLoadingId(null);
@@ -747,7 +762,7 @@ function WorldsCarousel({ worlds, modules }: { worlds: World[]; modules: Module[
 
           <div className="flex flex-col">
             {worldModules.map((m, idx) => {
-              const locked = m.is_locked;
+              const locked = m.is_locked && !isLoggedIn;
               const loading = loadingId === m.id;
               return (
                 <button
@@ -836,9 +851,11 @@ function WorldsCarousel({ worlds, modules }: { worlds: World[]; modules: Module[
 function ApplyVideosCarousel({
   videos,
   applyVideosTotal,
+  isLoggedIn,
 }: {
   videos: ApplyVideo[];
   applyVideosTotal: number;
+  isLoggedIn: boolean;
 }) {
   const hint = useCarouselInteractionHint();
   const { activeIdx, trackRef, pause, resume, pauseFor, goTo, step } = useCarousel(videos.length);
@@ -876,7 +893,7 @@ function ApplyVideosCarousel({
             const blurb = applyVideoBlurb(v.description);
             const cat = (v.category_tag || "Feature").trim();
             const durationLabel = v.duration?.trim() || "0:30";
-            const locked = v.is_locked;
+            const locked = v.is_locked && !isLoggedIn;
             return (
               <button
                 key={v.id}

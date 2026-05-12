@@ -261,9 +261,12 @@ export function ApplyVideoDetailModal({ video, onClose }: { video: ApplyVideo; o
 export default function ApplyVideosFeed({
   videos,
   variant = "light",
+  isLoggedIn = false,
 }: {
   videos: ApplyVideo[];
   variant?: "light" | "dark";
+  /** Signed-in viewers bypass the lock on individual apply videos. */
+  isLoggedIn?: boolean;
 }) {
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
   const [modalVideo, setModalVideo] = useState<ApplyVideo | null>(null);
@@ -331,7 +334,7 @@ export default function ApplyVideosFeed({
             const tag = (v.category_tag || "").trim();
             const dur = (v.duration || "").trim();
             const pill = tag ? tag.toUpperCase() : "Guide";
-            const locked = v.is_locked;
+            const locked = v.is_locked && !isLoggedIn;
             /** Fixed line boxes so line-clamp ellipsis lines up; avoids flex-1 “dead air” above the footer. */
             const titleBox = "h-[2.7rem] text-[15px] leading-[1.35]";
             /** Integer line metrics + outer clip: avoids 4th-line subpixel bleed from -webkit-line-clamp. */
@@ -407,45 +410,48 @@ export default function ApplyVideosFeed({
 
   return (
     <div className="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-      {videos.map((v) => (
-        <article
-          key={v.id}
-          className={`bg-white rounded-2xl shadow-sm overflow-hidden border border-nborder flex flex-col min-w-0 ${v.is_locked ? "opacity-60" : ""}`}
-        >
-          <div className="relative w-full bg-black aspect-video">
-            {v.is_locked ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-shadow/20">
-                <Lock size={28} className="text-white/60" />
-              </div>
-            ) : (
-              <video
-                ref={(el) => registerRef(v.id, el)}
-                src={v.video_url}
-                controls
-                controlsList="nodownload"
-                playsInline
-                preload="metadata"
-                poster={v.thumbnail_url ?? undefined}
-                className="absolute inset-0 h-full w-full object-contain"
-                onPlay={() => pauseOthers(v.id)}
-              >
-                Your browser does not support embedded video.
-              </video>
-            )}
-          </div>
-          <div className="p-3 sm:p-4 space-y-1.5 flex-1 flex flex-col min-w-0">
-            <h2 className="font-bold text-sm text-shadow leading-snug line-clamp-2">{v.title}</h2>
-            {v.is_locked ? (
-              <p className="text-xs text-muted italic">Login to unlock</p>
-            ) : v.description ? (
-              <p className="text-xs text-muted leading-relaxed line-clamp-3 overflow-hidden min-w-0 flex-1">
-                {v.description}
-              </p>
-            ) : null}
-            {!v.is_locked && v.duration ? <p className="text-[10px] font-bold text-norange">{v.duration}</p> : null}
-          </div>
-        </article>
-      ))}
+      {videos.map((v) => {
+        const locked = v.is_locked && !isLoggedIn;
+        return (
+          <article
+            key={v.id}
+            className={`bg-white rounded-2xl shadow-sm overflow-hidden border border-nborder flex flex-col min-w-0 ${locked ? "opacity-60" : ""}`}
+          >
+            <div className="relative w-full bg-black aspect-video">
+              {locked ? (
+                <div className="absolute inset-0 flex items-center justify-center bg-shadow/20">
+                  <Lock size={28} className="text-white/60" />
+                </div>
+              ) : (
+                <video
+                  ref={(el) => registerRef(v.id, el)}
+                  src={v.video_url}
+                  controls
+                  controlsList="nodownload"
+                  playsInline
+                  preload="metadata"
+                  poster={v.thumbnail_url ?? undefined}
+                  className="absolute inset-0 h-full w-full object-contain"
+                  onPlay={() => pauseOthers(v.id)}
+                >
+                  Your browser does not support embedded video.
+                </video>
+              )}
+            </div>
+            <div className="p-3 sm:p-4 space-y-1.5 flex-1 flex flex-col min-w-0">
+              <h2 className="font-bold text-sm text-shadow leading-snug line-clamp-2">{v.title}</h2>
+              {locked ? (
+                <p className="text-xs text-muted italic">Login to unlock</p>
+              ) : v.description ? (
+                <p className="text-xs text-muted leading-relaxed line-clamp-3 overflow-hidden min-w-0 flex-1">
+                  {v.description}
+                </p>
+              ) : null}
+              {!locked && v.duration ? <p className="text-[10px] font-bold text-norange">{v.duration}</p> : null}
+            </div>
+          </article>
+        );
+      })}
     </div>
   );
 }

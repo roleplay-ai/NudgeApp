@@ -10,11 +10,18 @@ export default async function LearnPage({
   searchParams?: { tab?: string };
 }) {
   const supabase = await createClient();
-  const [{ data: worlds }, { data: modules }, { data: glossary }, { data: resources }] = await Promise.all([
+  const [
+    { data: worlds },
+    { data: modules },
+    { data: glossary },
+    { data: resources },
+    { data: { user } },
+  ] = await Promise.all([
     supabase.from("worlds").select("*").eq("is_published", true).order("order_index"),
     supabase.from("modules").select("*").eq("is_published", true).order("order_index"),
     supabase.rpc("search_glossary", { p_query: "" }),
     supabase.from("resources").select("*").eq("is_published", true).order("order_index"),
+    supabase.auth.getUser(),
   ]);
 
   return (
@@ -41,6 +48,7 @@ export default async function LearnPage({
         glossary={(glossary || []) as GlossaryTerm[]}
         resources={(resources || []) as Resource[]}
         initialTab={searchParams?.tab}
+        isLoggedIn={!!user}
       />
     </div>
   );

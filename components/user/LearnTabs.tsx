@@ -40,12 +40,15 @@ export default function LearnTabs({
   glossary,
   resources,
   initialTab,
+  isLoggedIn = false,
 }: {
   worlds: World[];
   modules: Module[];
   glossary: GlossaryTerm[];
   resources: Resource[];
   initialTab?: string | null;
+  /** Signed-in viewers bypass the lock on individual modules. */
+  isLoggedIn?: boolean;
 }) {
   const [view, setView] = useState<"worlds" | "glossary" | "resources">(() =>
     parseLearnTab(initialTab)
@@ -87,7 +90,7 @@ export default function LearnTabs({
         </div>
       </div>
 
-      {view === "worlds" && <WorldsView worlds={worlds} modules={modules} />}
+      {view === "worlds" && <WorldsView worlds={worlds} modules={modules} isLoggedIn={isLoggedIn} />}
       {view === "glossary" && <GlossaryView glossary={glossary} />}
       {view === "resources" && <ResourcesView resources={resources} />}
     </>
@@ -96,7 +99,15 @@ export default function LearnTabs({
 
 // ─── Worlds view ──────────────────────────────────────────────────────────
 
-function WorldsView({ worlds, modules }: { worlds: World[]; modules: Module[] }) {
+function WorldsView({
+  worlds,
+  modules,
+  isLoggedIn,
+}: {
+  worlds: World[];
+  modules: Module[];
+  isLoggedIn: boolean;
+}) {
   const [openId, setOpenId] = useState<string | null>(worlds[0]?.id || null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [playerData, setPlayerData] = useState<{
@@ -106,7 +117,9 @@ function WorldsView({ worlds, modules }: { worlds: World[]; modules: Module[] })
 
   async function handleOpenModule(m: Module) {
     const parentWorld = worlds.find((w) => w.id === m.world_id);
-    if (m.is_locked || parentWorld?.is_locked || loadingId) return;
+    const moduleLocked = m.is_locked && !isLoggedIn;
+    const worldLocked = !!parentWorld?.is_locked && !isLoggedIn;
+    if (moduleLocked || worldLocked || loadingId) return;
     setLoadingId(m.id);
     const data = await getModuleWithScreens(m.id);
     setLoadingId(null);
@@ -119,6 +132,7 @@ function WorldsView({ worlds, modules }: { worlds: World[]; modules: Module[] })
         {worlds.map((w) => {
           const wMods = modules.filter((m) => m.world_id === w.id);
           const isOpen = openId === w.id;
+          const worldLocked = w.is_locked && !isLoggedIn;
           return (
             <div
               key={w.id}
@@ -128,10 +142,10 @@ function WorldsView({ worlds, modules }: { worlds: World[]; modules: Module[] })
               {/* World header row */}
               <button
                 type="button"
-                onClick={w.is_locked ? undefined : () => setOpenId(isOpen ? null : w.id)}
-                disabled={w.is_locked}
-                className={`w-full p-4 flex gap-3 items-center text-left transition ${w.is_locked ? "cursor-default opacity-60" : ""}`}
-                style={{ background: isOpen && !w.is_locked ? `${w.color}06` : undefined }}
+                onClick={worldLocked ? undefined : () => setOpenId(isOpen ? null : w.id)}
+                disabled={worldLocked}
+                className={`w-full p-4 flex gap-3 items-center text-left transition ${worldLocked ? "cursor-default opacity-60" : ""}`}
+                style={{ background: isOpen && !worldLocked ? `${w.color}06` : undefined }}
               >
                 <div
                   className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-xl"
@@ -146,7 +160,7 @@ function WorldsView({ worlds, modules }: { worlds: World[]; modules: Module[] })
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-extrabold text-shadow">{w.title}</span>
-                    {w.is_locked && (
+                    {worldLocked && (
                       <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-shadow/8 text-muted border border-shadow/10 uppercase tracking-wide">
                         <Lock size={9} strokeWidth={2.5} />
                         Locked
@@ -172,7 +186,7 @@ function WorldsView({ worlds, modules }: { worlds: World[]; modules: Module[] })
               </button>
 
               {/* Module list */}
-              {isOpen && !w.is_locked && (
+              {isOpen && !worldLocked && (
                 <div
                   className="px-4 pb-4 border-t pt-3"
                   style={{
@@ -181,7 +195,7 @@ function WorldsView({ worlds, modules }: { worlds: World[]; modules: Module[] })
                   }}
                 >
                   {wMods.map((m, idx) => {
-                    const locked = m.is_locked;
+                    const locked = m.is_locked && !isLoggedIn;
                     const loading = loadingId === m.id;
                     return (
                       <button
@@ -254,7 +268,7 @@ function WorldsView({ worlds, modules }: { worlds: World[]; modules: Module[] })
               )}
 
               {/* Locked-world banner — shown instead of module list */}
-              {w.is_locked && (
+              {worldLocked && (
                 <div
                   className="mx-4 mb-4 mt-2 flex items-center gap-3 rounded-xl border px-4 py-3"
                   style={{ borderColor: `${w.color}30`, background: `${w.color}08` }}

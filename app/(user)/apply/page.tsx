@@ -7,11 +7,14 @@ export const dynamic = "force-dynamic";
 
 export default async function ApplyPage() {
   const supabase = await createClient();
-  const { data: videos } = await supabase
-    .from("apply_videos")
-    .select("*")
-    .eq("is_published", true)
-    .order("order_index");
+  const [{ data: videos }, { data: { user } }] = await Promise.all([
+    supabase
+      .from("apply_videos")
+      .select("*")
+      .eq("is_published", true)
+      .order("order_index"),
+    supabase.auth.getUser(),
+  ]);
 
   const applyVideos = toPlainJson((videos || []) as ApplyVideo[]);
 
@@ -22,7 +25,7 @@ export default async function ApplyPage() {
       <p className="text-sm text-muted mb-5 max-w-2xl">
         Browse features, apps, and workflows. Click any card to learn more.
       </p>
-      <ApplyVideosFeed videos={applyVideos} variant="dark" />
+      <ApplyVideosFeed videos={applyVideos} variant="dark" isLoggedIn={!!user} />
     </div>
   );
 }
