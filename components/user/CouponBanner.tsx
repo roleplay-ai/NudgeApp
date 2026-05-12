@@ -10,7 +10,7 @@ const dismissKey = (id: string) => `nudgeable_coupon_dismissed_${id}`;
 function useCopyCode(code: string) {
   const [copied, setCopied] = useState(false);
   function copy() {
-    navigator.clipboard?.writeText(code).catch(() => {});
+    navigator.clipboard?.writeText(code).catch(() => { });
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -128,10 +128,10 @@ export function CouponSidebarStrip({ coupon }: { coupon: Coupon }) {
 
   return (
     <div
-      className="mt-2 rounded-lg px-2.5 py-2"
+      className="rounded-lg px-2.5 py-2"
       style={{ background: "rgba(255,206,0,0.07)", border: "1px dashed rgba(255,206,0,0.25)" }}
     >
-      <div className="text-[8px] font-semibold text-white/30 uppercase tracking-[0.08em] mb-1">Your discount</div>
+      <div className="text-[8px] font-semibold text-white/30 uppercase tracking-[0.08em] mb-1">AI Mastery Course Discount</div>
       <div className="flex items-center justify-between gap-1.5">
         <span className="text-[10px] font-black text-white/60 tracking-[0.06em] font-mono">{coupon.code}</span>
         <div className="flex gap-1.5 items-center">

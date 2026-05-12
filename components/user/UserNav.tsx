@@ -114,6 +114,9 @@ export default function UserNav({
         </nav>
 
         <div className="mt-auto pt-4 border-t border-homeInk/35 space-y-3">
+          {/* Coupon strip — renders itself only after the top banner is dismissed. */}
+          {isLoggedIn && coupon && <CouponSidebarStrip coupon={coupon} />}
+
           {isLoggedIn ? (
             <UserPointsSidebarCard
               points={masteryScore}
@@ -123,9 +126,6 @@ export default function UserNav({
           ) : (
             <GuestAccountSidebarCard />
           )}
-
-          {/* Coupon strip — renders itself only after the top banner is dismissed. */}
-          {isLoggedIn && coupon && <CouponSidebarStrip coupon={coupon} />}
 
           {isLoggedIn ? (
             <div className="space-y-1">
