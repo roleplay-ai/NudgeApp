@@ -672,13 +672,17 @@ function WorldsCarousel({
             const mins = estimateWorldMinutes(modCount);
             const isSelected = selectedWorld?.id === w.id;
             const metaColor = w.color;
+            const worldLocked = w.is_locked && !isLoggedIn;
             return (
               <button
                 key={w.id}
                 type="button"
-                onClick={() => handleSelectWorld(w, i)}
-                className={`flex-shrink-0 flex items-center gap-3 rounded-[18px] pl-3 pr-3 py-3 text-left cursor-pointer transition-[opacity,box-shadow] duration-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] snap-start ${activeIdx === i ? "opacity-100" : "opacity-[0.88] hover:opacity-100"
-                  }`}
+                onClick={worldLocked ? undefined : () => handleSelectWorld(w, i)}
+                disabled={worldLocked}
+                className={`flex-shrink-0 flex items-center gap-3 rounded-[18px] pl-3 pr-3 py-3 text-left transition-[opacity,box-shadow] duration-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] snap-start ${worldLocked
+                    ? "cursor-default"
+                    : "cursor-pointer"
+                  } ${activeIdx === i ? "opacity-100" : "opacity-[0.88] hover:opacity-100"}`}
                 style={{
                   width: "min(300px, calc(100vw - 3rem))",
                   borderTopWidth: 3,
@@ -692,7 +696,7 @@ function WorldsCarousel({
                 }}
               >
                 <div
-                  className="w-[52px] h-[52px] rounded-[14px] flex items-center justify-center text-[26px] shrink-0"
+                  className="relative w-[52px] h-[52px] rounded-[14px] flex items-center justify-center text-[26px] shrink-0"
                   style={{
                     background: `${w.color}22`,
                     border: `2px solid ${w.color}44`,
@@ -700,11 +704,24 @@ function WorldsCarousel({
                   aria-hidden
                 >
                   {w.emoji}
+                  {worldLocked && (
+                    <span
+                      className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center bg-white shadow ring-1 ring-homeInk/15"
+                      aria-hidden
+                    >
+                      <Lock size={10} strokeWidth={2.5} className="text-homeInk" />
+                    </span>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0 py-0.5">
                   <div className="text-[14px] font-bold text-homeInk leading-snug line-clamp-2">{w.title}</div>
-                  <div className="text-[12px] font-semibold mt-1" style={{ color: metaColor }}>
-                    {modCount} module{modCount !== 1 ? "s" : ""} · {mins} min
+                  <div
+                    className="text-[12px] font-semibold mt-1"
+                    style={{ color: metaColor }}
+                  >
+                    {worldLocked
+                      ? "Login to unlock"
+                      : `${modCount} module${modCount !== 1 ? "s" : ""} · ${mins} min`}
                   </div>
                 </div>
                 <div
@@ -712,7 +729,11 @@ function WorldsCarousel({
                   style={{ backgroundColor: w.color }}
                   aria-hidden
                 >
-                  <ChevronRight size={22} strokeWidth={2.5} className="-mr-px" />
+                  {worldLocked ? (
+                    <Lock size={18} strokeWidth={2.5} />
+                  ) : (
+                    <ChevronRight size={22} strokeWidth={2.5} className="-mr-px" />
+                  )}
                 </div>
               </button>
             );
