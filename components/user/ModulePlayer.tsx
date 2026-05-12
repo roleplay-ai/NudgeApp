@@ -2,7 +2,12 @@
 
 import { useRef, useState } from "react";
 import { Check, ChevronLeft, Lightbulb, Sparkles, X, Zap } from "lucide-react";
+import { useRouter } from "next/navigation";
 import type { Module, ModuleScreen } from "@/lib/types";
+import { awardPointsAction } from "@/app/actions/awardPointsAction";
+
+/** Default XP for a completed module — must match point_rules seed in migration_026. */
+const MODULE_DEFAULT_POINTS = 50;
 
 interface Props {
   module: Module;
@@ -23,14 +28,33 @@ const SCREEN_ACCENT: Record<string, { color: string; bg: string; label: string }
 export default function ModulePlayer({ module: mod, screens, onClose }: Props) {
   const [step, setStep] = useState(0);
   const [answer, setAnswer] = useState<number | null>(null);
+  const [finishing, setFinishing] = useState(false);
 
+  const router = useRouter();
   const touchStartX = useRef<number>(0);
   const touchStartY = useRef<number>(0);
 
   const total = screens.length;
 
-  function next() {
+  async function next() {
     if (step >= total - 1) {
+      if (!finishing) {
+        setFinishing(true);
+        try {
+          const result = await awardPointsAction({
+            sourceType: "module",
+            sourceId: mod.id,
+            pointsAward: mod.points_award,
+            defaultPoints: MODULE_DEFAULT_POINTS,
+          });
+          if (!result.success && result.error !== "Not authenticated") {
+            console.error("[ModulePlayer] award_points failed:", result.error);
+          }
+          router.refresh();
+        } finally {
+          setFinishing(false);
+        }
+      }
       if (onClose) { onClose(); } else { window.location.href = "/learn"; }
       return;
     }
@@ -443,17 +467,17 @@ export default function ModulePlayer({ module: mod, screens, onClose }: Props) {
         >
           <button
             onClick={next}
-            disabled={isCheckLocked}
+            disabled={isCheckLocked || finishing}
             className="w-full py-3 rounded-full font-bold text-sm transition-all active:scale-[0.98]"
             style={{
               background: isUnlocked ? "#FFCE00" : accent.color,
               color: isUnlocked || screen.screen_type === "hook" ? "#221D23" : "#ffffff",
-              opacity: isCheckLocked ? 0.30 : 1,
-              cursor: isCheckLocked ? "not-allowed" : "pointer",
-              boxShadow: isCheckLocked ? "none" : `0 4px 18px ${accent.color}40`,
+              opacity: isCheckLocked || finishing ? 0.30 : 1,
+              cursor: isCheckLocked || finishing ? "not-allowed" : "pointer",
+              boxShadow: isCheckLocked || finishing ? "none" : `0 4px 18px ${accent.color}40`,
             }}
           >
-            {isLast ? (isUnlocked ? "🎉 Finish" : "Finish") : "Continue →"}
+            {finishing ? "Saving…" : isLast ? (isUnlocked ? "🎉 Finish" : "Finish") : "Continue →"}
           </button>
         </div>
       </div>

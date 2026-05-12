@@ -40,12 +40,15 @@ export default function LearnTabs({
   glossary,
   resources,
   initialTab,
+  isLoggedIn = false,
 }: {
   worlds: World[];
   modules: Module[];
   glossary: GlossaryTerm[];
   resources: Resource[];
   initialTab?: string | null;
+  /** Signed-in viewers bypass the lock on individual modules. */
+  isLoggedIn?: boolean;
 }) {
   const [view, setView] = useState<"worlds" | "glossary" | "resources">(() =>
     parseLearnTab(initialTab)
@@ -87,7 +90,7 @@ export default function LearnTabs({
         </div>
       </div>
 
-      {view === "worlds" && <WorldsView worlds={worlds} modules={modules} />}
+      {view === "worlds" && <WorldsView worlds={worlds} modules={modules} isLoggedIn={isLoggedIn} />}
       {view === "glossary" && <GlossaryView glossary={glossary} />}
       {view === "resources" && <ResourcesView resources={resources} />}
     </>
@@ -96,7 +99,15 @@ export default function LearnTabs({
 
 // ─── Worlds view ──────────────────────────────────────────────────────────
 
-function WorldsView({ worlds, modules }: { worlds: World[]; modules: Module[] }) {
+function WorldsView({
+  worlds,
+  modules,
+  isLoggedIn,
+}: {
+  worlds: World[];
+  modules: Module[];
+  isLoggedIn: boolean;
+}) {
   const [openId, setOpenId] = useState<string | null>(worlds[0]?.id || null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [playerData, setPlayerData] = useState<{
@@ -105,7 +116,10 @@ function WorldsView({ worlds, modules }: { worlds: World[]; modules: Module[] })
   } | null>(null);
 
   async function handleOpenModule(m: Module) {
-    if (m.is_locked || loadingId) return;
+    const parentWorld = worlds.find((w) => w.id === m.world_id);
+    const moduleLocked = m.is_locked && !isLoggedIn;
+    const worldLocked = !!parentWorld?.is_locked && !isLoggedIn;
+    if (moduleLocked || worldLocked || loadingId) return;
     setLoadingId(m.id);
     const data = await getModuleWithScreens(m.id);
     setLoadingId(null);
@@ -118,6 +132,7 @@ function WorldsView({ worlds, modules }: { worlds: World[]; modules: Module[] })
         {worlds.map((w) => {
           const wMods = modules.filter((m) => m.world_id === w.id);
           const isOpen = openId === w.id;
+          const worldLocked = w.is_locked && !isLoggedIn;
           return (
             <div
               key={w.id}
@@ -127,9 +142,10 @@ function WorldsView({ worlds, modules }: { worlds: World[]; modules: Module[] })
               {/* World header row */}
               <button
                 type="button"
-                onClick={() => setOpenId(isOpen ? null : w.id)}
-                className="w-full p-4 flex gap-3 items-center text-left transition"
-                style={{ background: isOpen ? `${w.color}06` : undefined }}
+                onClick={worldLocked ? undefined : () => setOpenId(isOpen ? null : w.id)}
+                disabled={worldLocked}
+                className={`w-full p-4 flex gap-3 items-center text-left transition ${worldLocked ? "cursor-default opacity-60" : ""}`}
+                style={{ background: isOpen && !worldLocked ? `${w.color}06` : undefined }}
               >
                 <div
                   className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-xl"
@@ -142,7 +158,15 @@ function WorldsView({ worlds, modules }: { worlds: World[]; modules: Module[] })
                   {w.emoji}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-extrabold text-shadow">{w.title}</div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-extrabold text-shadow">{w.title}</span>
+                    {worldLocked && (
+                      <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-shadow/8 text-muted border border-shadow/10 uppercase tracking-wide">
+                        <Lock size={9} strokeWidth={2.5} />
+                        Locked
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span
                       className="text-[10px] font-bold px-2 py-0.5 rounded-full"
@@ -162,7 +186,7 @@ function WorldsView({ worlds, modules }: { worlds: World[]; modules: Module[] })
               </button>
 
               {/* Module list */}
-              {isOpen && (
+              {isOpen && !worldLocked && (
                 <div
                   className="px-4 pb-4 border-t pt-3"
                   style={{
@@ -171,7 +195,7 @@ function WorldsView({ worlds, modules }: { worlds: World[]; modules: Module[] })
                   }}
                 >
                   {wMods.map((m, idx) => {
-                    const locked = m.is_locked;
+                    const locked = m.is_locked && !isLoggedIn;
                     const loading = loadingId === m.id;
                     return (
                       <button
@@ -240,6 +264,20 @@ function WorldsView({ worlds, modules }: { worlds: World[]; modules: Module[] })
                   {wMods.length === 0 && (
                     <div className="text-xs text-muted py-2 px-2">No modules yet.</div>
                   )}
+                </div>
+              )}
+
+              {/* Locked-world banner — shown instead of module list */}
+              {worldLocked && (
+                <div
+                  className="mx-4 mb-4 mt-2 flex items-center gap-3 rounded-xl border px-4 py-3"
+                  style={{ borderColor: `${w.color}30`, background: `${w.color}08` }}
+                >
+                  <Lock size={16} className="text-muted/50 shrink-0" />
+                  <p className="text-xs text-muted leading-snug">
+                    This world is locked. Log in to unlock{" "}
+                    <span className="font-semibold text-shadow">{wMods.length} module{wMods.length !== 1 ? "s" : ""}</span>.
+                  </p>
                 </div>
               )}
             </div>
@@ -497,6 +535,34 @@ function ResourceLogo({
 
 function FeaturedResourceCard({ r }: { r: Resource }) {
   const title = resourceTitle(r);
+  if (r.is_locked) {
+    return (
+      <div
+        className="flex flex-col bg-white rounded-2xl border border-nborder shadow-sm overflow-hidden p-5 min-h-[180px] opacity-70"
+        style={{ borderTop: "3px solid #F68A29" }}
+      >
+        <div className="flex gap-4 flex-1">
+          <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm bg-shadow/6 border border-nborder">
+            <Lock size={22} className="text-muted/50" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <span className="text-base font-extrabold text-shadow leading-tight">{title}</span>
+              <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-shadow/8 text-muted border border-shadow/10 uppercase tracking-wide">
+                <Lock size={9} strokeWidth={2.5} /> Locked
+              </span>
+            </div>
+            <p className="text-[13px] text-muted leading-snug line-clamp-3">{r.description}</p>
+          </div>
+        </div>
+        <div className="flex items-center justify-end mt-4 pt-3 border-t border-nborder">
+          <span className="text-[11px] text-muted inline-flex items-center gap-1">
+            <Lock size={11} /> Login to unlock
+          </span>
+        </div>
+      </div>
+    );
+  }
   return (
     <a
       href={r.url}
@@ -552,6 +618,31 @@ function WideResourceRow({ r }: { r: Resource }) {
       ? `${r.duration_mins >= 120 ? "2~4" : r.duration_mins} ${r.duration_mins >= 120 ? "hrs" : "min"}`
       : null;
   const bg = ROW_COLORS[(title.charCodeAt(0) || 0) % ROW_COLORS.length];
+
+  if (r.is_locked) {
+    return (
+      <div
+        className="flex gap-4 items-center bg-white rounded-2xl border border-nborder p-4 shadow-sm opacity-65"
+        style={{ borderLeft: `3px solid ${bg}` }}
+      >
+        <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 bg-shadow/6 border border-nborder">
+          <Lock size={16} className="text-muted/50" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap mb-0.5">
+            <span className="text-sm font-extrabold text-shadow">{title}</span>
+            <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-shadow/8 text-muted border border-shadow/10 uppercase tracking-wide">
+              <Lock size={9} strokeWidth={2.5} /> Locked
+            </span>
+          </div>
+          <p className="text-[12px] text-muted leading-snug line-clamp-2">{r.description}</p>
+        </div>
+        <div className="shrink-0">
+          <Lock size={14} className="text-muted/40" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <a

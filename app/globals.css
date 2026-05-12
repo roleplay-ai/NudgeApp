@@ -40,3 +40,34 @@ aside[data-user-sidebar] button {
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-thumb { background: #E8E6DC; border-radius: 999px; }
+
+/* ── Points counter: flip-tile + burst animations ───────────────────────────
+   Used by components/user/UserPointsCard.tsx. The dark sidebar card and the
+   light mobile strip share the same FlipCounter; only the colors differ. */
+@keyframes nudge-flipIn {
+  0%   { transform: perspective(300px) rotateX(-90deg); opacity: 0; }
+  60%  { opacity: 1; }
+  100% { transform: perspective(300px) rotateX(0deg); opacity: 1; }
+}
+@keyframes nudge-tilePulse {
+  0%, 100% { background: #1e1a1f; }
+  50%      { background: #2a2230; }
+}
+@keyframes nudge-tilePulseLight {
+  0%, 100% { background: #221D23; }
+  50%      { background: #3a313e; }
+}
+@keyframes nudge-floatUp {
+  0%   { transform: translateY(0);     opacity: 1; }
+  100% { transform: translateY(-18px); opacity: 0; }
+}
+.nudge-flip-tile           { animation: nudge-tilePulse      0.3s ease;      }
+.nudge-flip-tile-light     { animation: nudge-tilePulseLight 0.3s ease;      }
+.nudge-flip-digit          { animation: nudge-flipIn         0.25s ease-out; }
+.nudge-points-burst        { animation: nudge-floatUp        0.7s ease-out forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .nudge-flip-tile,
+  .nudge-flip-tile-light,
+  .nudge-flip-digit,
+  .nudge-points-burst { animation: none !important; }
+}

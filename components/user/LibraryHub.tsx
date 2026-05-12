@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, ExternalLink, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, ExternalLink, Lock, Search } from "lucide-react";
 import type { NewsItem, Resource, WatchVideo } from "@/lib/types";
 import { resolveVideoThumbnailUrl } from "@/lib/videoThumbnails";
 
@@ -214,6 +214,48 @@ function VideoCarouselCard({
   isActive: boolean;
 }) {
   const thumb = resolveVideoThumbnailUrl(v.thumbnail_url, v.url);
+
+  if (v.is_locked) {
+    return (
+      <div
+        className={`flex-shrink-0 w-[min(268px,calc(100vw-3rem))] overflow-hidden rounded-[18px] border border-black/[0.06] bg-white text-left shadow-[0_2px_12px_rgba(0,0,0,0.06)] snap-start flex flex-col opacity-60 cursor-default ${
+          isActive ? "" : "opacity-50"
+        }`}
+      >
+        <div
+          className="relative h-[148px] w-full shrink-0 overflow-hidden"
+          style={{
+            background: thumb
+              ? undefined
+              : `linear-gradient(155deg, ${accent} 0%, #1a1030 48%, #0f0a18 100%)`,
+          }}
+        >
+          {thumb ? (
+            <>
+              <img src={thumb} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              <div className="absolute inset-0 bg-black/40" aria-hidden />
+            </>
+          ) : null}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="flex h-[52px] w-[52px] items-center justify-center rounded-full bg-black/30 backdrop-blur-sm">
+              <Lock size={20} className="text-white/80" />
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-col gap-1.5 px-3.5 pt-3 pb-3.5 bg-white">
+          <div className="flex items-center gap-2 min-w-0">
+            <Lock size={10} className="text-muted/50 shrink-0" />
+            <span className="text-[10px] font-bold tracking-[0.12em] uppercase text-muted/60 truncate">
+              Locked
+            </span>
+          </div>
+          <div className="text-[15px] font-bold text-shadow leading-snug line-clamp-2">{v.title}</div>
+          <p className="text-[12px] text-muted leading-relaxed italic">Login to unlock</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <a
       href={v.url}
@@ -581,6 +623,24 @@ function bucketNews(news: NewsItem[]): { label: string; items: NewsItem[] }[] {
 }
 
 function NewsCard({ item: n }: { item: NewsItem }) {
+  if (n.is_locked) {
+    return (
+      <div className="block bg-white rounded-2xl p-4 border border-nborder shadow-sm opacity-55">
+        <div className="flex items-center gap-2 mb-2">
+          <span
+            className="text-[9px] font-bold px-2 py-0.5 rounded-full text-white tracking-wide opacity-50"
+            style={{ background: n.tag_color || "#623CEA" }}
+          >
+            {n.tag}
+          </span>
+          <span className="text-[11px] text-muted">{timeAgo(n.published_at)}</span>
+          <Lock size={12} className="ml-auto text-muted/50" />
+        </div>
+        <div className="text-sm font-bold text-shadow leading-tight mb-1.5">{n.title}</div>
+        <div className="text-xs text-muted italic">Login to unlock</div>
+      </div>
+    );
+  }
   return (
     <a
       href={n.url || "#"}
@@ -609,6 +669,26 @@ function ArticleRow({ resource: r, colorIndex }: { resource: Resource; colorInde
   const color = VIDEO_COLORS[colorIndex % VIDEO_COLORS.length];
   const pill = (r.category || r.resource_type || "article").toUpperCase();
   const readLabel = r.duration_mins != null ? `${r.duration_mins} min read` : "Read";
+
+  if (r.is_locked) {
+    return (
+      <div className="flex gap-4 items-center bg-white rounded-2xl p-4 border border-nborder shadow-sm opacity-60">
+        <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 bg-shadow/6 border border-nborder">
+          <Lock size={16} className="text-muted/50" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full text-white/70 tracking-wide" style={{ background: color }}>
+              {pill}
+            </span>
+          </div>
+          <div className="text-sm font-bold text-shadow leading-tight mb-0.5">{title}</div>
+          <div className="text-xs text-muted italic">Login to unlock</div>
+        </div>
+        <Lock size={14} className="text-muted/40 shrink-0" />
+      </div>
+    );
+  }
 
   return (
     <a
@@ -650,6 +730,28 @@ function ResourceTile({ resource: r, colorIndex }: { resource: Resource; colorIn
   const title = resourceTitle(r);
   const color = VIDEO_COLORS[colorIndex % VIDEO_COLORS.length];
   const type = (r.resource_type || "resource").toLowerCase();
+
+  if (r.is_locked) {
+    return (
+      <div className="flex flex-col bg-white rounded-2xl p-4 border border-nborder shadow-sm h-full opacity-60">
+        <div className="flex gap-3 mb-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-shadow/6 border border-nborder">
+            <Lock size={16} className="text-muted/50" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <span className="text-sm font-bold text-shadow leading-tight">{title}</span>
+          </div>
+        </div>
+        {r.description && <p className="text-[12px] text-muted leading-snug line-clamp-2 flex-1 mb-3">{r.description}</p>}
+        <div className="mt-auto flex items-center justify-between text-[11px]">
+          <span className="text-muted capitalize">{type}</span>
+          <span className="text-muted italic inline-flex items-center gap-1">
+            <Lock size={10} /> Locked
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <a
