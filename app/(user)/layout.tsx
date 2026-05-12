@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import UserNav from "@/components/user/UserNav";
 import PageView from "@/components/user/PageView";
 import { getActiveCoupon } from "@/app/actions/getCoupon";
+import { resolveDisplayName } from "@/lib/displayName";
 import type { Coupon } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -39,11 +40,11 @@ export default async function UserLayout({ children }: { children: React.ReactNo
     masteryScore = Number(r?.xp ?? 0);
     streakDays = Number(r?.streak ?? 0);
     const meta = user.user_metadata ?? {};
-    displayName =
-      r?.display_name?.trim() ||
-      meta.full_name?.trim() ||
-      meta.name?.trim() ||
-      null;
+    displayName = resolveDisplayName({
+      profileDisplayName: r?.display_name,
+      metaFullName: meta.full_name,
+      metaName: meta.name,
+    });
     avatarUrl =
       r?.avatar_url?.trim() ||
       meta.avatar_url?.trim() ||

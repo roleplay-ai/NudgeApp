@@ -5,6 +5,7 @@ import { ShieldCheck, UserRound, LogIn } from "lucide-react";
 import ProfileSignOut from "@/components/user/ProfileSignOut";
 import { CouponProfileCard } from "@/components/user/CouponBanner";
 import { getActiveCoupon } from "@/app/actions/getCoupon";
+import { resolveDisplayName } from "@/lib/displayName";
 import type { Coupon } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -34,12 +35,11 @@ export default async function ProfilePage() {
     }
     isAdmin = profile?.role === "admin";
     const meta = user.user_metadata ?? {};
-    const raw =
-      profile?.display_name?.trim() ||
-      meta.full_name?.trim() ||
-      meta.name?.trim() ||
-      undefined;
-    displayName = raw || null;
+    displayName = resolveDisplayName({
+      profileDisplayName: profile?.display_name,
+      metaFullName: meta.full_name,
+      metaName: meta.name,
+    });
     coupon = couponResult;
   }
 

@@ -13,6 +13,7 @@ import type {
 } from "@/lib/types";
 import HomeContent from "@/components/user/HomeContent";
 import { getActiveCoupon } from "@/app/actions/getCoupon";
+import { resolveDisplayName } from "@/lib/displayName";
 
 export const metadata: Metadata = {
   verification: {
@@ -66,12 +67,11 @@ export default async function Home() {
       console.error("[HomePage] profile fetch failed:", profileErr.message);
     }
     const meta = user.user_metadata ?? {};
-    const raw =
-      profile?.display_name?.trim() ||
-      meta.full_name?.trim() ||
-      meta.name?.trim() ||
-      undefined;
-    displayName = raw || null;
+    displayName = resolveDisplayName({
+      profileDisplayName: profile?.display_name,
+      metaFullName: meta.full_name,
+      metaName: meta.name,
+    });
     points = Number(profile?.xp ?? 0);
     streak = Number(profile?.streak ?? 0);
   }

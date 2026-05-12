@@ -55,11 +55,12 @@ export async function GET(request: NextRequest) {
         const name: string | undefined =
           meta.full_name?.trim() || meta.name?.trim() || undefined;
         if (name) {
+          // Always overwrite so the real OAuth name replaces any stale value
+          // (e.g. an email-derived username written by older code).
           await supabase
             .from("profiles")
             .update({ display_name: name })
-            .eq("id", oauthUser.id)
-            .is("display_name", null); // only fill in if not already set by user
+            .eq("id", oauthUser.id);
         }
       }
 
