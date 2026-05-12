@@ -3,6 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { ShieldCheck, UserRound, LogIn } from "lucide-react";
 import ProfileSignOut from "@/components/user/ProfileSignOut";
+import { CouponProfileCard } from "@/components/user/CouponBanner";
+import { getActiveCoupon } from "@/app/actions/getCoupon";
+import type { Coupon } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -14,13 +17,18 @@ export default async function ProfilePage() {
 
   let displayName: string | null = null;
   let isAdmin = false;
+  let coupon: Coupon | null = null;
 
   if (user) {
-    const { data: profile, error: profileErr } = await supabase
-      .from("profiles")
-      .select("role, display_name")
-      .eq("id", user.id)
-      .single();
+    const [profileResult, couponResult] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("role, display_name")
+        .eq("id", user.id)
+        .single(),
+      getActiveCoupon(),
+    ]);
+    const { data: profile, error: profileErr } = profileResult;
     if (profileErr) {
       console.error("[ProfilePage] profile fetch failed:", profileErr.message);
     }
@@ -32,6 +40,7 @@ export default async function ProfilePage() {
       meta.name?.trim() ||
       undefined;
     displayName = raw || null;
+    coupon = couponResult;
   }
 
   return (
@@ -91,6 +100,8 @@ export default async function ProfilePage() {
           </div>
         )}
       </div>
+
+      {user && coupon && <CouponProfileCard coupon={coupon} className="mb-4" />}
 
       {isAdmin && (
         <Link

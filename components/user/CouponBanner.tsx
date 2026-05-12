@@ -59,7 +59,8 @@ function CouponCardFull({
   className,
 }: {
   coupon: Coupon;
-  onDismiss: () => void;
+  /** When omitted, the × dismiss button isn't rendered (used on the profile page). */
+  onDismiss?: () => void;
   className?: string;
 }) {
   const { copied, copy } = useCopyCode(coupon.code);
@@ -80,14 +81,16 @@ function CouponCardFull({
             <div className="text-[15px] font-extrabold text-homeInk leading-tight tracking-tight">{headline}</div>
             <div className="text-[11px] text-homeBodyMuted mt-0.5">Use your exclusive code at checkout. Limited time.</div>
           </div>
-          <button
-            type="button"
-            onClick={onDismiss}
-            aria-label="Dismiss coupon"
-            className="shrink-0 text-homeBodyMuted text-[20px] leading-none bg-transparent border-0 cursor-pointer pl-3 hover:text-homeInk transition-colors"
-          >
-            ×
-          </button>
+          {onDismiss && (
+            <button
+              type="button"
+              onClick={onDismiss}
+              aria-label="Dismiss coupon"
+              className="shrink-0 text-homeBodyMuted text-[20px] leading-none bg-transparent border-0 cursor-pointer pl-3 hover:text-homeInk transition-colors"
+            >
+              ×
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
@@ -170,4 +173,24 @@ export default function CouponBanner({
   const { dismissed, dismiss } = useCouponDismissed(coupon.id);
   if (dismissed) return null;
   return <CouponCardFull coupon={coupon} onDismiss={dismiss} className={className} />;
+}
+
+// ── Profile page card — reappears once the home banner has been dismissed ─────
+
+/**
+ * Full coupon card surfaced on the profile page so users who dismissed the
+ * home banner can still find their code. Renders nothing until the coupon has
+ * been dismissed elsewhere; once shown, there is no × button — the profile
+ * page is the "permanent" home for the coupon.
+ */
+export function CouponProfileCard({
+  coupon,
+  className,
+}: {
+  coupon: Coupon;
+  className?: string;
+}) {
+  const { dismissed } = useCouponDismissed(coupon.id);
+  if (!dismissed) return null;
+  return <CouponCardFull coupon={coupon} className={className} />;
 }
