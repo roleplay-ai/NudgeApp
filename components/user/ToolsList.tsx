@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Check, ExternalLink, X } from "lucide-react";
 import type { Tool } from "@/lib/types";
+import { DEFAULT_POINTS, useAwardOnClick } from "@/lib/useAwardOnClick";
 
 export default function ToolsList({ tools }: { tools: Tool[] }) {
   const cats = ["All", ...Array.from(new Set(tools.map((t) => t.category)))];
@@ -103,6 +104,12 @@ export default function ToolsList({ tools }: { tools: Tool[] }) {
 function ToolModal({ tool, onClose }: { tool: Tool; onClose: () => void }) {
   const accent = tool.color || "#ED4551";
   const secondary = "#F9A8D4";
+  const awardOnClick = useAwardOnClick({
+    sourceType: "tool",
+    sourceId: tool.id,
+    pointsAward: tool.points_award,
+    defaultPoints: DEFAULT_POINTS.tool,
+  });
 
   return (
     <div
@@ -199,6 +206,7 @@ function ToolModal({ tool, onClose }: { tool: Tool; onClose: () => void }) {
                 href={tool.url}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={awardOnClick}
                 className="flex-[2] font-semibold py-3 rounded-full text-sm text-shadow flex items-center justify-center gap-2 hover:opacity-95"
                 style={{ background: accent, color: "#fff" }}
               >

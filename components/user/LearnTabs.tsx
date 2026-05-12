@@ -15,6 +15,7 @@ import {
 import type { World, Module, GlossaryTerm, Resource, ModuleScreen } from "@/lib/types";
 import { getModuleWithScreens } from "@/app/actions/getModule";
 import ModulePlayer from "@/components/user/ModulePlayer";
+import { DEFAULT_POINTS, useAwardOnClick } from "@/lib/useAwardOnClick";
 
 const LEVEL_STYLES: Record<string, string> = {
   beginner: "bg-emerald/15 text-emerald border border-emerald/30",
@@ -535,6 +536,12 @@ function ResourceLogo({
 
 function FeaturedResourceCard({ r }: { r: Resource }) {
   const title = resourceTitle(r);
+  const awardOnClick = useAwardOnClick({
+    sourceType: "resource",
+    sourceId: r.id,
+    pointsAward: r.points_award,
+    defaultPoints: DEFAULT_POINTS.resource,
+  });
   if (r.is_locked) {
     return (
       <div
@@ -568,6 +575,7 @@ function FeaturedResourceCard({ r }: { r: Resource }) {
       href={r.url}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={awardOnClick}
       className="group flex flex-col bg-white rounded-2xl border border-nborder shadow-sm hover:shadow-lg transition-all overflow-hidden p-5 min-h-[180px]"
       style={{ borderTop: "3px solid #F68A29" }}
     >
@@ -618,6 +626,12 @@ function WideResourceRow({ r }: { r: Resource }) {
       ? `${r.duration_mins >= 120 ? "2~4" : r.duration_mins} ${r.duration_mins >= 120 ? "hrs" : "min"}`
       : null;
   const bg = ROW_COLORS[(title.charCodeAt(0) || 0) % ROW_COLORS.length];
+  const awardOnClick = useAwardOnClick({
+    sourceType: "resource",
+    sourceId: r.id,
+    pointsAward: r.points_award,
+    defaultPoints: DEFAULT_POINTS.resource,
+  });
 
   if (r.is_locked) {
     return (
@@ -649,6 +663,7 @@ function WideResourceRow({ r }: { r: Resource }) {
       href={r.url}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={awardOnClick}
       className="flex gap-4 items-center bg-white rounded-2xl border border-nborder p-4 shadow-sm hover:shadow-md transition group"
       style={{ borderLeft: `3px solid ${bg}` }}
     >

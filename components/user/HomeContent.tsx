@@ -24,6 +24,7 @@ import { ApplyVideoDetailModal } from "@/components/user/ApplyVideosFeed";
 import { GuestAccountMobileStrip } from "@/components/user/GuestAccountPromo";
 import { UserPointsMobileStrip } from "@/components/user/UserPointsCard";
 import { MAIN_WEBSITE_ORIGIN, PRIVACY_CONTACT_EMAIL } from "@/lib/site";
+import { DEFAULT_POINTS, useAwardOnClick } from "@/lib/useAwardOnClick";
 
 /** Use UTC so SSR (often UTC) and the browser agree — default locale TZ caused hydration mismatches. */
 function formatBriefDateUtc(iso: string | undefined) {
@@ -412,47 +413,9 @@ export default function HomeContent({
 
             {briefNews.length > 0 ? (
               <ul className="mt-4 space-y-3 list-none">
-                {briefNews.map((n) => {
-                  const href = n.url || null;
-                  const briefText = n.brief?.trim() || n.body?.trim() || null;
-                  if (n.is_locked) {
-                    return (
-                      <li key={n.id}>
-                        <div className="flex gap-2.5 items-start opacity-50">
-                          <Lock size={12} className="shrink-0 mt-[5px] text-homeClay/60" aria-hidden />
-                          <p className="text-[13px] text-homeWarmGray/70 leading-relaxed italic">
-                            Login to unlock this update
-                          </p>
-                        </div>
-                      </li>
-                    );
-                  }
-                  return (
-                    <li key={n.id}>
-                      {href ? (
-                        <a
-                          href={href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex gap-2.5 items-start group no-underline"
-                          onClick={() => track("news_click", { item_id: n.id, title: n.title, url: href })}
-                        >
-                          <span className="shrink-0 mt-[7px] h-1.5 w-1.5 rounded-full bg-homeClay group-hover:bg-amber transition-colors" aria-hidden />
-                          <p className="text-[13px] text-homeWarmGray leading-relaxed group-hover:text-white/90 transition-colors">
-                            {briefText || n.title}
-                          </p>
-                        </a>
-                      ) : (
-                        <div className="flex gap-2.5 items-start">
-                          <span className="shrink-0 mt-[7px] h-1.5 w-1.5 rounded-full bg-homeClay" aria-hidden />
-                          <p className="text-[13px] text-homeWarmGray leading-relaxed">
-                            {briefText || n.title}
-                          </p>
-                        </div>
-                      )}
-                    </li>
-                  );
-                })}
+                {briefNews.map((n) => (
+                  <BriefNewsItem key={n.id} item={n} isLoggedIn={isLoggedIn} />
+                ))}
               </ul>
             ) : (
               <RichText
@@ -505,7 +468,7 @@ export default function HomeContent({
             </div>
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               {libraryVideos.slice(0, 4).map((v) => (
-                <WatchWeekThumb key={v.id} video={v} />
+                <WatchWeekThumb key={v.id} video={v} isLoggedIn={isLoggedIn} />
               ))}
             </div>
           </div>
@@ -1111,14 +1074,79 @@ function ProductsCarousel({ products }: { products: ProductOfDay[] }) {
   );
 }
 
+// ─── Nudgeable Brief news item ─────────────────────────────────────────────────
+
+// Single brief-list row. Lives in its own component so we can `useAwardOnClick`
+// per news item (hooks can't be called inside `.map(() => ...)`).
+function BriefNewsItem({ item: n, isLoggedIn }: { item: NewsItem; isLoggedIn: boolean }) {
+  const href = n.url || null;
+  const briefText = n.brief?.trim() || n.body?.trim() || null;
+  const awardOnClick = useAwardOnClick({
+    sourceType: "news",
+    sourceId: n.id,
+    pointsAward: n.points_award,
+    defaultPoints: DEFAULT_POINTS.news,
+    isLoggedIn,
+  });
+
+  if (n.is_locked) {
+    return (
+      <li>
+        <div className="flex gap-2.5 items-start opacity-50">
+          <Lock size={12} className="shrink-0 mt-[5px] text-homeClay/60" aria-hidden />
+          <p className="text-[13px] text-homeWarmGray/70 leading-relaxed italic">
+            Login to unlock this update
+          </p>
+        </div>
+      </li>
+    );
+  }
+
+  return (
+    <li>
+      {href ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex gap-2.5 items-start group no-underline"
+          onClick={() => {
+            awardOnClick();
+            track("news_click", { item_id: n.id, title: n.title, url: href });
+          }}
+        >
+          <span className="shrink-0 mt-[7px] h-1.5 w-1.5 rounded-full bg-homeClay group-hover:bg-amber transition-colors" aria-hidden />
+          <p className="text-[13px] text-homeWarmGray leading-relaxed group-hover:text-white/90 transition-colors">
+            {briefText || n.title}
+          </p>
+        </a>
+      ) : (
+        <div className="flex gap-2.5 items-start">
+          <span className="shrink-0 mt-[7px] h-1.5 w-1.5 rounded-full bg-homeClay" aria-hidden />
+          <p className="text-[13px] text-homeWarmGray leading-relaxed">
+            {briefText || n.title}
+          </p>
+        </div>
+      )}
+    </li>
+  );
+}
+
 // ─── Watch this week thumb ─────────────────────────────────────────────────────
 
-function WatchWeekThumb({ video }: { video: WatchVideo }) {
+function WatchWeekThumb({ video, isLoggedIn }: { video: WatchVideo; isLoggedIn: boolean }) {
   const thumb = resolveVideoThumbnailUrl(video.thumbnail_url, video.url);
   const href = video.url || "#";
   const creatorColor =
     VIDEO_AVATAR_COLORS[(video.creator?.charCodeAt(0) || 0) % VIDEO_AVATAR_COLORS.length];
   const letter = video.creator?.[0]?.toUpperCase() || "?";
+  const awardOnClick = useAwardOnClick({
+    sourceType: "video",
+    sourceId: video.id,
+    pointsAward: video.points_award,
+    defaultPoints: DEFAULT_POINTS.video,
+    isLoggedIn,
+  });
 
   if (video.is_locked) {
     return (
@@ -1151,7 +1179,10 @@ function WatchWeekThumb({ video }: { video: WatchVideo }) {
       target="_blank"
       rel="noopener noreferrer"
       className="group flex min-w-0 w-full flex-col overflow-hidden rounded-[10px] bg-homeInk shadow-[0_2px_8px_rgba(0,0,0,0.15)] transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.25)] no-underline"
-      onClick={() => track("video_click", { item_id: video.id, title: video.title, creator: video.creator })}
+      onClick={() => {
+        awardOnClick();
+        track("video_click", { item_id: video.id, title: video.title, creator: video.creator });
+      }}
     >
       <div
         className="relative flex h-[90px] w-full flex-shrink-0 items-center justify-center overflow-hidden"
