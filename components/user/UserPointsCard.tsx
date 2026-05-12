@@ -248,14 +248,13 @@ function StatRow({
  */
 export function UserPointsSidebarCard({
   points,
-  streak,
   displayName,
 }: {
   points: number;
-  streak: number;
   displayName?: string | null;
 }) {
   const greeting = displayName?.trim() ? `Welcome back, ${displayName.split(" ")[0]}` : "Your progress";
+  const burst = usePointsBurst(points);
 
   return (
     <div className="overflow-hidden rounded-2xl border border-white/5 bg-[#1e1a1f] shadow-[0_8px_28px_rgba(0,0,0,0.35)]">
@@ -265,7 +264,15 @@ export function UserPointsSidebarCard({
           <Trophy size={12} strokeWidth={2.25} className="text-norange" aria-hidden />
           <span className="leading-none">{greeting}</span>
         </div>
-        <StatRow points={points} streak={streak} tone="dark" size="md" />
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-white/45">
+            Points
+          </span>
+          <div className="relative">
+            {burst ? <PointsBurst delta={burst.delta} tone="dark" /> : null}
+            <FlipCounter value={points} size={30} tone="dark" />
+          </div>
+        </div>
         <Link
           href="/profile"
           className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-full bg-white/[0.05] py-2 text-[12px] font-bold text-amber no-underline transition-colors hover:bg-white/[0.1]"

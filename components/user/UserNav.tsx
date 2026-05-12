@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Crosshair,
+  Flame,
   GraduationCap,
   Home,
   Lightbulb,
@@ -31,18 +32,51 @@ const items = [
   { href: "/insights", label: "Insights", icon: Lightbulb },
 ];
 
+// Small avatar for the sidebar profile row.
+// Uses the user's `avatar_url` when available, otherwise falls back to the
+// first letter of their display name on a clay-tinted circle. If neither is
+// available we render a neutral UserRound icon so the row never looks broken.
+function ProfileAvatar({
+  avatarUrl,
+  displayName,
+}: {
+  avatarUrl?: string | null;
+  displayName?: string | null;
+}) {
+  const initial = displayName?.trim()?.[0]?.toUpperCase();
+  if (avatarUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={avatarUrl}
+        alt=""
+        referrerPolicy="no-referrer"
+        className="h-7 w-7 shrink-0 rounded-full object-cover border border-white/10 bg-white/5"
+      />
+    );
+  }
+  return (
+    <div className="h-7 w-7 shrink-0 rounded-full bg-homeClay/20 border border-homeClay/40 flex items-center justify-center text-[12px] font-bold text-amber leading-none">
+      {initial ?? <UserRound size={14} strokeWidth={2.25} className="text-homeNavMuted" />}
+    </div>
+  );
+}
+
 export default function UserNav({
   masteryScore = 0,
   streakDays = 0,
   displayName = null,
+  avatarUrl = null,
   isLoggedIn = false,
   coupon = null,
 }: {
   /** Running total of XP from `profiles.xp`; drives the FlipCounter on the sidebar card. */
   masteryScore?: number;
-  /** `profiles.streak`; shown as secondary stat alongside points. */
+  /** `profiles.streak`; rendered next to the profile row in the sidebar. */
   streakDays?: number;
   displayName?: string | null;
+  /** Avatar URL (profile.avatar_url, falling back to OAuth metadata). */
+  avatarUrl?: string | null;
   isLoggedIn?: boolean;
   coupon?: Coupon | null;
 }) {
@@ -120,7 +154,6 @@ export default function UserNav({
           {isLoggedIn ? (
             <UserPointsSidebarCard
               points={masteryScore}
-              streak={streakDays}
               displayName={displayName}
             />
           ) : (
@@ -131,14 +164,26 @@ export default function UserNav({
             <div className="space-y-1">
               <Link
                 href="/profile"
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition border no-underline
+                className={`flex items-center gap-3 px-2.5 py-2 rounded-xl font-semibold text-sm transition border no-underline
                   ${path === "/profile"
                     ? "bg-homeClay/15 border-homeClay/70 text-homeCanvas"
                     : "border-transparent text-homeNavMuted hover:bg-white/[0.06] hover:text-homeCanvas"
                   }`}
               >
-                <UserRound size={18} strokeWidth={2} className="shrink-0 text-homeNavMuted" />
-                <span className="truncate">Profile</span>
+                <ProfileAvatar avatarUrl={avatarUrl} displayName={displayName} />
+                <span className="truncate flex-1 min-w-0 text-[13px]">
+                  {displayName?.trim() || "Profile"}
+                </span>
+                <span
+                  className="flex items-center gap-1 shrink-0 tabular-nums"
+                  aria-label={`${streakDays} day streak`}
+                  title={`${streakDays} day streak`}
+                >
+                  <Flame size={13} strokeWidth={2.25} className="text-amber" aria-hidden />
+                  <span className="text-[12px] font-bold text-amber leading-none">
+                    {streakDays}
+                  </span>
+                </span>
               </Link>
               <button
                 type="button"

@@ -16,12 +16,13 @@ export default async function UserLayout({ children }: { children: React.ReactNo
   let masteryScore = 0;
   let streakDays = 0;
   let displayName: string | null = null;
+  let avatarUrl: string | null = null;
   let coupon: Coupon | null = null;
   if (user) {
     const [profileResult, couponResult] = await Promise.all([
       supabase
         .from("profiles")
-        .select("xp, streak, display_name")
+        .select("xp, streak, display_name, avatar_url")
         .eq("id", user.id)
         .maybeSingle(),
       getActiveCoupon(),
@@ -33,6 +34,7 @@ export default async function UserLayout({ children }: { children: React.ReactNo
       xp?: number;
       streak?: number;
       display_name?: string | null;
+      avatar_url?: string | null;
     } | null;
     masteryScore = Number(r?.xp ?? 0);
     streakDays = Number(r?.streak ?? 0);
@@ -41,6 +43,11 @@ export default async function UserLayout({ children }: { children: React.ReactNo
       r?.display_name?.trim() ||
       meta.full_name?.trim() ||
       meta.name?.trim() ||
+      null;
+    avatarUrl =
+      r?.avatar_url?.trim() ||
+      meta.avatar_url?.trim() ||
+      meta.picture?.trim() ||
       null;
     coupon = couponResult;
   }
@@ -51,6 +58,7 @@ export default async function UserLayout({ children }: { children: React.ReactNo
         masteryScore={masteryScore}
         streakDays={streakDays}
         displayName={displayName}
+        avatarUrl={avatarUrl}
         isLoggedIn={!!user}
         coupon={coupon}
       />
