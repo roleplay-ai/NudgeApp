@@ -32,18 +32,28 @@ const items = [
   { href: "/insights", label: "Insights", icon: Lightbulb },
 ];
 
-// Small avatar for the sidebar profile row.
+// Small avatar for the sidebar profile row and mobile bottom nav.
 // Uses the user's `avatar_url` when available, otherwise falls back to the
 // first letter of their display name on a clay-tinted circle. If neither is
 // available we render a neutral UserRound icon so the row never looks broken.
+// `size`:
+//   - "md" (default) — 28px, used by the desktop sidebar profile row.
+//   - "sm"           — 22px, used in the mobile bottom nav tile.
 function ProfileAvatar({
   avatarUrl,
   displayName,
+  size = "md",
 }: {
   avatarUrl?: string | null;
   displayName?: string | null;
+  size?: "sm" | "md";
 }) {
   const initial = displayName?.trim()?.[0]?.toUpperCase();
+  const sizing =
+    size === "sm"
+      ? { box: "h-[22px] w-[22px]", text: "text-[10px]", iconPx: 12 }
+      : { box: "h-7 w-7", text: "text-[12px]", iconPx: 14 };
+
   if (avatarUrl) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
@@ -51,13 +61,15 @@ function ProfileAvatar({
         src={avatarUrl}
         alt=""
         referrerPolicy="no-referrer"
-        className="h-7 w-7 shrink-0 rounded-full object-cover border border-white/10 bg-white/5"
+        className={`${sizing.box} shrink-0 rounded-full object-cover border border-white/10 bg-white/5`}
       />
     );
   }
   return (
-    <div className="h-7 w-7 shrink-0 rounded-full bg-homeClay/20 border border-homeClay/40 flex items-center justify-center text-[12px] font-bold text-amber leading-none">
-      {initial ?? <UserRound size={14} strokeWidth={2.25} className="text-homeNavMuted" />}
+    <div
+      className={`${sizing.box} shrink-0 rounded-full bg-homeClay/20 border border-homeClay/40 flex items-center justify-center ${sizing.text} font-bold text-amber leading-none`}
+    >
+      {initial ?? <UserRound size={sizing.iconPx} strokeWidth={2.25} className="text-homeNavMuted" />}
     </div>
   );
 }
@@ -228,13 +240,14 @@ export default function UserNav({
             {isLoggedIn ? (
               <Link
                 href="/profile"
+                aria-label="Profile"
                 className={`flex flex-col items-center justify-center gap-0.5 rounded-xl border px-0.5 py-2 transition-[transform,background-color,color,border-color] duration-150 no-underline min-w-0 transform hover:scale-[1.04] active:scale-[0.98]
                   ${path === "/profile"
                     ? "bg-homeClay/25 border-homeClay text-white"
                     : "border-homeInk/20 text-homeCanvas/90 hover:bg-white/[0.06] hover:text-white"
                   }`}
               >
-                <UserRound size={17} strokeWidth={2.2} className={path === "/profile" ? "text-amber" : "text-homeCanvas/85"} />
+                <ProfileAvatar avatarUrl={avatarUrl} displayName={displayName} size="sm" />
                 <span className="text-[10px] font-bold leading-tight w-full text-center truncate">Profile</span>
               </Link>
             ) : (

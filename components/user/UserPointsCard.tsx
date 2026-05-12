@@ -177,7 +177,9 @@ function StatRow({
   const burst = usePointsBurst(points);
   const labelColor = tone === "dark" ? "text-white/40" : "text-muted";
   const dividerColor = tone === "dark" ? "bg-white/[0.07]" : "bg-nborder";
-  const streakColor = tone === "dark" ? "#FFCE00" : "#221D23";
+  // Streak is always rendered in amber so the mobile (light) strip matches the
+  // desktop sidebar's yellow flame/number treatment.
+  const streakColor = "#FFCE00";
 
   const dims = size === "md"
     ? {
@@ -190,10 +192,10 @@ function StatRow({
         unitClass: "text-[11px]",
       }
     : {
-        flip: 13,
+        flip: 20,
         streakFont: 14,
         streakIcon: 11,
-        labelClass: "text-[8px]",
+        labelClass: "text-[9px]",
         divider: "h-[26px]",
         gap: "gap-3",
         unitClass: "text-[9px]",
@@ -201,13 +203,14 @@ function StatRow({
 
   return (
     <div className={`flex items-center ${dims.gap}`}>
-      <div className="relative">
+      {/* Points — label on the left of a bigger flip counter. */}
+      <div className="relative flex items-center gap-2">
         {burst ? <PointsBurst delta={burst.delta} tone={tone} /> : null}
-        <div
-          className={`mb-1 ${dims.labelClass} font-semibold uppercase tracking-[0.06em] ${labelColor}`}
+        <span
+          className={`${dims.labelClass} font-semibold uppercase tracking-[0.06em] ${labelColor}`}
         >
           Points
-        </div>
+        </span>
         <FlipCounter value={points} size={dims.flip} tone={tone} />
       </div>
 
@@ -287,12 +290,10 @@ export function UserPointsSidebarCard({
 
 // ── Mobile bottom strip (light) ───────────────────────────────────────────────
 
-const MOBILE_DISMISS_KEY = "nudgeable_points_strip_dismissed";
-
 /**
  * Fixed mobile strip shown above the bottom nav for logged-in users.
  * Replaces {@link GuestAccountMobileStrip} when the user has a session.
- * Dismissal is session-only (sessionStorage) so it returns each visit.
+ * Dismissal is in-memory only — the strip reappears on every page refresh.
  */
 export function UserPointsMobileStrip({
   points,
@@ -304,12 +305,6 @@ export function UserPointsMobileStrip({
   displayName?: string | null;
 }) {
   const [dismissed, setDismissed] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined" && sessionStorage.getItem(MOBILE_DISMISS_KEY) === "1") {
-      setDismissed(true);
-    }
-  }, []);
 
   if (dismissed) return null;
 
@@ -329,14 +324,7 @@ export function UserPointsMobileStrip({
             <button
               type="button"
               aria-label="Dismiss progress strip"
-              onClick={() => {
-                setDismissed(true);
-                try {
-                  sessionStorage.setItem(MOBILE_DISMISS_KEY, "1");
-                } catch {
-                  /* sessionStorage unavailable; ignore */
-                }
-              }}
+              onClick={() => setDismissed(true)}
               className="absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-homeSubtle/90 transition-colors hover:bg-homeInk/[0.06] hover:text-homeInk"
             >
               <X size={15} strokeWidth={2.25} aria-hidden />
