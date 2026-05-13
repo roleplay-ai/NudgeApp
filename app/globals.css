@@ -42,8 +42,7 @@ aside[data-user-sidebar] button {
 ::-webkit-scrollbar-thumb { background: #E8E6DC; border-radius: 999px; }
 
 /* ── Points counter: flip-tile + burst animations ───────────────────────────
-   Used by components/user/UserPointsCard.tsx. The dark sidebar card and the
-   light mobile strip share the same FlipCounter; only the colors differ. */
+   Used by components/user/UserPointsCard.tsx (yellow cards + dark flip tiles). */
 @keyframes nudge-flipIn {
   0%   { transform: perspective(300px) rotateX(-90deg); opacity: 0; }
   60%  { opacity: 1; }
