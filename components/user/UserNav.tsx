@@ -222,7 +222,7 @@ export default function UserNav({
           aria-label="Primary"
           className="bg-homeSidebar border-t border-homeInk/30 pt-2 px-1 pb-[max(env(safe-area-inset-bottom),0.5rem)] shadow-[0_-10px_30px_rgba(0,0,0,0.28)]"
         >
-          <div className="grid grid-cols-6 gap-0.5">
+          <div className="grid grid-cols-7 gap-0.5">
             {items.map((it) => {
               const Ic = it.icon;
               const active = path === it.href || (it.href !== "/" && path.startsWith(it.href));
@@ -237,7 +237,7 @@ export default function UserNav({
                     }`}
                 >
                   <Ic size={17} strokeWidth={2.2} className={active ? "text-amber" : "text-homeCanvas/85"} />
-                  <span className="text-[10px] font-bold leading-tight w-full text-center truncate">
+                  <span className="text-[10px] font-bold leading-tight w-full text-center truncate whitespace-nowrap">
                     {it.label}
                   </span>
                 </Link>
@@ -254,7 +254,9 @@ export default function UserNav({
                   }`}
               >
                 <ProfileAvatar avatarUrl={avatarUrl} displayName={displayName} size="sm" />
-                <span className="text-[10px] font-bold leading-tight w-full text-center truncate">Profile</span>
+                <span className="text-[10px] font-bold leading-tight w-full text-center truncate whitespace-nowrap">
+                  Profile
+                </span>
               </Link>
             ) : (
               <Link
@@ -266,7 +268,9 @@ export default function UserNav({
                   }`}
               >
                 <LogIn size={17} strokeWidth={2.2} className={path === "/login" ? "text-amber" : "text-homeCanvas/85"} />
-                <span className="text-[10px] font-bold leading-tight w-full text-center truncate">Sign in</span>
+                <span className="text-[10px] font-bold leading-tight w-full text-center truncate whitespace-nowrap">
+                  Sign in
+                </span>
               </Link>
             )}
           </div>

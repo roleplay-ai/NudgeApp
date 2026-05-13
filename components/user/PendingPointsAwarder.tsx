@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { awardPointsAction } from "@/app/actions/awardPointsAction";
+import { useRouter } from "next/navigation";
+import { completeQuizAction } from "@/app/actions/completeQuizAction";
 
 const PENDING_KEY = "nudgeable_pending_quiz_points";
 
@@ -14,15 +15,20 @@ interface PendingEntry {
 
 /**
  * Mounted in the user layout only when isLoggedIn=true.
- * On first render it drains any pending quiz points the user earned as a guest,
- * awards them via the server action, then clears localStorage.
+ *
+ * On first mount it:
+ *  1. Reads any quiz points the user earned as a guest from localStorage.
+ *  2. Calls completeQuizAction for each quiz (same RPC as a normal logged-in
+ *     attempt, so delta scoring works correctly on future re-attempts).
+ *  3. Calls router.refresh() so the sidebar XP counter updates immediately.
  */
 export default function PendingPointsAwarder() {
-  const awarded = useRef(false);
+  const ran = useRef(false);
+  const router = useRouter();
 
   useEffect(() => {
-    if (awarded.current) return;
-    awarded.current = true;
+    if (ran.current) return;
+    ran.current = true;
 
     let entries: PendingEntry[] = [];
     try {
@@ -32,22 +38,30 @@ export default function PendingPointsAwarder() {
     }
     if (!entries.length) return;
 
-    // Clear immediately so a page refresh doesn't double-award
+    // Remove from storage immediately — prevents a duplicate award if the
+    // user refreshes while the async calls are in-flight.
     localStorage.removeItem(PENDING_KEY);
 
-    // Fire-and-forget — idempotency key prevents double awards if the user
-    // refreshes before the RPC completes.
-    entries.forEach((entry) => {
-      awardPointsAction({
-        sourceType: "quiz",
-        sourceId: `guest-transfer:${entry.quizId}`,
-        pointsAward: entry.points,
-        defaultPoints: entry.points,
-        idempotencyKey: `guest-transfer:${entry.quizId}:${entry.ts}`,
-      }).catch(() => {
-        // Best-effort; silently ignore RPC failures for guest transfers
-      });
-    });
+    async function awardAll() {
+      for (const entry of entries) {
+        const result = await completeQuizAction({
+          quizId: entry.quizId,
+          pointsEarned: entry.points,
+        });
+        if (!result.success) {
+          console.error(
+            `[PendingPointsAwarder] Failed to award ${entry.points} pts for quiz ${entry.quizId}:`,
+            result.error
+          );
+        }
+      }
+      // Bust the RSC cache so profiles.xp updates in the sidebar right away.
+      router.refresh();
+    }
+
+    awardAll();
+    // router is stable from useRouter; omitting from deps is intentional.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return null;
