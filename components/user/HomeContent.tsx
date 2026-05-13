@@ -365,7 +365,7 @@ export default function HomeContent({
   isLoggedIn?: boolean;
   /** `profiles.xp` for the signed-in viewer; drives the mobile points strip. */
   points?: number;
-  /** `profiles.streak` for the signed-in viewer; shown on the mobile points strip. */
+  /** `profiles.streak` for the signed-in viewer; secondary stat on the mobile strip. */
   streak?: number;
   coupon?: Coupon | null;
   /** "Top X%" from `get_user_top_percent` RPC; rendered in the mobile strip in place of the greeting. */
@@ -555,7 +555,11 @@ export default function HomeContent({
 
       {/* Fixed mobile banner above the tab bar — guest promo for visitors, points strip for logged-in users. */}
       {isLoggedIn ? (
-        <UserPointsMobileStrip points={points} streak={streak} topPercent={topPercent} />
+        <UserPointsMobileStrip
+          points={points}
+          streak={streak}
+          topPercent={topPercent}
+        />
       ) : (
         <GuestAccountMobileStrip />
       )}
