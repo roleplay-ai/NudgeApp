@@ -10,6 +10,7 @@ import {
   Lightbulb,
   LogIn,
   LogOut,
+  Trophy,
   UserRound,
   Wrench,
 } from "lucide-react";
@@ -27,6 +28,7 @@ const SESSION_ACTIVE_KEY = "nudgeable_session_active";
 const items = [
   { href: "/", label: "Home", icon: Home },
   { href: "/learn", label: "Learn", icon: GraduationCap },
+  { href: "/play", label: "Play", icon: Trophy },
   { href: "/apply", label: "Apply", icon: Crosshair },
   { href: "/tools", label: "Tools", icon: Wrench },
   { href: "/insights", label: "Insights", icon: Lightbulb },

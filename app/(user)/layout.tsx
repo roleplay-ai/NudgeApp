@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import UserNav from "@/components/user/UserNav";
 import PageView from "@/components/user/PageView";
+import PendingPointsAwarder from "@/components/user/PendingPointsAwarder";
 import { getActiveCoupon } from "@/app/actions/getCoupon";
 import { resolveDisplayName } from "@/lib/displayName";
 import type { Coupon } from "@/lib/types";
@@ -74,6 +75,7 @@ export default async function UserLayout({ children }: { children: React.ReactNo
         topPercent={topPercent}
       />
       <PageView />
+      {!!user && <PendingPointsAwarder />}
       <main className="sm:ml-64 pb-[calc(76px+env(safe-area-inset-bottom))] sm:pb-8 min-h-screen bg-homeCanvas">
         <div className="max-w-6xl mx-auto px-4 py-6 md:px-8 md:py-10">{children}</div>
       </main>
