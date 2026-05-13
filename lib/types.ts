@@ -316,6 +316,43 @@ export type Resource = {
   points_award: number | null;
 };
 
+// --- Quizzes ---
+
+export type Quiz = {
+  id: string;
+  title: string;
+  description: string | null;
+  emoji: string;
+  color: string;
+  order_index: number;
+  is_published: boolean;
+  is_locked: boolean;
+  points_per_question: number;
+  completion_bonus: number;
+  /** Seconds per question: 5 | 10 | 15 | 20 | 25 | 30 */
+  time_per_question: number;
+  created_at: string;
+};
+
+export type QuizQuestion = {
+  id: string;
+  quiz_id: string;
+  question: string;
+  feedback_correct: string;
+  feedback_incorrect: string;
+  order_index: number;
+  points_award: number | null;
+  quiz_options?: QuizOption[];
+};
+
+export type QuizOption = {
+  id: string;
+  question_id: string;
+  option_text: string;
+  is_correct: boolean;
+  order_index: number;
+};
+
 // --- Points / Engagement ---
 
 export type PointRule = {
