@@ -6,8 +6,8 @@
  * The "your progress" UI for logged-in users.
  *
  * Two layouts, both driven by the same FlipCounter:
- *   - {@link UserPointsSidebarCard}  — dark card at the bottom of the desktop sidebar.
- *   - {@link UserPointsMobileStrip}  — light strip fixed above the mobile bottom nav.
+ *   - {@link UserPointsSidebarCard}  — yellow card at the bottom of the desktop sidebar.
+ *   - {@link UserPointsMobileStrip}  — yellow horizontal strip (Points | Rank | Streak) above mobile nav.
  *
  * The card animates whenever the incoming `points` prop changes (i.e. after the
  * server refreshes following an `award_points` RPC call). A subtle "+N" burst
@@ -18,7 +18,13 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { Flame, Trophy, X } from "lucide-react";
+import { Trophy, X } from "lucide-react";
+
+/** Bright promo / points card yellow (reference UI). */
+export const POINTS_CARD_YELLOW = "#FFD300";
+const POINTS_CARD_MUTED = "#4a4035";
+/** Vertical dividers between strip columns (brownish-yellow). */
+const STRIP_DIVIDER = "rgba(74, 64, 53, 0.35)";
 
 // ── FlipCounter primitive ─────────────────────────────────────────────────────
 
@@ -40,12 +46,12 @@ function FlipDigit({
   const fontSize = Math.round(size * 0.6);
 
   const tileBg = tone === "dark" ? "#1e1a1f" : "#221D23";
-  const digitColor = tone === "dark" ? "rgba(255,255,255,0.78)" : "rgba(255,255,255,0.92)";
+  const digitColor = tone === "dark" ? "#ffffff" : "rgba(255,255,255,0.92)";
   const tileClass = tone === "dark" ? "nudge-flip-tile" : "nudge-flip-tile-light";
 
   return (
     <div
-      className="relative flex items-center justify-center overflow-hidden rounded-[2px] border border-white/[0.05] shrink-0"
+      className="relative flex items-center justify-center overflow-hidden rounded-md border border-white/[0.08] shrink-0"
       style={{
         width: w,
         height: h,
@@ -97,7 +103,7 @@ function FlipCounter({
   const commaColor = tone === "dark" ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.18)";
 
   return (
-    <div className="flex items-end gap-[1px]" aria-live="polite">
+    <div className="flex items-end gap-1" aria-live="polite">
       {chars.map((ch, i) =>
         ch === "," ? (
           <span
@@ -157,96 +163,11 @@ function PointsBurst({ delta, tone }: { delta: number; tone: FlipTone }) {
   );
 }
 
-// ── Shared stat row (Points | Streak) ─────────────────────────────────────────
-
-type StatSize = "sm" | "md";
-
-function StatRow({
-  points,
-  streak,
-  tone,
-  size = "sm",
-}: {
-  points: number;
-  streak: number;
-  tone: FlipTone;
-  /** "sm" (default) — mobile strip; "md" — desktop sidebar (more legible). */
-  size?: StatSize;
-}) {
-  const burst = usePointsBurst(points);
-  const labelColor = tone === "dark" ? "text-white/40" : "text-muted";
-  const dividerColor = tone === "dark" ? "bg-white/[0.07]" : "bg-nborder";
-  // Streak is always rendered in amber so the mobile (light) strip matches the
-  // desktop sidebar's yellow flame/number treatment.
-  const streakColor = "#FFCE00";
-
-  const dims = size === "md"
-    ? {
-        flip: 22,
-        streakFont: 24,
-        streakIcon: 16,
-        labelClass: "text-[11px]",
-        divider: "h-[40px]",
-        gap: "gap-4",
-        unitClass: "text-[11px]",
-      }
-    : {
-        flip: 20,
-        streakFont: 14,
-        streakIcon: 11,
-        labelClass: "text-[9px]",
-        divider: "h-[26px]",
-        gap: "gap-3",
-        unitClass: "text-[9px]",
-      };
-
-  return (
-    <div className={`flex items-center ${dims.gap}`}>
-      {/* Points — label on the left of a bigger flip counter. */}
-      <div className="relative flex items-center gap-2">
-        {burst ? <PointsBurst delta={burst.delta} tone={tone} /> : null}
-        <span
-          className={`${dims.labelClass} font-semibold uppercase tracking-[0.06em] ${labelColor}`}
-        >
-          Points
-        </span>
-        <FlipCounter value={points} size={dims.flip} tone={tone} />
-      </div>
-
-      <div className={`${dims.divider} w-px ${dividerColor}`} aria-hidden />
-
-      <div>
-        <div
-          className={`mb-1 ${dims.labelClass} font-semibold uppercase tracking-[0.06em] ${labelColor}`}
-        >
-          Streak
-        </div>
-        <div className="flex items-baseline gap-1">
-          <Flame size={dims.streakIcon} className="self-center" style={{ color: streakColor }} />
-          <span
-            className="font-extrabold tabular-nums leading-none"
-            style={{ fontSize: dims.streakFont, color: streakColor }}
-          >
-            {streak}
-          </span>
-          <span
-            className={`${dims.unitClass} font-semibold lowercase`}
-            style={{ color: tone === "dark" ? "rgba(255,255,255,0.5)" : "#6B6B6B" }}
-          >
-            {streak === 1 ? "day" : "days"}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Desktop sidebar card (dark) ───────────────────────────────────────────────
+// ── Desktop sidebar card (yellow) ─────────────────────────────────────────────
 
 /**
- * Dark card shown at the bottom of the desktop sidebar for logged-in users.
- * Mirrors the visual style of `GuestAccountSidebarCard` (yellow top rule,
- * rounded 2xl, soft shadow) so the sidebar feels cohesive across auth states.
+ * Yellow card shown at the bottom of the desktop sidebar for logged-in users.
+ * Matches the bright yellow guest promo treatment for a cohesive rail.
  */
 export function UserPointsSidebarCard({
   points,
@@ -258,38 +179,52 @@ export function UserPointsSidebarCard({
   /** "Top X%" from `get_user_top_percent` RPC. Null skips the pill (e.g. solo user, RPC error). */
   topPercent?: number | null;
 }) {
-  const greeting = displayName?.trim() ? `Welcome back, ${displayName.split(" ")[0]}` : "Your progress";
+  const firstName = displayName?.trim()?.split(/\s+/)?.[0];
+  const greeting =
+    firstName !== undefined && firstName.length > 0
+      ? `Welcome back, ${firstName}`
+      : "Your progress";
   const burst = usePointsBurst(points);
-  // Clamp defensively in case the RPC ever returns 0 / >100; the pill should
-  // always read like a sensible percentile, never "top 0%".
   const topPctClamped =
     topPercent !== null && Number.isFinite(topPercent)
       ? Math.min(100, Math.max(1, Math.round(topPercent)))
       : null;
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/5 bg-[#1e1a1f] shadow-[0_8px_28px_rgba(0,0,0,0.35)]">
-      <div className="h-[3px] w-full bg-amber" aria-hidden />
+    <div
+      className="overflow-hidden rounded-2xl border border-black/[0.1] shadow-[0_8px_28px_rgba(0,0,0,0.35)]"
+      style={{ backgroundColor: POINTS_CARD_YELLOW }}
+    >
       <div className="space-y-3 px-4 pt-4 pb-4">
-        <div className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-white/45">
-          <Trophy size={12} strokeWidth={2.25} className="text-norange" aria-hidden />
-          <span className="leading-none">{greeting}</span>
-        </div>
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-white/45">
+        <p
+          className="m-0 text-[10px] font-bold uppercase tracking-[0.12em] leading-snug"
+          style={{ color: POINTS_CARD_MUTED }}
+        >
+          {greeting}
+        </p>
+
+        <div>
+          <p
+            className="m-0 text-[11px] font-semibold uppercase tracking-[0.1em]"
+            style={{ color: POINTS_CARD_MUTED }}
+          >
             Points
-          </span>
-          <div className="relative">
+          </p>
+          <div className="relative mt-1.5 inline-flex">
             {burst ? <PointsBurst delta={burst.delta} tone="dark" /> : null}
             <FlipCounter value={points} size={30} tone="dark" />
           </div>
         </div>
+
         {topPctClamped !== null && (
           <div
-            className="mt-1 flex w-full items-center justify-center gap-1 rounded-full bg-white/[0.05] py-2 text-[12px] font-bold text-white/70"
+            className="inline-flex max-w-full items-center gap-0.5 rounded-full bg-homeInk px-3 py-2 text-[12px] leading-tight"
             aria-label={`You are in the top ${topPctClamped} percent of users`}
           >
-            You are in top <span className="text-amber">{topPctClamped}%</span>
+            <span className="font-medium text-white/70">You are in</span>
+            <span className="font-extrabold" style={{ color: POINTS_CARD_YELLOW }}>
+              Top {topPctClamped}%
+            </span>
           </div>
         )}
       </div>
@@ -297,11 +232,10 @@ export function UserPointsSidebarCard({
   );
 }
 
-// ── Mobile bottom strip (light) ───────────────────────────────────────────────
+// ── Mobile bottom strip (yellow) ──────────────────────────────────────────────
 
 /**
- * Fixed mobile strip shown above the bottom nav for logged-in users.
- * Replaces {@link GuestAccountMobileStrip} when the user has a session.
+ * Fixed mobile strip above the bottom nav: Points | Rank | Streak on yellow with column dividers.
  * Dismissal is in-memory only — the strip reappears on every page refresh.
  */
 export function UserPointsMobileStrip({
@@ -311,71 +245,97 @@ export function UserPointsMobileStrip({
 }: {
   points: number;
   streak: number;
-  /** "Top X%" from `get_user_top_percent` RPC. Falls back to "Your progress" when null. */
+  /** "Top X%" from `get_user_top_percent` RPC. */
   topPercent?: number | null;
 }) {
   const [dismissed, setDismissed] = useState(false);
 
   if (dismissed) return null;
 
-  // Defensive clamp — mirrors the sidebar card so the strip never reads "top 0%".
   const topPctClamped =
     topPercent !== null && Number.isFinite(topPercent)
       ? Math.min(100, Math.max(1, Math.round(topPercent)))
       : null;
 
+  const burst = usePointsBurst(points);
+
+  const labelClass =
+    "m-0 text-[8px] font-semibold uppercase tracking-[0.12em] leading-none mb-1";
+
   return (
     <>
-      {/* Scroll clearance so content isn't hidden behind the fixed strip */}
-      <div className="sm:hidden h-[84px] shrink-0" aria-hidden />
+      <div className="sm:hidden h-[76px] shrink-0" aria-hidden />
 
       <section
         aria-label="Your progress"
         className="sm:hidden fixed inset-x-0 bottom-0 z-[49] pointer-events-none pb-[calc(76px+env(safe-area-inset-bottom,0px))]"
       >
-        <div className="pointer-events-auto w-full border-t-[3px] border-amber bg-white shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
-          <div className="relative flex items-center gap-3 px-3.5 py-2 pr-9">
+        <div
+          className="pointer-events-auto w-full border-y border-black shadow-[0_-4px_16px_rgba(0,0,0,0.12)]"
+          style={{ backgroundColor: POINTS_CARD_YELLOW }}
+        >
+          <div className="relative flex min-h-[52px] items-stretch px-1 py-2 pr-9">
             <button
               type="button"
               aria-label="Dismiss progress strip"
               onClick={() => setDismissed(true)}
-              className="absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-homeSubtle/90 transition-colors hover:bg-homeInk/[0.06] hover:text-homeInk"
+              className="absolute right-1 top-1/2 z-[1] flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full transition-colors hover:bg-black/10"
+              style={{ color: POINTS_CARD_MUTED }}
             >
-              <X size={15} strokeWidth={2.25} aria-hidden />
+              <X size={14} strokeWidth={2.25} aria-hidden />
             </button>
 
-            <div className="min-w-0">
+            {/* Points */}
+            <div
+              className="flex min-w-0 flex-1 flex-col items-start justify-center border-r px-1.5 py-0.5 sm:px-2"
+              style={{ borderColor: STRIP_DIVIDER }}
+            >
+              <p className={labelClass} style={{ color: POINTS_CARD_MUTED }}>
+                Points
+              </p>
+              <div className="relative inline-flex max-w-full">
+                {burst ? <PointsBurst delta={burst.delta} tone="dark" /> : null}
+                <FlipCounter value={points} size={17} tone="dark" />
+              </div>
+            </div>
+
+            {/* Rank */}
+            <div
+              className="flex min-w-0 flex-1 flex-col items-start justify-center border-r px-1.5 py-0.5 text-left"
+              style={{ borderColor: STRIP_DIVIDER }}
+            >
+              <p className={labelClass} style={{ color: POINTS_CARD_MUTED }}>
+                Rank
+              </p>
               {topPctClamped !== null ? (
-                <div
-                  className="flex items-center gap-1.5"
+                <p
+                  className="m-0 max-w-full text-[10px] leading-tight text-homeInk"
                   aria-label={`You are in the top ${topPctClamped} percent of users`}
                 >
-                  <Trophy size={11} strokeWidth={2.25} className="text-norange shrink-0" aria-hidden />
-                  {/* Two-line stack keeps the strip compact while still spelling out
-                      that *the viewer* is the one in the top bucket — not a generic
-                      label. The small caption sits above the percentile number. */}
-                  <div className="flex flex-col leading-none">
-                    <span className="text-[7px] font-semibold uppercase tracking-[0.08em] text-muted whitespace-nowrap">
-                      You are in
-                    </span>
-                    {/* "Top" inherits the same muted tone as the caption above so
-                        the percentile number is the only thing that pops in brand
-                        norange. */}
-                    <span className="mt-[3px] text-[13px] font-extrabold tabular-nums whitespace-nowrap text-muted">
-                      Top <span className="text-norange">{topPctClamped}%</span>
-                    </span>
-                  </div>
-                </div>
+                  <span className="font-medium">You are in </span>
+                  <span className="font-extrabold">
+                    Top {topPctClamped}%
+                  </span>
+                </p>
               ) : (
-                <p className="m-0 inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-[0.06em] text-muted whitespace-nowrap">
-                  <Trophy size={10} strokeWidth={2.25} className="text-norange" aria-hidden />
-                  Your progress
+                <p className="m-0 flex items-center gap-0.5 text-[10px] font-medium leading-tight text-homeInk/80">
+                  <Trophy size={11} strokeWidth={2.25} className="shrink-0" aria-hidden />
+                  <span className="line-clamp-2">Earn points to rank</span>
                 </p>
               )}
             </div>
 
-            <div className="ml-auto mr-1 shrink-0">
-              <StatRow points={points} streak={streak} tone="light" />
+            {/* Streak */}
+            <div className="flex min-w-0 flex-[0.85] flex-col items-start justify-center pl-1.5 pr-1 py-0.5 sm:pl-2">
+              <p className={labelClass} style={{ color: POINTS_CARD_MUTED }}>
+                Streak
+              </p>
+              <p className="m-0 flex items-center gap-0.5 text-[11px] font-extrabold leading-none text-homeInk">
+                <span aria-hidden>🔥</span>
+                <span className="tabular-nums">
+                  {streak} {streak === 1 ? "day" : "days"}
+                </span>
+              </p>
             </div>
           </div>
         </div>
