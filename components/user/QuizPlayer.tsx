@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check, ChevronLeft, LogIn, Trophy, X, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { Quiz, QuizQuestion } from "@/lib/types";
-import { awardPointsAction } from "@/app/actions/awardPointsAction";
+import { completeQuizAction } from "@/app/actions/completeQuizAction";
 
 const PENDING_KEY = "nudgeable_pending_quiz_points";
 
@@ -26,18 +26,15 @@ interface Props {
 function TimerRing({
   timeLeft,
   total,
-  locked,
 }: {
   timeLeft: number;
   total: number;
-  locked: boolean;
 }) {
   const radius = 14;
   const circumference = 2 * Math.PI * radius;
-  const pct = locked ? (timeLeft > 0 ? timeLeft / total : 0) : timeLeft / total;
+  const pct = total > 0 ? Math.max(0, timeLeft) / total : 0;
   const offset = circumference * (1 - pct);
 
-  const trackColor = "rgba(34,29,35,0.08)";
   const ringColor =
     timeLeft <= 0
       ? "#ED4551"
@@ -58,7 +55,7 @@ function TimerRing({
         <circle
           cx="18" cy="18" r={radius}
           fill="none"
-          stroke={trackColor}
+          stroke="rgba(34,29,35,0.08)"
           strokeWidth="3"
         />
         <circle
@@ -76,7 +73,7 @@ function TimerRing({
         className="relative text-[11px] font-black tabular-nums leading-none"
         style={{ color: ringColor }}
       >
-        {timeLeft <= 0 ? "0" : timeLeft}
+        {Math.max(0, timeLeft)}
       </span>
     </div>
   );
@@ -87,7 +84,7 @@ function TimerRing({
 export default function QuizPlayer({ quiz, questions, isLoggedIn }: Props) {
   const total = questions.length;
 
-  // Per-question preserved state (survives back navigation)
+  // Per-question preserved state — survive back/forward navigation
   const [answers, setAnswers] = useState<(number | null)[]>(() =>
     questions.map(() => null)
   );
@@ -96,120 +93,118 @@ export default function QuizPlayer({ quiz, questions, isLoggedIn }: Props) {
   );
 
   const [step, setStep] = useState(0);
+  // timeLeft is set together with setStep in every navigation call → single
+  // batched render → timer effect always sees the correct initial value.
   const [timeLeft, setTimeLeft] = useState(quiz.time_per_question);
-  const [done, setDone] = useState(false);
-  const [awarding, setAwarding] = useState(false);
 
-  // Tracks which steps have already had points awarded (prevents double-counting for guests)
-  const awardedSteps = useRef(new Set<number>());
-  // Running guest point total
-  const [sessionPoints, setSessionPoints] = useState(0);
+  const [done, setDone] = useState(false);
+  const [completing, setCompleting] = useState(false);
+
+  // Used inside the timer effect to avoid stale closure on `step`
+  const stepRef = useRef(step);
+  useEffect(() => { stepRef.current = step; });
 
   const router = useRouter();
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
 
-  // Derived state for the current question
+  // ── Derived state ───────────────────────────────────────────────────────────
+
   const q = questions[step];
   const options = q.quiz_options?.map((o) => o.option_text) ?? [];
   const correctIndex = q.quiz_options?.findIndex((o) => o.is_correct) ?? -1;
   const currentAnswer = answers[step];
   const currentTimedOut = timedOut[step];
-  const isLocked = currentAnswer !== null || currentTimedOut; // can't change answer
+  const isLocked = currentAnswer !== null || currentTimedOut;
   const isCorrect = currentAnswer === correctIndex && !currentTimedOut;
   const isLastQuestion = step === total - 1;
   const questionPoints = q.points_award ?? quiz.points_per_question;
 
   // ── Timer ───────────────────────────────────────────────────────────────────
+  // `step` is intentionally NOT in the dep array — step changes always come
+  // with a paired setTimeLeft call in the same React batch (see goToStep /
+  // handleBack / handleContinue), so the effect already sees the correct
+  // timeLeft on the new render without needing to re-run on step change.
 
-  // Reset timer whenever the step changes
-  useEffect(() => {
-    const alreadyDone = answers[step] !== null || timedOut[step];
-    setTimeLeft(alreadyDone ? 0 : quiz.time_per_question);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step]);
-
-  // Count down; expire when it hits 0
   useEffect(() => {
     if (isLocked || done) return;
     if (timeLeft <= 0) {
+      const s = stepRef.current;
       setTimedOut((prev) => {
         const next = [...prev];
-        next[step] = true;
+        next[s] = true;
         return next;
       });
       return;
     }
     const id = setTimeout(() => setTimeLeft((t) => t - 1), 1000);
     return () => clearTimeout(id);
-  }, [timeLeft, isLocked, done, step]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeLeft, isLocked, done]);
 
-  // ── Navigation ──────────────────────────────────────────────────────────────
+  // ── Navigation helpers ──────────────────────────────────────────────────────
+
+  /** Time to show when arriving at question `i`. */
+  function timeForStep(i: number): number {
+    const done = answers[i] !== null || timedOut[i];
+    return done ? 0 : quiz.time_per_question;
+  }
+
+  function selectAnswer(idx: number) {
+    if (isLocked) return;
+    setAnswers((prev) => {
+      const next = [...prev];
+      next[step] = idx;
+      return next;
+    });
+    // Stop the timer by setting timeLeft=0 so the effect fires and
+    // sees isLocked=true, but does NOT call setTimedOut (answer was given).
+    // We do this by leaving timeLeft alone — isLocked becoming true is enough
+    // to stop the effect from scheduling another tick.
+  }
 
   async function handleContinue() {
-    if (!isLocked || awarding) return;
-
-    // Award points for a correct answer the first time we leave this step
-    if (isCorrect && !awardedSteps.current.has(step)) {
-      awardedSteps.current.add(step);
-      if (isLoggedIn) {
-        setAwarding(true);
-        await awardPointsAction({
-          sourceType: "quiz_question",
-          sourceId: q.id,
-          pointsAward: q.points_award,
-          defaultPoints: quiz.points_per_question,
-        });
-        setAwarding(false);
-      } else {
-        setSessionPoints((p) => p + questionPoints);
-      }
-    }
+    if (!isLocked || completing) return;
 
     if (isLastQuestion) {
-      // Completion bonus
-      if (quiz.completion_bonus > 0) {
-        if (isLoggedIn) {
-          setAwarding(true);
-          await awardPointsAction({
-            sourceType: "quiz",
-            sourceId: quiz.id,
-            pointsAward: quiz.completion_bonus,
-            defaultPoints: quiz.completion_bonus,
-          });
-          setAwarding(false);
-        } else {
-          setSessionPoints((p) => p + quiz.completion_bonus);
+      // Calculate total earned this session (correct answers × question pts)
+      const earned = questions.reduce((sum, q, i) => {
+        const ci = q.quiz_options?.findIndex((o) => o.is_correct) ?? -1;
+        if (answers[i] === ci && !timedOut[i]) {
+          return sum + (q.points_award ?? quiz.points_per_question);
         }
+        return sum;
+      }, 0) + (isCorrect ? 0 : 0); // bonus handled below
+      const totalEarned = earned + quiz.completion_bonus;
+
+      if (isLoggedIn) {
+        setCompleting(true);
+        await completeQuizAction({ quizId: quiz.id, pointsEarned: totalEarned });
+        setCompleting(false);
       }
       router.refresh();
       setDone(true);
       return;
     }
 
-    setStep((s) => s + 1);
+    // Move forward — reset timer as part of the same state batch
+    const nextStep = step + 1;
+    setTimeLeft(timeForStep(nextStep));
+    setStep(nextStep);
   }
 
   function handleBack() {
     if (step === 0 || done) return;
-    setStep((s) => s - 1);
+    const prevStep = step - 1;
+    setTimeLeft(timeForStep(prevStep));
+    setStep(prevStep);
   }
 
   function handleClose() {
     router.push("/play");
   }
 
-  function selectAnswer(idx: number) {
-    if (isLocked) return; // timed-out or already answered
-    setAnswers((prev) => {
-      const next = [...prev];
-      next[step] = idx;
-      return next;
-    });
-  }
-
-  function handleLoginToSave() {
-    const pts = sessionPoints;
+  function handleLoginToSave(pts: number) {
     if (pts > 0) {
       try {
         const existing: PendingEntry[] = JSON.parse(
@@ -256,11 +251,17 @@ export default function QuizPlayer({ quiz, questions, isLoggedIn }: Props) {
   // ── Completion screen ───────────────────────────────────────────────────────
 
   if (done) {
-    const correctCount = answers.filter((a, i) => {
-      const ci = questions[i].quiz_options?.findIndex((o) => o.is_correct) ?? -1;
-      return a === ci;
+    const correctCount = questions.filter((q, i) => {
+      const ci = q.quiz_options?.findIndex((o) => o.is_correct) ?? -1;
+      return answers[i] === ci && !timedOut[i];
     }).length;
-    const finalPoints = isLoggedIn ? correctCount * (quiz.points_per_question) : sessionPoints;
+
+    const finalPoints = questions.reduce((sum, q, i) => {
+      const ci = q.quiz_options?.findIndex((o) => o.is_correct) ?? -1;
+      return answers[i] === ci && !timedOut[i]
+        ? sum + (q.points_award ?? quiz.points_per_question)
+        : sum;
+    }, 0) + quiz.completion_bonus;
 
     return (
       <div
@@ -300,7 +301,11 @@ export default function QuizPlayer({ quiz, questions, isLoggedIn }: Props) {
 
           <div>
             <h2 className="text-2xl font-extrabold mb-2" style={{ color: "#F5F0D8" }}>
-              {correctCount === total ? "Perfect score!" : correctCount >= total * 0.7 ? "Well done!" : "Quiz finished!"}
+              {correctCount === total
+                ? "Perfect score!"
+                : correctCount >= Math.ceil(total * 0.7)
+                ? "Well done!"
+                : "Quiz finished!"}
             </h2>
             <p className="text-sm" style={{ color: "rgba(245,240,216,0.55)" }}>
               You got{" "}
@@ -316,9 +321,15 @@ export default function QuizPlayer({ quiz, questions, isLoggedIn }: Props) {
               <Zap size={16} className="text-amber" strokeWidth={2.5} />
               <span className="font-extrabold text-amber text-lg tabular-nums">+{finalPoints}</span>
               <span className="text-sm font-semibold" style={{ color: "rgba(245,240,216,0.60)" }}>
-                {isLoggedIn ? "points earned" : "points to save"}
+                {isLoggedIn ? "points this attempt" : "points to save"}
               </span>
             </div>
+          )}
+
+          {isLoggedIn && (
+            <p className="text-xs" style={{ color: "rgba(245,240,216,0.35)" }}>
+              Your score for this quiz has been updated.
+            </p>
           )}
 
           {!isLoggedIn && finalPoints > 0 && (
@@ -326,7 +337,7 @@ export default function QuizPlayer({ quiz, questions, isLoggedIn }: Props) {
               <p className="text-xs" style={{ color: "rgba(245,240,216,0.40)" }}>
                 Log in to save your progress and keep your points.
               </p>
-              <button type="button" onClick={handleLoginToSave}
+              <button type="button" onClick={() => handleLoginToSave(finalPoints)}
                 className="w-full py-3 rounded-full font-bold text-sm flex items-center justify-center gap-2"
                 style={{ background: "#FFCE00", color: "#221D23" }}>
                 <LogIn size={15} strokeWidth={2.5} />
@@ -367,7 +378,7 @@ export default function QuizPlayer({ quiz, questions, isLoggedIn }: Props) {
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
-      {/* Accent strip — turns red when timed out */}
+      {/* Accent strip — flips red on timeout */}
       <div className="h-1 w-full flex-shrink-0 transition-colors duration-500"
         style={{
           background: currentTimedOut
@@ -384,22 +395,20 @@ export default function QuizPlayer({ quiz, questions, isLoggedIn }: Props) {
           {step > 0 ? <ChevronLeft size={20} /> : <X size={20} />}
         </button>
 
-        {/* Progress dots */}
+        {/* Progress dots — green = correct, red = wrong/timed-out */}
         <div className="flex gap-1.5 items-center">
           {Array.from({ length: total }).map((_, i) => {
-            const isPast = i < step;
             const isCurrent = i === step;
+            const isSeen = i < step || (isCurrent && isLocked);
             const wasTimedOut = timedOut[i];
-            const wasAnswered = answers[i] !== null;
             const wasCorrect =
-              wasAnswered &&
-              answers[i] === (questions[i].quiz_options?.findIndex((o) => o.is_correct) ?? -1);
+              answers[i] !== null &&
+              answers[i] === (questions[i].quiz_options?.findIndex((o) => o.is_correct) ?? -1) &&
+              !timedOut[i];
 
             let dotColor = "rgba(34,29,35,0.10)";
-            if (isPast || (isCurrent && isLocked)) {
-              if (wasTimedOut) dotColor = "#ED4551";
-              else if (wasCorrect) dotColor = "#23CE6B";
-              else dotColor = "#ED4551";
+            if (isSeen) {
+              dotColor = wasTimedOut || !wasCorrect ? "#ED4551" : "#23CE6B";
             } else if (isCurrent) {
               dotColor = accent.color;
             }
@@ -411,12 +420,8 @@ export default function QuizPlayer({ quiz, questions, isLoggedIn }: Props) {
           })}
         </div>
 
-        {/* Timer ring */}
-        <TimerRing
-          timeLeft={timeLeft}
-          total={quiz.time_per_question}
-          locked={isLocked}
-        />
+        {/* Countdown ring */}
+        <TimerRing timeLeft={timeLeft} total={quiz.time_per_question} />
       </div>
 
       {/* Badge */}
@@ -450,7 +455,7 @@ export default function QuizPlayer({ quiz, questions, isLoggedIn }: Props) {
           {options.map((opt, i) => {
             const sel = currentAnswer === i;
             const correct = i === correctIndex;
-            const revealed = isLocked; // locked = answered OR timed-out
+            const revealed = isLocked;
 
             let style: React.CSSProperties = {
               background: "#FAFAF8",
@@ -463,21 +468,17 @@ export default function QuizPlayer({ quiz, questions, isLoggedIn }: Props) {
             };
 
             if (!revealed && sel) {
-              // Selected but not yet locked
               style = { background: "#EEEDFE", border: "1.5px solid #623CEA", color: "#3C3489" };
               letterStyle = { background: "#623CEA", color: "#fff" };
             }
             if (revealed && correct) {
-              // Always highlight correct after reveal (answered OR timed out)
               style = { background: "#EDFBF3", border: "1.5px solid #23CE6B", color: "#0A6632" };
               letterStyle = { background: "#23CE6B", color: "#fff" };
             }
             if (revealed && sel && !correct) {
-              // User's wrong choice
               style = { background: "#FEF0EE", border: "1.5px solid #ED4551", color: "#8C1C24" };
               letterStyle = { background: "#ED4551", color: "#fff" };
             }
-            // Timed out + not selected + not correct → dim
             if (currentTimedOut && !sel && !correct) {
               style = { background: "#F8F7F5", border: "1.5px solid rgba(34,29,35,0.07)", color: "#b0a090" };
               letterStyle = { background: "rgba(34,29,35,0.04)", color: "#c0b0a0" };
@@ -513,7 +514,7 @@ export default function QuizPlayer({ quiz, questions, isLoggedIn }: Props) {
                 : { background: "rgba(237,69,81,0.08)", color: "#8C1C24", border: "1px solid rgba(237,69,81,0.20)" }
             }>
             {currentTimedOut
-              ? `⏱ Time's up! The correct answer is highlighted above.`
+              ? "⏱ Time's up! The correct answer is highlighted above."
               : isCorrect
               ? <>
                   ✓ {q.feedback_correct}
@@ -528,24 +529,24 @@ export default function QuizPlayer({ quiz, questions, isLoggedIn }: Props) {
         )}
       </div>
 
-      {/* Bottom action */}
+      {/* Bottom CTA */}
       <div className="px-5 pb-6 pt-3 flex-shrink-0"
         style={{ borderTop: "1px solid rgba(34,29,35,0.07)" }}>
         <button
           onClick={handleContinue}
-          disabled={!isLocked || awarding}
+          disabled={!isLocked || completing}
           className="w-full py-3 rounded-full font-bold text-sm transition-all active:scale-[0.98]"
           style={{
-            background: !isLocked ? "rgba(34,29,35,0.06)" : awarding ? accent.color : accent.color,
+            background: !isLocked ? "rgba(34,29,35,0.06)" : accent.color,
             color: !isLocked ? "#b0a090" : "#ffffff",
-            opacity: awarding ? 0.6 : 1,
-            cursor: !isLocked ? "not-allowed" : awarding ? "wait" : "pointer",
-            boxShadow: !isLocked || awarding ? "none" : `0 4px 18px ${accent.color}40`,
+            opacity: completing ? 0.6 : 1,
+            cursor: !isLocked ? "not-allowed" : completing ? "wait" : "pointer",
+            boxShadow: !isLocked || completing ? "none" : `0 4px 18px ${accent.color}40`,
           }}>
-          {awarding
+          {completing
             ? "Saving…"
             : !isLocked
-            ? `Answer to continue (${timeLeft}s)`
+            ? `Answer to continue (${Math.max(0, timeLeft)}s)`
             : isLastQuestion
             ? "Finish →"
             : "Continue →"}
