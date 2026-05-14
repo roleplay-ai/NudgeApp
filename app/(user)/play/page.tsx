@@ -15,6 +15,18 @@ export default async function PlayPage() {
     supabase.auth.getUser(),
   ]);
 
+  let completionMap: Record<string, number> = {};
+  if (user) {
+    const { data: completions } = await supabase
+      .from("quiz_completions")
+      .select("quiz_id, points_earned");
+    if (completions) {
+      for (const c of completions) {
+        completionMap[c.quiz_id] = c.points_earned;
+      }
+    }
+  }
+
   return (
     <div>
       <div className="flex items-center gap-2 mb-2">
@@ -32,7 +44,11 @@ export default async function PlayPage() {
       <p className="text-sm text-muted mb-6 max-w-2xl">
         Quick quizzes to check what you know. Answer each question and earn points.
       </p>
-      <QuizList quizzes={(quizzes || []) as Quiz[]} isLoggedIn={!!user} />
+      <QuizList
+        quizzes={(quizzes || []) as Quiz[]}
+        isLoggedIn={!!user}
+        completions={completionMap}
+      />
     </div>
   );
 }
