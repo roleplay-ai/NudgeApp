@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 
 type DailyStat  = { day: string; views: number; unique_sessions: number; unique_ips: number };
 type EventStat  = { event: string; count: number };
@@ -66,8 +66,8 @@ function formatDay(iso: string) {
   }
 }
 
-function Skeleton({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse bg-gray-100 rounded ${className}`} />;
+function Skeleton({ className = "", style }: { className?: string; style?: CSSProperties }) {
+  return <div className={`animate-pulse bg-gray-100 rounded ${className}`} style={style} />;
 }
 
 function ContentLeaderboard({
@@ -246,7 +246,7 @@ export default function AnalyticsAdmin() {
         {loading ? (
           <div className="flex items-end gap-1.5 h-28">
             {Array.from({ length: range }).map((_, i) => (
-              <Skeleton key={i} className="flex-1 rounded-t-sm" style={{ height: `${30 + Math.random() * 50}%` } as React.CSSProperties} />
+              <Skeleton key={i} className="flex-1 rounded-t-sm" style={{ height: `${30 + Math.random() * 50}%` }} />
             ))}
           </div>
         ) : daily.length === 0 ? (
