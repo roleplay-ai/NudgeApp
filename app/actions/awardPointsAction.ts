@@ -31,6 +31,7 @@ export async function awardPointsAction({
     | "news"
     | "apply_video"
     | "quiz_question"
+    | "quiz"
     | "resource"
     | "tool"
     | string;
@@ -78,6 +79,7 @@ export async function awardPointsAction({
   revalidatePath("/");
   revalidatePath("/learn");
   revalidatePath("/apply");
+  revalidatePath("/play");
   revalidatePath("/profile");
 
   return { success: true };

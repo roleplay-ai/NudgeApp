@@ -10,6 +10,7 @@ import {
   Lightbulb,
   LogIn,
   LogOut,
+  Trophy,
   UserRound,
   Wrench,
 } from "lucide-react";
@@ -27,6 +28,7 @@ const SESSION_ACTIVE_KEY = "nudgeable_session_active";
 const items = [
   { href: "/", label: "Home", icon: Home },
   { href: "/learn", label: "Learn", icon: GraduationCap },
+  { href: "/play", label: "Play", icon: Trophy },
   { href: "/apply", label: "Apply", icon: Crosshair },
   { href: "/tools", label: "Tools", icon: Wrench },
   { href: "/insights", label: "Insights", icon: Lightbulb },
@@ -235,7 +237,7 @@ export default function UserNav({
                     }`}
                 >
                   <Ic size={17} strokeWidth={2.2} className={active ? "text-amber" : "text-homeCanvas/85"} />
-                  <span className="text-[10px] font-bold leading-tight w-full text-center truncate">
+                  <span className="text-[10px] font-bold leading-tight w-full text-center truncate whitespace-nowrap">
                     {it.label}
                   </span>
                 </Link>
@@ -252,7 +254,9 @@ export default function UserNav({
                   }`}
               >
                 <ProfileAvatar avatarUrl={avatarUrl} displayName={displayName} size="sm" />
-                <span className="text-[10px] font-bold leading-tight w-full text-center truncate">Profile</span>
+                <span className="text-[10px] font-bold leading-tight w-full text-center truncate whitespace-nowrap">
+                  Profile
+                </span>
               </Link>
             ) : (
               <Link
@@ -264,7 +268,9 @@ export default function UserNav({
                   }`}
               >
                 <LogIn size={17} strokeWidth={2.2} className={path === "/login" ? "text-amber" : "text-homeCanvas/85"} />
-                <span className="text-[10px] font-bold leading-tight w-full text-center truncate">Sign in</span>
+                <span className="text-[10px] font-bold leading-tight w-full text-center truncate whitespace-nowrap">
+                  Sign in
+                </span>
               </Link>
             )}
           </div>
