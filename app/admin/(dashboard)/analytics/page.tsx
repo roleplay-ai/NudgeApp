@@ -30,6 +30,24 @@ type Range = (typeof RANGES)[number];
 
 type ContentTab = "videos" | "news" | "products" | "apply" | "links";
 
+type LoggedInUserRow = {
+  userId: string;
+  email: string;
+  displayName: string;
+  eventCount: number;
+  lastSeenAt: string;
+};
+
+type LoggedInUsersPayload = {
+  items: LoggedInUserRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+
+const LOGGED_IN_USERS_PAGE_SIZE = 15;
+
 const CONTENT_TABS: { key: ContentTab; label: string; icon: string; eventKey: string }[] = [
   { key: "videos",   label: "Videos",   icon: "▶",  eventKey: "video_click"   },
   { key: "news",     label: "News",     icon: "📰", eventKey: "news_click"    },
@@ -61,6 +79,19 @@ const EVENT_COLOR: Record<string, string> = {
 function formatDay(iso: string) {
   try {
     return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
+}
+
+function formatDateTime(iso: string) {
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(new Date(iso));
   } catch {
     return iso;
   }
@@ -145,6 +176,15 @@ export default function AnalyticsAdmin() {
   const [error, setError]         = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ContentTab>("videos");
 
+  const [usersPage, setUsersPage]           = useState(1);
+  const [usersData, setUsersData]         = useState<LoggedInUsersPayload | null>(null);
+  const [usersLoading, setUsersLoading]   = useState(true);
+  const [usersError, setUsersError]       = useState<string | null>(null);
+
+  useEffect(() => {
+    setUsersPage(1);
+  }, [range]);
+
   useEffect(() => {
     setLoading(true);
     setError(null);
@@ -160,6 +200,27 @@ export default function AnalyticsAdmin() {
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false));
   }, [range]);
+
+  useEffect(() => {
+    setUsersLoading(true);
+    setUsersError(null);
+    const q = new URLSearchParams({
+      days: String(range),
+      page: String(usersPage),
+      pageSize: String(LOGGED_IN_USERS_PAGE_SIZE),
+    });
+    fetch(`/api/analytics/logged-in-users?${q}`)
+      .then((r) => {
+        if (!r.ok) throw new Error(`Server error ${r.status}`);
+        return r.json();
+      })
+      .then((json) => {
+        if (json.error) throw new Error(json.error);
+        setUsersData(json as LoggedInUsersPayload);
+      })
+      .catch((e) => setUsersError(String(e)))
+      .finally(() => setUsersLoading(false));
+  }, [range, usersPage]);
 
   const kpis  = data?.kpis;
   const daily = data?.daily ?? [];
@@ -231,6 +292,98 @@ export default function AnalyticsAdmin() {
             <div className="text-[10px] text-muted/70 mt-0.5 leading-tight">{k.desc}</div>
           </div>
         ))}
+      </div>
+
+      {/* Logged-in users — paginated directory */}
+      <div className="bg-white rounded-2xl p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
+            <div className="font-bold text-sm">Logged-in users</div>
+            <div className="text-[11px] text-muted mt-0.5">
+              Accounts with at least one tracked event in the last {range} days
+            </div>
+          </div>
+          {!usersLoading && usersData && usersData.total > 0 && (
+            <div className="text-xs text-muted tabular-nums">
+              {usersData.total.toLocaleString()} total
+            </div>
+          )}
+        </div>
+
+        {usersError && (
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-3 py-2 mb-3">
+            Could not load user list: {usersError}
+          </div>
+        )}
+
+        {usersLoading ? (
+          <div className="space-y-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-10" />
+            ))}
+          </div>
+        ) : !usersData?.items.length ? (
+          <p className="text-sm text-muted py-6 text-center">No logged-in activity in this period.</p>
+        ) : (
+          <>
+            <div className="overflow-x-auto rounded-xl border border-nborder">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-chiffon/80 text-left text-[11px] font-semibold text-muted uppercase tracking-wide">
+                    <th className="px-3 py-2.5">Name</th>
+                    <th className="px-3 py-2.5">Email</th>
+                    <th className="px-3 py-2.5 text-right">Events</th>
+                    <th className="px-3 py-2.5 text-right whitespace-nowrap">Last seen</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {usersData.items.map((u) => (
+                    <tr key={u.userId} className="border-t border-nborder hover:bg-chiffon/40">
+                      <td className="px-3 py-2.5 font-medium text-shadow max-w-[200px] truncate" title={u.displayName}>
+                        {u.displayName}
+                      </td>
+                      <td className="px-3 py-2.5 text-muted max-w-[220px] truncate" title={u.email}>
+                        {u.email || "—"}
+                      </td>
+                      <td className="px-3 py-2.5 text-right tabular-nums font-semibold">
+                        {u.eventCount.toLocaleString()}
+                      </td>
+                      <td className="px-3 py-2.5 text-right text-muted text-xs whitespace-nowrap">
+                        {formatDateTime(u.lastSeenAt)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {usersData.totalPages > 1 && (
+              <div className="flex flex-wrap items-center justify-between gap-3 mt-4 pt-3 border-t border-nborder">
+                <span className="text-xs text-muted tabular-nums">
+                  Page {usersData.page} of {usersData.totalPages}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={usersPage <= 1}
+                    onClick={() => setUsersPage((p) => Math.max(1, p - 1))}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-nborder bg-white text-shadow disabled:opacity-40 disabled:pointer-events-none hover:bg-chiffon"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    type="button"
+                    disabled={usersPage >= usersData.totalPages}
+                    onClick={() => setUsersPage((p) => p + 1)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-nborder bg-white text-shadow disabled:opacity-40 disabled:pointer-events-none hover:bg-chiffon"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Daily unique visitors chart */}
