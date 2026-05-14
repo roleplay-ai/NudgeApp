@@ -1,17 +1,62 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 
-type Row = Record<string, unknown>;
+type DailyStat  = { day: string; views: number; unique_sessions: number; unique_ips: number };
+type EventStat  = { event: string; count: number };
+type ContentItem = { item_id: string | null; title: string; url?: string; creator?: string; count: number };
 
-type PageStat    = { page: string; views: number; unique_visitors: number };
-type EventStat   = { event: string; count: number };
-type ClickStat   = { title: string; event: string; count: number };
-type DailyStat   = { day: string; views: number; unique_visitors: number; unique_ips: number };
+type AnalyticsData = {
+  kpis: {
+    pageViews: number;
+    uniqueSessions: number;
+    uniqueIps: number;
+    loggedInUsers: number;
+    totalEvents: number;
+  };
+  daily: DailyStat[];
+  eventBreakdown: EventStat[];
+  content: {
+    videos: ContentItem[];
+    news: ContentItem[];
+    products: ContentItem[];
+    apply: ContentItem[];
+    links: ContentItem[];
+  };
+};
 
 const RANGES = [7, 14, 30] as const;
 type Range = (typeof RANGES)[number];
+
+type ContentTab = "videos" | "news" | "products" | "apply" | "links";
+
+const CONTENT_TABS: { key: ContentTab; label: string; icon: string; eventKey: string }[] = [
+  { key: "videos",   label: "Videos",   icon: "▶",  eventKey: "video_click"   },
+  { key: "news",     label: "News",     icon: "📰", eventKey: "news_click"    },
+  { key: "products", label: "Products", icon: "📦", eventKey: "product_click" },
+  { key: "apply",    label: "Apply",    icon: "🎯", eventKey: "apply_click"   },
+  { key: "links",    label: "Links",    icon: "🔗", eventKey: "link_click"    },
+];
+
+const EVENT_LABEL: Record<string, string> = {
+  news_click:    "News",
+  video_click:   "Video",
+  product_click: "Product",
+  link_click:    "Link",
+  apply_click:   "Apply",
+  learn_click:   "Learn",
+  tool_click:    "Tool",
+};
+
+const EVENT_COLOR: Record<string, string> = {
+  video_click:   "bg-nblue",
+  news_click:    "bg-emerald",
+  product_click: "bg-npurple",
+  apply_click:   "bg-norange",
+  link_click:    "bg-amber",
+  learn_click:   "bg-nblue",
+  tool_click:    "bg-npurple",
+};
 
 function formatDay(iso: string) {
   try {
@@ -21,146 +66,133 @@ function formatDay(iso: string) {
   }
 }
 
-export default function AnalyticsAdmin() {
-  const supabase = createClient();
+function Skeleton({ className = "" }: { className?: string }) {
+  return <div className={`animate-pulse bg-gray-100 rounded ${className}`} />;
+}
 
-  const [range, setRange] = useState<Range>(7);
-  const [pages, setPages]       = useState<PageStat[]>([]);
-  const [events, setEvents]     = useState<EventStat[]>([]);
-  const [clicks, setClicks]     = useState<ClickStat[]>([]);
-  const [daily, setDaily]       = useState<DailyStat[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [total, setTotal]           = useState(0);
-  const [uniq, setUniq]             = useState(0);
-  const [uniqUsers, setUniqUsers]   = useState(0);
-  const [loggedIn, setLoggedIn]     = useState(0);
+function ContentLeaderboard({
+  items,
+  loading,
+  showCreator = false,
+  showUrl = false,
+  emptyMsg = "No data yet.",
+}: {
+  items: ContentItem[];
+  loading: boolean;
+  showCreator?: boolean;
+  showUrl?: boolean;
+  emptyMsg?: string;
+}) {
+  const max = Math.max(...items.map((i) => i.count), 1);
 
-  async function load(r: Range) {
-    setLoading(true);
-
-    const since = new Date(Date.now() - r * 24 * 60 * 60 * 1000).toISOString();
-
-    // All rows in range (limit 20k to stay safe)
-    const { data: rows, error } = await supabase
-      .from("analytics_events")
-      .select("event, page, visitor_id, ip_address, user_id, meta, created_at")
-      .gte("created_at", since)
-      .order("created_at", { ascending: false })
-      .limit(20000);
-
-    if (error || !rows) {
-      setLoading(false);
-      return;
-    }
-
-    const all = rows as Row[];
-
-    // ── Page views ────────────────────────────────────────────────
-    const pviews = all.filter((e) => e.event === "page_view");
-    setTotal(pviews.length);
-    const uniqueVisitors = new Set(pviews.map((e) => e.visitor_id)).size;
-    setUniq(uniqueVisitors);
-    const uniqueUsers = new Set(
-      pviews.map((e) => (e.ip_address ? String(e.ip_address) : "")).filter(Boolean)
-    ).size;
-    setUniqUsers(uniqueUsers);
-
-    const loggedInUsers = new Set(
-      all.map((e) => (e.user_id ? String(e.user_id) : "")).filter(Boolean)
-    ).size;
-    setLoggedIn(loggedInUsers);
-
-    const pageMap = new Map<string, { views: number; visitors: Set<string> }>();
-    for (const row of pviews) {
-      const p = String(row.page || "/");
-      if (!pageMap.has(p)) pageMap.set(p, { views: 0, visitors: new Set() });
-      const entry = pageMap.get(p)!;
-      entry.views++;
-      if (row.visitor_id) entry.visitors.add(row.visitor_id as string);
-    }
-    const pageStats: PageStat[] = [...pageMap.entries()]
-      .map(([page, { views, visitors }]) => ({ page, views, unique_visitors: visitors.size }))
-      .sort((a, b) => b.views - a.views);
-    setPages(pageStats);
-
-    // ── Event breakdown ───────────────────────────────────────────
-    const evMap = new Map<string, number>();
-    for (const row of all) {
-      const ev = String(row.event || "other");
-      evMap.set(ev, (evMap.get(ev) || 0) + 1);
-    }
-    const eventStats: EventStat[] = [...evMap.entries()]
-      .map(([event, count]) => ({ event, count }))
-      .sort((a, b) => b.count - a.count);
-    setEvents(eventStats);
-
-    // ── Top clicked items ─────────────────────────────────────────
-    const clickEvents = all.filter((e) => e.event !== "page_view");
-    const clickMap = new Map<string, { event: string; count: number }>();
-    for (const row of clickEvents) {
-      const meta = (row.meta as Record<string, string> | null) ?? {};
-      const title = meta.title || meta.url || String(row.page || "");
-      const key = `${row.event}||${title}`;
-      if (!clickMap.has(key)) clickMap.set(key, { event: String(row.event), count: 0 });
-      clickMap.get(key)!.count++;
-    }
-    const clickStats: ClickStat[] = [...clickMap.entries()]
-      .map(([key, { event, count }]) => ({
-        title: key.split("||")[1] || "",
-        event,
-        count,
-      }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 20);
-    setClicks(clickStats);
-
-    // ── Daily page views + unique users ──────────────────────────
-    const dailyMap = new Map<string, { views: number; visitors: Set<string>; ips: Set<string> }>();
-    for (const row of pviews) {
-      const day = String(row.created_at || "").slice(0, 10);
-      if (!dailyMap.has(day)) dailyMap.set(day, { views: 0, visitors: new Set(), ips: new Set() });
-      const entry = dailyMap.get(day)!;
-      entry.views++;
-      if (row.visitor_id) entry.visitors.add(row.visitor_id as string);
-      if (row.ip_address) entry.ips.add(row.ip_address as string);
-    }
-    const days: DailyStat[] = [...dailyMap.entries()]
-      .map(([day, { views, visitors, ips }]) => ({
-        day,
-        views,
-        unique_visitors: visitors.size,
-        unique_ips: ips.size,
-      }))
-      .sort((a, b) => a.day.localeCompare(b.day));
-    setDaily(days);
-
-    setLoading(false);
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10" />)}
+      </div>
+    );
+  }
+  if (!items.length) {
+    return <p className="text-sm text-muted py-6 text-center">{emptyMsg}</p>;
   }
 
+  return (
+    <div className="space-y-2">
+      {items.map((item, i) => {
+        const pct = Math.round((item.count / max) * 100);
+        return (
+          <div key={item.item_id ?? `${i}-${item.title}`} className="group">
+            <div className="flex items-start justify-between gap-2 mb-1">
+              <div className="flex items-start gap-2 min-w-0">
+                <span className="text-xs text-muted tabular-nums w-5 shrink-0 pt-0.5">
+                  {i + 1}
+                </span>
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-shadow truncate" title={item.title}>
+                    {item.title || <span className="italic text-muted">Untitled</span>}
+                  </div>
+                  {showCreator && item.creator && (
+                    <div className="text-[11px] text-muted mt-0.5">by {item.creator}</div>
+                  )}
+                  {showUrl && item.url && (
+                    <div className="text-[11px] text-muted truncate mt-0.5" title={item.url}>
+                      {item.url}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <span className="text-sm font-bold tabular-nums shrink-0">
+                {item.count.toLocaleString()}
+              </span>
+            </div>
+            <div className="h-1 bg-gray-100 rounded-full overflow-hidden ml-7">
+              <div
+                className="h-full bg-amber rounded-full transition-all duration-500"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export default function AnalyticsAdmin() {
+  const [range, setRange]         = useState<Range>(7);
+  const [data, setData]           = useState<AnalyticsData | null>(null);
+  const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<ContentTab>("videos");
+
   useEffect(() => {
-    load(range);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setLoading(true);
+    setError(null);
+    fetch(`/api/analytics?days=${range}`)
+      .then((r) => {
+        if (!r.ok) throw new Error(`Server error ${r.status}`);
+        return r.json();
+      })
+      .then((json) => {
+        if (json.error) throw new Error(json.error);
+        setData(json as AnalyticsData);
+      })
+      .catch((e) => setError(String(e)))
+      .finally(() => setLoading(false));
   }, [range]);
 
-  const eventLabel: Record<string, string> = {
-    page_view:     "Page view",
-    news_click:    "News click",
-    video_click:   "Video click",
-    product_click: "Product click",
-    link_click:    "Link click",
-    apply_click:   "Apply click",
-    learn_click:   "Learn click",
-    tool_click:    "Tool click",
+  const kpis  = data?.kpis;
+  const daily = data?.daily ?? [];
+  const maxIps = Math.max(...daily.map((d) => d.unique_ips), 1);
+
+  const clickBreakdown = (data?.eventBreakdown ?? []).filter((e) => e.event !== "page_view");
+  const totalClicks    = clickBreakdown.reduce((s, e) => s + e.count, 0);
+
+  // Count for each content tab badge
+  const tabCounts: Record<ContentTab, number> = {
+    videos:   data?.content.videos.reduce((s, i) => s + i.count, 0) ?? 0,
+    news:     data?.content.news.reduce((s, i) => s + i.count, 0) ?? 0,
+    products: data?.content.products.reduce((s, i) => s + i.count, 0) ?? 0,
+    apply:    data?.content.apply.reduce((s, i) => s + i.count, 0) ?? 0,
+    links:    data?.content.links.reduce((s, i) => s + i.count, 0) ?? 0,
   };
 
-  const maxUniqIps = Math.max(...daily.map((d) => d.unique_ips), 1);
+  const activeItems = data?.content[activeTab] ?? [];
+
+  const kpiCards = [
+    { label: "Unique Sessions",  value: kpis?.uniqueSessions,  desc: "Distinct browser sessions",    color: "bg-emerald" },
+    { label: "Unique IPs",       value: kpis?.uniqueIps,       desc: "Distinct IP addresses",        color: "bg-amber"   },
+    { label: "Logged-in Users",  value: kpis?.loggedInUsers,   desc: "Authenticated accounts",       color: "bg-npurple" },
+    { label: "Total Clicks",     value: totalClicks,           desc: "All click events combined",    color: "bg-norange" },
+  ];
 
   return (
-    <div>
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-extrabold">Analytics</h1>
-          <p className="text-sm text-muted mt-0.5">Anonymous page views &amp; click events.</p>
+          <p className="text-sm text-muted mt-0.5">User engagement — last {range} days</p>
         </div>
         <div className="flex gap-1">
           {RANGES.map((r) => (
@@ -179,158 +211,225 @@ export default function AnalyticsAdmin() {
         </div>
       </div>
 
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
+          Failed to load analytics: {error}
+        </div>
+      )}
+
       {/* KPI strip */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
-        {[
-          { label: "Page views",      value: total,                                      color: "bg-nblue",    desc: "Total page view events" },
-          { label: "Unique visitors", value: uniq,                                       color: "bg-emerald",  desc: "Anonymous sessions (browser)" },
-          { label: "Unique users",    value: uniqUsers,                                  color: "bg-amber",    desc: "Distinct IPs seen" },
-          { label: "Logged-in users", value: loggedIn,                                   color: "bg-npurple",  desc: "Authenticated accounts" },
-          { label: "Events tracked",  value: events.reduce((s, e) => s + e.count, 0),   color: "bg-norange",  desc: "All event types combined" },
-        ].map((k) => (
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {kpiCards.map((k) => (
           <div key={k.label} className="bg-white rounded-2xl p-5 shadow-sm">
             <div className={`w-3 h-3 rounded-full ${k.color} mb-3`} />
-            <div className="text-3xl font-extrabold">
-              {loading ? "—" : k.value.toLocaleString()}
-            </div>
-            <div className="text-xs text-muted font-medium mt-1">{k.label}</div>
-            <div className="text-[10px] text-muted/60 mt-0.5">{k.desc}</div>
+            {loading ? (
+              <Skeleton className="h-8 w-16 mb-2" />
+            ) : (
+              <div className="text-3xl font-extrabold">{k.value?.toLocaleString() ?? "—"}</div>
+            )}
+            <div className="text-xs font-semibold text-shadow mt-1">{k.label}</div>
+            <div className="text-[10px] text-muted/70 mt-0.5 leading-tight">{k.desc}</div>
           </div>
         ))}
       </div>
 
-      {/* Daily unique users chart */}
-      {!loading && daily.length > 0 && (
-        <div className="bg-white rounded-2xl p-5 shadow-sm mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="text-sm font-bold">Daily unique users</div>
-            <div className="flex items-center gap-1.5 text-[10px] text-muted">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber inline-block" />
-              Unique IPs per day
-            </div>
+      {/* Daily unique visitors chart */}
+      <div className="bg-white rounded-2xl p-5 shadow-sm">
+        <div className="flex items-center justify-between mb-5">
+          <div className="font-bold text-sm">Daily Unique Visitors</div>
+          <div className="flex items-center gap-1.5 text-[10px] text-muted">
+            <span className="w-2.5 h-2.5 rounded-sm bg-amber/80 inline-block" />
+            Unique IPs per day
           </div>
-          {/* chart area — extra top padding so labels above bars don't clip */}
-          <div className="flex items-end gap-1.5 pt-6" style={{ height: "120px" }}>
+        </div>
+
+        {loading ? (
+          <div className="flex items-end gap-1.5 h-28">
+            {Array.from({ length: range }).map((_, i) => (
+              <Skeleton key={i} className="flex-1 rounded-t-sm" style={{ height: `${30 + Math.random() * 50}%` } as React.CSSProperties} />
+            ))}
+          </div>
+        ) : daily.length === 0 ? (
+          <p className="text-sm text-muted py-8 text-center">No data for this period.</p>
+        ) : (
+          <div className="flex items-end gap-1.5 pt-8" style={{ height: "140px" }}>
             {daily.map((d) => {
-              const barH = Math.max(Math.round((d.unique_ips / maxUniqIps) * 72), 2);
+              const barH = Math.max(Math.round((d.unique_ips / maxIps) * 88), 2);
               return (
-                <div key={d.day} className="relative flex flex-col items-center flex-1 min-w-0" style={{ height: "100%" }}>
-                  {/* count label above bar */}
-                  <span
-                    className="absolute text-[9px] font-bold text-shadow leading-none"
-                    style={{ bottom: `${barH + 18}px` }}
-                  >
-                    {d.unique_ips > 0 ? d.unique_ips : ""}
-                  </span>
-                  {/* bar */}
-                  <div className="w-full mt-auto flex flex-col items-center gap-1">
-                    <div
-                      className="w-full rounded-t-sm bg-amber opacity-80 transition-all"
-                      style={{ height: `${barH}px` }}
-                      title={`${d.unique_ips} unique users`}
-                    />
-                    <span className="text-[9px] text-muted truncate w-full text-center">
-                      {formatDay(d.day)}
-                    </span>
+                <div
+                  key={d.day}
+                  className="relative flex-1 flex flex-col items-center justify-end group"
+                  style={{ height: "100%" }}
+                >
+                  <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:block z-10 pointer-events-none">
+                    <div className="bg-shadow text-white text-[9px] rounded px-1.5 py-0.5 whitespace-nowrap">
+                      {formatDay(d.day)}: {d.unique_ips} IPs
+                    </div>
                   </div>
+                  <div className="w-full rounded-t-sm bg-amber/80 transition-all" style={{ height: `${barH}px` }} />
+                  <span className="text-[8px] text-muted mt-1 truncate w-full text-center">
+                    {formatDay(d.day)}
+                  </span>
                 </div>
               );
             })}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Top pages */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm">
-          <div className="text-sm font-bold mb-4">Top pages</div>
-          {loading ? (
-            <p className="text-sm text-muted">Loading…</p>
-          ) : pages.length === 0 ? (
-            <p className="text-sm text-muted">No data yet.</p>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-xs text-muted border-b border-nborder">
-                  <th className="text-left pb-2 font-semibold">Page</th>
-                  <th className="text-right pb-2 font-semibold">Views</th>
-                  <th className="text-right pb-2 font-semibold">Sessions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-nborder">
-                {pages.slice(0, 10).map((p) => (
-                  <tr key={p.page}>
-                    <td className="py-2 font-mono text-xs text-shadow truncate max-w-[140px]">
-                      {p.page}
-                    </td>
-                    <td className="py-2 text-right font-semibold">{p.views.toLocaleString()}</td>
-                    <td className="py-2 text-right text-muted">{p.unique_visitors.toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+      {/* Content engagement — tabbed leaderboard */}
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <div className="px-5 pt-5 pb-0">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <div className="font-bold text-sm">Content Engagement</div>
+              <div className="text-[11px] text-muted mt-0.5">Exactly what users are watching &amp; clicking</div>
+            </div>
+            {!loading && (
+              <div className="text-xs text-muted">{totalClicks.toLocaleString()} total clicks</div>
+            )}
+          </div>
+
+          {/* Tabs */}
+          <div className="flex gap-1 border-b border-nborder overflow-x-auto">
+            {CONTENT_TABS.map((tab) => {
+              const count = tabCounts[tab.key];
+              const isActive = activeTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold whitespace-nowrap border-b-2 transition-colors ${
+                    isActive
+                      ? "border-amber text-shadow"
+                      : "border-transparent text-muted hover:text-shadow"
+                  }`}
+                >
+                  <span>{tab.icon}</span>
+                  {tab.label}
+                  {!loading && count > 0 && (
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${isActive ? "bg-amber/20 text-shadow" : "bg-gray-100 text-muted"}`}>
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Event breakdown */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm">
-          <div className="text-sm font-bold mb-4">Events breakdown</div>
-          {loading ? (
-            <p className="text-sm text-muted">Loading…</p>
-          ) : events.length === 0 ? (
-            <p className="text-sm text-muted">No data yet.</p>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-xs text-muted border-b border-nborder">
-                  <th className="text-left pb-2 font-semibold">Event</th>
-                  <th className="text-right pb-2 font-semibold">Count</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-nborder">
-                {events.map((e) => (
-                  <tr key={e.event}>
-                    <td className="py-2 text-shadow font-medium">
-                      {eventLabel[e.event] ?? e.event}
-                    </td>
-                    <td className="py-2 text-right font-semibold">{e.count.toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+        <div className="p-5">
+          <ContentLeaderboard
+            items={activeItems}
+            loading={loading}
+            showCreator={activeTab === "videos"}
+            showUrl={activeTab === "links" || activeTab === "news"}
+            emptyMsg={`No ${CONTENT_TABS.find((t) => t.key === activeTab)?.label.toLowerCase()} clicks in this period.`}
+          />
         </div>
       </div>
 
-      {/* Top clicks */}
-      <div className="bg-white rounded-2xl p-5 shadow-sm">
-        <div className="text-sm font-bold mb-4">Top clicked items</div>
-        {loading ? (
-          <p className="text-sm text-muted">Loading…</p>
-        ) : clicks.length === 0 ? (
-          <p className="text-sm text-muted">No click events yet.</p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-xs text-muted border-b border-nborder">
-                <th className="text-left pb-2 font-semibold">Item</th>
-                <th className="text-left pb-2 font-semibold">Type</th>
-                <th className="text-right pb-2 font-semibold">Clicks</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-nborder">
-              {clicks.map((c, i) => (
-                <tr key={i}>
-                  <td className="py-2 text-shadow line-clamp-1 max-w-[260px]">{c.title}</td>
-                  <td className="py-2 text-muted text-xs font-mono">
-                    {eventLabel[c.event] ?? c.event}
-                  </td>
-                  <td className="py-2 text-right font-semibold">{c.count.toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+      {/* Event breakdown + top items side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Event type breakdown */}
+        <div className="bg-white rounded-2xl p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div className="font-bold text-sm">Clicks by Type</div>
+            {!loading && (
+              <div className="text-xs text-muted">{totalClicks.toLocaleString()} total</div>
+            )}
+          </div>
+          {loading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-8" />)}
+            </div>
+          ) : !clickBreakdown.length ? (
+            <p className="text-sm text-muted">No click events yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {clickBreakdown.map((e) => {
+                const pct = totalClicks > 0 ? Math.round((e.count / totalClicks) * 100) : 0;
+                const color = EVENT_COLOR[e.event] ?? "bg-gray-300";
+                return (
+                  <div key={e.event}>
+                    <div className="flex items-center justify-between text-sm mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${color}`} />
+                        <span className="font-medium text-shadow">
+                          {EVENT_LABEL[e.event] ?? e.event}
+                        </span>
+                      </div>
+                      <span className="font-bold tabular-nums">
+                        {e.count.toLocaleString()}
+                        <span className="text-muted font-normal ml-1 text-xs">({pct}%)</span>
+                      </span>
+                    </div>
+                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div className={`h-full ${color} opacity-70 rounded-full transition-all`} style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* All-time top content across all types */}
+        <div className="bg-white rounded-2xl p-5 shadow-sm">
+          <div className="font-bold text-sm mb-4">Top Content Overall</div>
+          {loading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-8" />)}
+            </div>
+          ) : (() => {
+            // Merge all content types into one ranked list
+            const all = [
+              ...(data?.content.videos   ?? []).map((i) => ({ ...i, type: "video_click"   })),
+              ...(data?.content.news     ?? []).map((i) => ({ ...i, type: "news_click"    })),
+              ...(data?.content.products ?? []).map((i) => ({ ...i, type: "product_click" })),
+              ...(data?.content.apply    ?? []).map((i) => ({ ...i, type: "apply_click"   })),
+              ...(data?.content.links    ?? []).map((i) => ({ ...i, type: "link_click"    })),
+            ].sort((a, b) => b.count - a.count).slice(0, 10);
+
+            const maxCount = Math.max(...all.map((i) => i.count), 1);
+
+            if (!all.length) return <p className="text-sm text-muted">No click events yet.</p>;
+
+            return (
+              <div className="space-y-2">
+                {all.map((item, i) => {
+                  const pct = Math.round((item.count / maxCount) * 100);
+                  const color = EVENT_COLOR[item.type] ?? "bg-gray-300";
+                  return (
+                    <div key={`${item.type}-${item.item_id ?? i}`}>
+                      <div className="flex items-start gap-2 mb-1">
+                        <span className="text-xs text-muted tabular-nums w-5 shrink-0 pt-0.5">{i + 1}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className={`w-1.5 h-1.5 rounded-full ${color} shrink-0`} />
+                            <span className="text-xs font-medium text-shadow truncate" title={item.title}>
+                              {item.title || <span className="italic text-muted">Untitled</span>}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5 ml-3">
+                            <span className="text-[10px] text-muted">{EVENT_LABEL[item.type] ?? item.type}</span>
+                            {item.creator && (
+                              <span className="text-[10px] text-muted">· {item.creator}</span>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-xs font-bold tabular-nums shrink-0">{item.count}</span>
+                      </div>
+                      <div className="h-1 bg-gray-100 rounded-full overflow-hidden ml-7">
+                        <div className={`h-full ${color} opacity-60 rounded-full transition-all`} style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+        </div>
       </div>
     </div>
   );
