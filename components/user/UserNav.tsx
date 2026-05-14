@@ -222,8 +222,8 @@ export default function UserNav({
           aria-label="Primary"
           className="bg-homeSidebar border-t border-homeInk/30 pt-2 px-1 pb-[max(env(safe-area-inset-bottom),0.5rem)] shadow-[0_-10px_30px_rgba(0,0,0,0.28)]"
         >
-          <div className="grid grid-cols-7 gap-0.5">
-            {items.map((it) => {
+          <div className="grid grid-cols-6 gap-0.5">
+            {items.filter((it) => it.href !== "/tools").map((it) => {
               const Ic = it.icon;
               const active = path === it.href || (it.href !== "/" && path.startsWith(it.href));
               return (
