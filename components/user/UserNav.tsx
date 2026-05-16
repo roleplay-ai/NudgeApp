@@ -10,9 +10,9 @@ import {
   Lightbulb,
   LogIn,
   LogOut,
+  Star,
   Trophy,
   UserRound,
-  Wrench,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { GuestAccountSidebarCard } from "@/components/user/GuestAccountPromo";
@@ -29,8 +29,8 @@ const items = [
   { href: "/", label: "Home", icon: Home },
   { href: "/learn", label: "Learn", icon: GraduationCap },
   { href: "/play", label: "Play", icon: Trophy },
+  { href: "/practice", label: "Practice", icon: Star },
   { href: "/apply", label: "Apply", icon: Crosshair },
-  { href: "/tools", label: "Tools", icon: Wrench },
   { href: "/insights", label: "Insights", icon: Lightbulb },
 ];
 
@@ -223,7 +223,7 @@ export default function UserNav({
           className="bg-homeSidebar border-t border-homeInk/30 pt-2 px-1 pb-[max(env(safe-area-inset-bottom),0.5rem)] shadow-[0_-10px_30px_rgba(0,0,0,0.28)]"
         >
           <div className="grid grid-cols-6 gap-0.5">
-            {items.filter((it) => it.href !== "/tools").map((it) => {
+            {items.filter((it) => it.href !== "/tools" && it.href !== "/insights").map((it) => {
               const Ic = it.icon;
               const active = path === it.href || (it.href !== "/" && path.startsWith(it.href));
               return (
