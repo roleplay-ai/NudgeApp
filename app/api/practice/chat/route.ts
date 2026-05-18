@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import Anthropic from "@anthropic-ai/sdk";
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 4 });
 
 export async function POST(req: Request) {
   try {
@@ -94,6 +94,10 @@ Do not mention practice activities, assignments, rubrics, assessments, or coachi
     return NextResponse.json({ reply: assistantText, sessionId: currentSessionId });
   } catch (err: any) {
     console.error("[practice/chat]", err);
-    return NextResponse.json({ error: err.message || "Internal error" }, { status: 500 });
+    const isOverloaded = err?.status === 529 || err?.error?.type === "overloaded_error";
+    return NextResponse.json(
+      { error: isOverloaded ? "AI is busy — please try again in a moment." : (err.message || "Internal error") },
+      { status: isOverloaded ? 503 : 500 }
+    );
   }
 }

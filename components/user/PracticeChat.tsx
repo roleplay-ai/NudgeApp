@@ -56,28 +56,43 @@ export default function PracticeChat({
 
     setMessages((prev) => [...prev, { role: "user", content: msg }]);
 
-    try {
-      const body = isLoggedIn
-        ? JSON.stringify({ sessionId, activityId: activity.id, message: msg })
-        : JSON.stringify({ activityId: activity.id, message: msg, guestMessages: messages });
+    const MAX_ATTEMPTS = 3;
+    let attempt = 0;
+    while (attempt < MAX_ATTEMPTS) {
+      try {
+        const body = isLoggedIn
+          ? JSON.stringify({ sessionId, activityId: activity.id, message: msg })
+          : JSON.stringify({ activityId: activity.id, message: msg, guestMessages: messages });
 
-      const res = await fetch("/api/practice/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body,
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to send");
-      if (isLoggedIn && !sessionId) setSessionId(data.sessionId);
-      setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
-    } catch (err: any) {
-      setError(err.message);
-      setMessages((prev) => prev.slice(0, -1));
-      setInput(msg);
-    } finally {
-      setSending(false);
-      textareaRef.current?.focus();
+        const res = await fetch("/api/practice/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body,
+        });
+        const data = await res.json();
+
+        if (res.status === 503 && attempt < MAX_ATTEMPTS - 1) {
+          attempt++;
+          setError(`AI is busy — retrying (${attempt}/${MAX_ATTEMPTS - 1})…`);
+          await new Promise((r) => setTimeout(r, 3000 * attempt));
+          continue;
+        }
+
+        if (!res.ok) throw new Error(data.error || "Failed to send");
+        setError(null);
+        if (isLoggedIn && !sessionId) setSessionId(data.sessionId);
+        setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
+        break;
+      } catch (err: any) {
+        setError(err.message);
+        setMessages((prev) => prev.slice(0, -1));
+        setInput(msg);
+        break;
+      }
     }
+
+    setSending(false);
+    textareaRef.current?.focus();
   }
 
   async function handleSubmit() {
