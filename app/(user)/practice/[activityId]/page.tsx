@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound, redirect } from "next/navigation";
-import type { PracticeActivity, PracticeRubric, PracticeSession, PracticeScore } from "@/lib/types";
+import type { PracticeActivity, PracticeSession, PracticeScore } from "@/lib/types";
 import PracticeChat from "@/components/user/PracticeChat";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -13,19 +13,15 @@ export default async function PracticeActivityPage({ params }: { params: { activ
 
   const { data: activity } = await supabase
     .from("practice_activities")
-    .select("*, practice_rubrics(id, name, description, max_score)")
+    .select("*")
     .eq("id", params.activityId)
     .eq("is_published", true)
     .single();
 
   if (!activity) notFound();
 
-  // Locked activities require login; unlocked are open to guests
   if (activity.is_locked && !user) redirect("/login");
 
-  const rubrics = (activity as any).practice_rubrics as PracticeRubric[];
-
-  // Only load past sessions for authenticated users
   let latestSubmitted: PracticeSession | null = null;
   let submittedScores: (PracticeScore & { name: string; max_score: number })[] = [];
 
@@ -44,13 +40,13 @@ export default async function PracticeActivityPage({ params }: { params: { activ
     if (latestSubmitted) {
       const { data: scores } = await supabase
         .from("practice_scores")
-        .select("*, practice_rubrics(name, max_score)")
+        .select("*")
         .eq("session_id", latestSubmitted.id);
 
       submittedScores = ((scores || []) as any[]).map((s) => ({
         ...s,
-        name: s.practice_rubrics?.name ?? "",
-        max_score: s.practice_rubrics?.max_score ?? 25,
+        name: s.rubric_name ?? "",
+        max_score: s.max_score ?? 0,
       }));
     }
   }
@@ -63,7 +59,6 @@ export default async function PracticeActivityPage({ params }: { params: { activ
 
       <PracticeChat
         activity={activity as PracticeActivity}
-        rubrics={rubrics}
         initialSession={null}
         initialMessages={[]}
         latestSubmitted={latestSubmitted}

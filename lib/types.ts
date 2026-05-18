@@ -424,7 +424,9 @@ export type PracticeMessage = {
 export type PracticeScore = {
   id: string;
   session_id: string;
-  rubric_id: string;
+  rubric_id: string | null;
+  rubric_name: string | null;
+  max_score: number | null;
   score: number;
   feedback: string | null;
   created_at: string;
