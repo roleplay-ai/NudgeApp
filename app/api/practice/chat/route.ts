@@ -6,14 +6,38 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export async function POST(req: Request) {
   try {
-    const { sessionId, activityId, message } = await req.json();
+    const body = await req.json();
+    const { sessionId, activityId, message, guestMessages } = body;
     if (!message?.trim()) return NextResponse.json({ error: "Message required" }, { status: 400 });
 
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    // Get or create session
+    const systemPrompt = `You are a general-purpose assistant. Every user message is a request for output — execute it and deliver the result (a draft, sentence, list, rewrite, answer, etc.).
+
+Never describe yourself, your role, your capabilities, your limitations, your policies, or how this chat works. Never open with phrases like "I'm here to…" or explain what you will or won't do. If a message could be about you or about work content, always assume they want the work content.
+
+Do not mention practice activities, assignments, rubrics, assessments, or coaching. Do not comment on prompt quality. Be direct and concise. Refuse only clearly illegal, harmful, or unethical requests.`;
+
+    // ── GUEST MODE ── (no DB session, conversation carried from client)
+    if (!user) {
+      const history: { role: "user" | "assistant"; content: string }[] = [
+        ...(guestMessages || []),
+        { role: "user", content: message },
+      ];
+
+      const response = await anthropic.messages.create({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages: history,
+      });
+
+      const assistantText = response.content[0].type === "text" ? response.content[0].text : "";
+      return NextResponse.json({ reply: assistantText, guest: true });
+    }
+
+    // ── AUTHENTICATED MODE ── (DB-backed session)
     let currentSessionId = sessionId;
     if (!currentSessionId) {
       const { data: session, error: sessionError } = await supabase
@@ -32,13 +56,6 @@ export async function POST(req: Request) {
       .eq("session_id", currentSessionId)
       .order("created_at");
 
-    // Fetch activity for context
-    const { data: activity } = await supabase
-      .from("practice_activities")
-      .select("name, description")
-      .eq("id", activityId)
-      .single();
-
     // Save user message
     await supabase.from("practice_messages").insert({
       session_id: currentSessionId,
@@ -46,16 +63,11 @@ export async function POST(req: Request) {
       content: message,
     });
 
-    // Build messages for Anthropic
     const history = (prevMessages || []).map((m: any) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
     }));
     history.push({ role: "user", content: message });
-
-    const systemPrompt = activity
-      ? `You are an AI assistant. The user is working on the following task:\n\n${activity.description || ""}\n\nRespond directly and helpfully to whatever the user asks. Do not give feedback on their prompts, do not coach them, and do not comment on prompt quality. Simply produce the best possible output for their request.`
-      : "You are a helpful AI assistant. Respond directly to whatever the user asks.";
 
     const response = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",

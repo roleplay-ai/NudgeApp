@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Send, Trophy, ArrowLeft, RotateCcw, Zap, Clock, CheckCircle2 } from "lucide-react";
+import { Send, Trophy, ArrowLeft, RotateCcw, Zap, Clock, CheckCircle2, Lock } from "lucide-react";
 import Link from "next/link";
 import type { PracticeActivity, PracticeRubric, PracticeSession, PracticeMessage, PracticeScore } from "@/lib/types";
 
@@ -16,6 +16,7 @@ export default function PracticeChat({
   initialMessages,
   latestSubmitted,
   submittedScores,
+  isLoggedIn = true,
 }: {
   activity: PracticeActivity;
   rubrics: PracticeRubric[];
@@ -23,7 +24,8 @@ export default function PracticeChat({
   initialMessages: PracticeMessage[];
   latestSubmitted: PracticeSession | null;
   submittedScores: EnrichedScore[];
-  userId: string;
+  userId: string | null;
+  isLoggedIn?: boolean;
 }) {
   const router = useRouter();
   const [messages, setMessages] = useState<{ role: "user" | "assistant"; content: string }[]>(
@@ -57,14 +59,23 @@ export default function PracticeChat({
     setMessages((prev) => [...prev, { role: "user", content: msg }]);
 
     try {
+      // For guests: send the current message history so the API has context (no DB session)
+      const body = isLoggedIn
+        ? JSON.stringify({ sessionId, activityId: activity.id, message: msg })
+        : JSON.stringify({
+            activityId: activity.id,
+            message: msg,
+            guestMessages: messages, // previous messages (before the new one)
+          });
+
       const res = await fetch("/api/practice/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, activityId: activity.id, message: msg }),
+        body,
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to send");
-      if (!sessionId) setSessionId(data.sessionId);
+      if (isLoggedIn && !sessionId) setSessionId(data.sessionId);
       setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
     } catch (err: any) {
       setError(err.message);
@@ -77,23 +88,32 @@ export default function PracticeChat({
   }
 
   async function handleSubmit() {
-    if (!sessionId || messages.filter((m) => m.role === "user").length === 0) return;
+    if (messages.filter((m) => m.role === "user").length === 0) return;
+    if (isLoggedIn && !sessionId) return;
     setSubmitting(true);
     setError(null);
     try {
+      const body = isLoggedIn
+        ? JSON.stringify({ sessionId })
+        : JSON.stringify({
+            activityId: activity.id,
+            guestMessages: messages,
+            guestRubrics: rubrics,
+          });
+
       const res = await fetch("/api/practice/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId }),
+        body,
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to submit");
       setScores(data.scores);
-      setResultSession({ id: sessionId, total_score: data.totalScore, max_possible: data.maxPossible } as any);
+      setResultSession({ id: sessionId ?? "", total_score: data.totalScore, max_possible: data.maxPossible } as any);
       setXpEarned(data.xpEarned ?? null);
       setXpDelta(data.xpDelta ?? null);
       setView("results");
-      router.refresh();
+      if (isLoggedIn) router.refresh();
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -137,7 +157,7 @@ export default function PracticeChat({
                 <em>{activity.name}</em>
               </p>
               <div className="flex flex-wrap gap-2 mt-3">
-                {xpEarned !== null && (
+                {isLoggedIn && xpEarned !== null && (
                   <span className="flex items-center gap-1 bg-white/10 px-3 py-1.5 rounded-full text-sm font-semibold">
                     <Zap size={13} className="text-homeClay" />
                     +{xpEarned} XP
@@ -163,40 +183,61 @@ export default function PracticeChat({
           </div>
         </div>
 
-        {/* Score breakdown */}
-        <div className="bg-white rounded-2xl border border-nborder p-6 mb-6">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="font-extrabold text-homeInk text-lg">Score breakdown</h3>
-            <span className="text-sm text-homeBodyMuted font-semibold">
-              {scores.length} criteria · {totalScore}/{maxPossible}
-            </span>
+        {/* Guest login CTA — shown instead of detailed breakdown */}
+        {!isLoggedIn && (
+          <div className="bg-white rounded-2xl border border-nborder p-6 mb-6 text-center">
+            <div className="w-12 h-12 rounded-full bg-homeClay/10 flex items-center justify-center mx-auto mb-3">
+              <Lock size={22} className="text-homeClay" />
+            </div>
+            <h3 className="font-extrabold text-homeInk text-lg mb-1">See your full results</h3>
+            <p className="text-sm text-homeBodyMuted mb-4 max-w-sm mx-auto">
+              Log in to unlock the detailed score breakdown, per-criteria feedback, and track your progress over time.
+            </p>
+            <Link
+              href={`/login?redirect=/practice/${activity.id}`}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-homeClay text-white rounded-xl font-bold text-sm hover:bg-homeClay/90 transition"
+            >
+              Log in to see full results
+            </Link>
           </div>
-          <div className="space-y-6">
-            {scores.map((score) => {
-              const scorePct = score.max_score > 0 ? (score.score / score.max_score) * 100 : 0;
-              const barColor = scorePct >= 80 ? "#22c55e" : scorePct >= 55 ? "#f59e0b" : "#ef4444";
-              return (
-                <div key={score.rubric_id}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="font-semibold text-homeInk">{score.name}</span>
-                    <span className="font-bold text-homeInk tabular-nums">
-                      {score.score}/{score.max_score}
-                    </span>
+        )}
+
+        {/* Score breakdown — only for authenticated users */}
+        {isLoggedIn && (
+          <div className="bg-white rounded-2xl border border-nborder p-6 mb-6">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-extrabold text-homeInk text-lg">Score breakdown</h3>
+              <span className="text-sm text-homeBodyMuted font-semibold">
+                {scores.length} criteria · {totalScore}/{maxPossible}
+              </span>
+            </div>
+            <div className="space-y-6">
+              {scores.map((score) => {
+                const scorePct = score.max_score > 0 ? (score.score / score.max_score) * 100 : 0;
+                const barColor = scorePct >= 80 ? "#22c55e" : scorePct >= 55 ? "#f59e0b" : "#ef4444";
+                return (
+                  <div key={score.rubric_id}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="font-semibold text-homeInk">{score.name}</span>
+                      <span className="font-bold text-homeInk tabular-nums">
+                        {score.score}/{score.max_score}
+                      </span>
+                    </div>
+                    <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden mb-2">
+                      <div
+                        className="h-full rounded-full transition-all duration-700"
+                        style={{ width: `${scorePct}%`, backgroundColor: barColor }}
+                      />
+                    </div>
+                    {score.feedback && (
+                      <p className="text-sm text-muted">{score.feedback}</p>
+                    )}
                   </div>
-                  <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden mb-2">
-                    <div
-                      className="h-full rounded-full transition-all duration-700"
-                      style={{ width: `${scorePct}%`, backgroundColor: barColor }}
-                    />
-                  </div>
-                  {score.feedback && (
-                    <p className="text-sm text-muted">{score.feedback}</p>
-                  )}
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Actions */}
         <div className="flex gap-3">
@@ -237,7 +278,9 @@ export default function PracticeChat({
           <h1 className="text-xl font-extrabold text-homeInk leading-tight">{activity.name}</h1>
           <div className="flex items-center gap-3 mt-1 text-xs text-homeBodyMuted">
             <span className="flex items-center gap-1"><Clock size={11} /> {activity.time_minutes} min</span>
-            <span className="flex items-center gap-1 font-semibold text-homeClay"><Zap size={11} /> +{activity.xp_reward} XP</span>
+            {isLoggedIn && (
+              <span className="flex items-center gap-1 font-semibold text-homeClay"><Zap size={11} /> +{activity.xp_reward} XP</span>
+            )}
             <span>{activity.difficulty}</span>
           </div>
         </div>
@@ -268,6 +311,20 @@ export default function PracticeChat({
             </div>
           )}
 
+          {/* Guest sign-in nudge in sidebar */}
+          {!isLoggedIn && (
+            <div className="rounded-2xl border p-4" style={{ backgroundColor: "rgba(192,123,58,0.06)", borderColor: "rgba(192,123,58,0.25)" }}>
+              <p className="text-xs text-homeBodyMuted font-semibold mb-2">
+                You&apos;re practicing as a guest. Log in to save your results and earn XP.
+              </p>
+              <Link
+                href={`/login?redirect=/practice/${activity.id}`}
+                className="text-xs font-bold text-homeClay hover:underline"
+              >
+                Log in →
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* Right panel: AI Coach chat */}
@@ -281,7 +338,7 @@ export default function PracticeChat({
                 </div>
                 <div>
                   <div className="text-white font-bold text-sm">AI Coach</div>
-                  <div className="text-white/50 text-[10px] font-semibold tracking-wide">READY · TYPE YOUR PROMPT BELOW</div>
+                  <div className="text-white/50 text-[10px] font-semibold tracking-wide">HERE TO ASSIST YOU</div>
                 </div>
               </div>
               <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-semibold">
@@ -295,7 +352,7 @@ export default function PracticeChat({
               {/* Welcome message */}
               {messages.length === 0 && (
                 <div className="bg-white/10 rounded-2xl p-4 text-white text-sm max-w-[85%]">
-                  Hi! I&apos;m your AI Coach for <strong>&ldquo;{activity.name}&rdquo;</strong>. Tell me how you&apos;d approach this — write your prompt below.
+                  Hi! I&apos;m your AI Coach — here to assist you. What can I help you with?
                 </div>
               )}
               {messages.map((msg, i) => (
@@ -323,22 +380,6 @@ export default function PracticeChat({
               )}
               <div ref={bottomRef} />
             </div>
-
-            {/* Hint chips */}
-            {activity.hint_chips?.length > 0 && messages.length === 0 && (
-              <div className="px-5 py-2 flex flex-wrap gap-2 border-t border-white/10">
-                {activity.hint_chips.map((chip) => (
-                  <button
-                    key={chip}
-                    type="button"
-                    onClick={() => sendMessage(chip)}
-                    className="px-3 py-1 rounded-full border border-white/20 text-white/70 text-xs font-semibold hover:border-white/40 hover:text-white transition"
-                  >
-                    {chip}
-                  </button>
-                ))}
-              </div>
-            )}
 
             {/* Input area */}
             <div className="px-4 py-3 border-t border-white/10">
@@ -372,14 +413,25 @@ export default function PracticeChat({
 
           {/* Submit — always visible below chat */}
           <div className="mt-4 rounded-2xl p-5 border" style={{ backgroundColor: "rgba(192,123,58,0.08)", borderColor: "rgba(192,123,58,0.28)" }}>
-            <div className="flex items-start gap-3 mb-3">
-              <Trophy size={20} className="shrink-0 mt-0.5 text-homeClay" />
-              <div>
-                <div className="font-bold text-homeInk text-sm">Ready? Submit for assessment</div>
-                <div className="text-xs text-homeBodyMuted mt-0.5">
-                  We&apos;ll review your conversation and generate personalised feedback.
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div className="flex items-start gap-3">
+                <Trophy size={20} className="shrink-0 mt-0.5 text-homeClay" />
+                <div>
+                  <div className="font-bold text-homeInk text-sm">Submit for assessment</div>
+                  <div className="text-xs text-homeBodyMuted mt-0.5">
+                    {userMessageCount === 0
+                      ? "Send one or more prompts, then submit when ready."
+                      : isLoggedIn
+                        ? "All your prompts will be assessed together as a combined submission."
+                        : "All prompts assessed together. Log in afterwards to save results & earn XP."}
+                  </div>
                 </div>
               </div>
+              {userMessageCount > 0 && (
+                <span className="shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black bg-homeClay/15 text-homeClay border border-homeClay/20">
+                  {userMessageCount} prompt{userMessageCount !== 1 ? "s" : ""}
+                </span>
+              )}
             </div>
             <button
               type="button"
@@ -387,7 +439,11 @@ export default function PracticeChat({
               disabled={submitting || userMessageCount === 0}
               className="w-full bg-homeClay text-white font-bold px-4 py-2.5 rounded-xl text-sm hover:bg-homeClay/90 transition disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {submitting ? "Assessing…" : userMessageCount === 0 ? "Send at least one prompt to submit" : "Submit assignment →"}
+              {submitting
+                ? "Assessing…"
+                : userMessageCount === 0
+                  ? "Send at least one prompt first"
+                  : `Submit ${userMessageCount} prompt${userMessageCount !== 1 ? "s" : ""} for assessment →`}
             </button>
           </div>
         </div>
