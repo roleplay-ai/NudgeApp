@@ -1,9 +1,9 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Send, Trophy, ArrowLeft, RotateCcw, Zap, Clock, CheckCircle2, Lock } from "lucide-react";
+import { Send, Trophy, ArrowLeft, RotateCcw, Zap, Clock, Lock } from "lucide-react";
 import Link from "next/link";
-import type { PracticeActivity, PracticeRubric, PracticeSession, PracticeMessage, PracticeScore } from "@/lib/types";
+import type { PracticeActivity, PracticeSession, PracticeMessage, PracticeScore } from "@/lib/types";
 
 type EnrichedScore = PracticeScore & { name: string; max_score: number };
 
@@ -11,7 +11,6 @@ type View = "chat" | "results";
 
 export default function PracticeChat({
   activity,
-  rubrics,
   initialSession,
   initialMessages,
   latestSubmitted,
@@ -19,7 +18,6 @@ export default function PracticeChat({
   isLoggedIn = true,
 }: {
   activity: PracticeActivity;
-  rubrics: PracticeRubric[];
   initialSession: PracticeSession | null;
   initialMessages: PracticeMessage[];
   latestSubmitted: PracticeSession | null;
@@ -58,33 +56,43 @@ export default function PracticeChat({
 
     setMessages((prev) => [...prev, { role: "user", content: msg }]);
 
-    try {
-      // For guests: send the current message history so the API has context (no DB session)
-      const body = isLoggedIn
-        ? JSON.stringify({ sessionId, activityId: activity.id, message: msg })
-        : JSON.stringify({
-            activityId: activity.id,
-            message: msg,
-            guestMessages: messages, // previous messages (before the new one)
-          });
+    const MAX_ATTEMPTS = 3;
+    let attempt = 0;
+    while (attempt < MAX_ATTEMPTS) {
+      try {
+        const body = isLoggedIn
+          ? JSON.stringify({ sessionId, activityId: activity.id, message: msg })
+          : JSON.stringify({ activityId: activity.id, message: msg, guestMessages: messages });
 
-      const res = await fetch("/api/practice/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body,
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to send");
-      if (isLoggedIn && !sessionId) setSessionId(data.sessionId);
-      setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
-    } catch (err: any) {
-      setError(err.message);
-      setMessages((prev) => prev.slice(0, -1));
-      setInput(msg);
-    } finally {
-      setSending(false);
-      textareaRef.current?.focus();
+        const res = await fetch("/api/practice/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body,
+        });
+        const data = await res.json();
+
+        if (res.status === 503 && attempt < MAX_ATTEMPTS - 1) {
+          attempt++;
+          setError(`AI is busy — retrying (${attempt}/${MAX_ATTEMPTS - 1})…`);
+          await new Promise((r) => setTimeout(r, 3000 * attempt));
+          continue;
+        }
+
+        if (!res.ok) throw new Error(data.error || "Failed to send");
+        setError(null);
+        if (isLoggedIn && !sessionId) setSessionId(data.sessionId);
+        setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
+        break;
+      } catch (err: any) {
+        setError(err.message);
+        setMessages((prev) => prev.slice(0, -1));
+        setInput(msg);
+        break;
+      }
     }
+
+    setSending(false);
+    textareaRef.current?.focus();
   }
 
   async function handleSubmit() {
@@ -95,11 +103,7 @@ export default function PracticeChat({
     try {
       const body = isLoggedIn
         ? JSON.stringify({ sessionId })
-        : JSON.stringify({
-            activityId: activity.id,
-            guestMessages: messages,
-            guestRubrics: rubrics,
-          });
+        : JSON.stringify({ activityId: activity.id, guestMessages: messages });
 
       const res = await fetch("/api/practice/submit", {
         method: "POST",
@@ -108,7 +112,12 @@ export default function PracticeChat({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to submit");
-      setScores(data.scores);
+
+      const enriched: EnrichedScore[] = (data.scores || []).map((s: any) => ({
+        ...s,
+        name: s.rubric_name ?? s.name ?? "",
+      }));
+      setScores(enriched);
       setResultSession({ id: sessionId ?? "", total_score: data.totalScore, max_possible: data.maxPossible } as any);
       setXpEarned(data.xpEarned ?? null);
       setXpDelta(data.xpDelta ?? null);
@@ -134,14 +143,13 @@ export default function PracticeChat({
 
   const userMessageCount = messages.filter((m) => m.role === "user").length;
   const totalScore = resultSession?.total_score ?? 0;
-  const maxPossible = resultSession?.max_possible ?? rubrics.reduce((s, r) => s + r.max_score, 0);
+  const maxPossible = resultSession?.max_possible ?? scores.reduce((s, r) => s + r.max_score, 0);
   const pct = maxPossible > 0 ? Math.round((totalScore / maxPossible) * 100) : 0;
 
   // ── RESULTS VIEW ──
   if (view === "results") {
     return (
       <div>
-        {/* Assessment report header */}
         <div className="bg-homeInk rounded-2xl p-6 mb-6 text-white">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
@@ -176,14 +184,13 @@ export default function PracticeChat({
                 </span>
               </div>
             </div>
-            {/* Score circle */}
             <div className="shrink-0">
               <ScoreCircle value={pct} size={96} />
             </div>
           </div>
         </div>
 
-        {/* Guest login CTA — shown instead of detailed breakdown */}
+        {/* Guest login CTA */}
         {!isLoggedIn && (
           <div className="bg-white rounded-2xl border border-nborder p-6 mb-6 text-center">
             <div className="w-12 h-12 rounded-full bg-homeClay/10 flex items-center justify-center mx-auto mb-3">
@@ -202,8 +209,8 @@ export default function PracticeChat({
           </div>
         )}
 
-        {/* Score breakdown — only for authenticated users */}
-        {isLoggedIn && (
+        {/* Score breakdown */}
+        {isLoggedIn && scores.length > 0 && (
           <div className="bg-white rounded-2xl border border-nborder p-6 mb-6">
             <div className="flex items-center justify-between mb-5">
               <h3 className="font-extrabold text-homeInk text-lg">Score breakdown</h3>
@@ -212,11 +219,11 @@ export default function PracticeChat({
               </span>
             </div>
             <div className="space-y-6">
-              {scores.map((score) => {
+              {scores.map((score, i) => {
                 const scorePct = score.max_score > 0 ? (score.score / score.max_score) * 100 : 0;
                 const barColor = scorePct >= 80 ? "#22c55e" : scorePct >= 55 ? "#f59e0b" : "#ef4444";
                 return (
-                  <div key={score.rubric_id}>
+                  <div key={score.rubric_id ?? i}>
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="font-semibold text-homeInk">{score.name}</span>
                       <span className="font-bold text-homeInk tabular-nums">
@@ -229,9 +236,7 @@ export default function PracticeChat({
                         style={{ width: `${scorePct}%`, backgroundColor: barColor }}
                       />
                     </div>
-                    {score.feedback && (
-                      <p className="text-sm text-muted">{score.feedback}</p>
-                    )}
+                    {score.feedback && <p className="text-sm text-muted">{score.feedback}</p>}
                   </div>
                 );
               })}
@@ -239,7 +244,6 @@ export default function PracticeChat({
           </div>
         )}
 
-        {/* Actions */}
         <div className="flex gap-3">
           <button
             type="button"
@@ -262,7 +266,6 @@ export default function PracticeChat({
   // ── CHAT VIEW ──
   return (
     <div>
-      {/* Activity header */}
       <div className="rounded-2xl border border-nborder p-5 mb-6 flex items-center gap-4"
         style={{ backgroundColor: `${activity.color}0d`, borderColor: `${activity.color}30` }}>
         <div
@@ -287,132 +290,22 @@ export default function PracticeChat({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-5">
-        {/* Left panel: brief + rubrics */}
+        {/* Left panel: brief */}
         <div className="space-y-4">
-          {/* The Brief */}
           <div className="bg-white rounded-2xl border border-nborder p-5">
             <div className="text-[10px] font-black tracking-[1.5px] text-homeBodyMuted mb-2">THE BRIEF</div>
             <h3 className="font-bold text-homeInk mb-2">What you&rsquo;re solving</h3>
-            <p className="text-sm text-homeBodyMuted leading-relaxed">{activity.description}</p>
+            {/* select-none + onCopy blocked to prevent copying the brief */}
+            <p
+              className="text-sm text-homeBodyMuted leading-relaxed select-none"
+              onCopy={(e) => e.preventDefault()}
+            >
+              {activity.description}
+            </p>
           </div>
 
-          {/* Rubrics */}
-          {rubrics.length > 0 && (
-            <div className="bg-white rounded-2xl border border-nborder p-5">
-              <div className="text-[10px] font-black tracking-[1.5px] text-homeBodyMuted mb-3">WHAT YOU&apos;LL BE GRADED ON</div>
-              <ul className="space-y-2">
-                {rubrics.map((r) => (
-                  <li key={r.id} className="flex items-start gap-2 text-sm text-homeInk">
-                    <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-homeBodyMuted" />
-                    <span>{r.name}{r.description ? <span className="text-homeBodyMuted"> — {r.description}</span> : ""}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Guest sign-in nudge in sidebar */}
-          {!isLoggedIn && (
-            <div className="rounded-2xl border p-4" style={{ backgroundColor: "rgba(192,123,58,0.06)", borderColor: "rgba(192,123,58,0.25)" }}>
-              <p className="text-xs text-homeBodyMuted font-semibold mb-2">
-                You&apos;re practicing as a guest. Log in to save your results and earn XP.
-              </p>
-              <Link
-                href={`/login?redirect=/practice/${activity.id}`}
-                className="text-xs font-bold text-homeClay hover:underline"
-              >
-                Log in →
-              </Link>
-            </div>
-          )}
-        </div>
-
-        {/* Right panel: AI Coach chat */}
-        <div className="flex flex-col">
-          <div className="bg-homeInk rounded-2xl overflow-hidden flex flex-col" style={{ minHeight: 520 }}>
-            {/* Chat header */}
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/10">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-homeClay flex items-center justify-center text-white font-black text-sm">
-                  +
-                </div>
-                <div>
-                  <div className="text-white font-bold text-sm">AI Coach</div>
-                  <div className="text-white/50 text-[10px] font-semibold tracking-wide">HERE TO ASSIST YOU</div>
-                </div>
-              </div>
-              <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-semibold">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                Online
-              </div>
-            </div>
-
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-5 space-y-4" style={{ maxHeight: 420 }}>
-              {/* Welcome message */}
-              {messages.length === 0 && (
-                <div className="bg-white/10 rounded-2xl p-4 text-white text-sm max-w-[85%]">
-                  Hi! I&apos;m your AI Coach — here to assist you. What can I help you with?
-                </div>
-              )}
-              {messages.map((msg, i) => (
-                <div
-                  key={i}
-                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
-                      msg.role === "user"
-                        ? "bg-homeClay text-white font-medium"
-                        : "bg-white/10 text-white"
-                    }`}
-                  >
-                    {msg.content}
-                  </div>
-                </div>
-              ))}
-              {sending && (
-                <div className="flex justify-start">
-                  <div className="bg-white/10 rounded-2xl px-4 py-3 text-white/60 text-sm">
-                    <span className="animate-pulse">Thinking…</span>
-                  </div>
-                </div>
-              )}
-              <div ref={bottomRef} />
-            </div>
-
-            {/* Input area */}
-            <div className="px-4 py-3 border-t border-white/10">
-              {error && <p className="text-red-400 text-xs mb-2">{error}</p>}
-              <div className="flex gap-2 items-end">
-                <textarea
-                  ref={textareaRef}
-                  rows={2}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      sendMessage();
-                    }
-                  }}
-                  placeholder="Type your prompt…"
-                  className="flex-1 bg-white/10 text-white placeholder-white/40 rounded-xl px-4 py-2.5 text-sm resize-none outline-none focus:ring-1 focus:ring-homeClay/60 transition"
-                />
-                <button
-                  type="button"
-                  onClick={() => sendMessage()}
-                  disabled={!input.trim() || sending}
-                  className="flex items-center gap-1.5 px-4 py-2.5 bg-homeClay text-white rounded-xl font-bold text-sm hover:bg-homeClay/90 transition disabled:opacity-50 shrink-0"
-                >
-                  <Send size={14} /> Send
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Submit — always visible below chat */}
-          <div className="mt-4 rounded-2xl p-5 border" style={{ backgroundColor: "rgba(192,123,58,0.08)", borderColor: "rgba(192,123,58,0.28)" }}>
+          {/* Submit for assessment */}
+          <div className="rounded-2xl p-5 border" style={{ backgroundColor: "rgba(192,123,58,0.08)", borderColor: "rgba(192,123,58,0.28)" }}>
             <div className="flex items-start justify-between gap-3 mb-3">
               <div className="flex items-start gap-3">
                 <Trophy size={20} className="shrink-0 mt-0.5 text-homeClay" />
@@ -446,13 +339,121 @@ export default function PracticeChat({
                   : `Submit ${userMessageCount} prompt${userMessageCount !== 1 ? "s" : ""} for assessment →`}
             </button>
           </div>
+
+          {!isLoggedIn && (
+            <div className="rounded-2xl border p-4" style={{ backgroundColor: "rgba(192,123,58,0.06)", borderColor: "rgba(192,123,58,0.25)" }}>
+              <p className="text-xs text-homeBodyMuted font-semibold mb-2">
+                You&apos;re practising as a guest. Log in to save your results and earn XP.
+              </p>
+              <Link
+                href={`/login?redirect=/practice/${activity.id}`}
+                className="text-xs font-bold text-homeClay hover:underline"
+              >
+                Log in →
+              </Link>
+            </div>
+          )}
+        </div>
+
+        {/* Right panel: AI Coach chat */}
+        <div className="flex flex-col">
+          <div className="bg-homeInk rounded-2xl overflow-hidden flex flex-col" style={{ minHeight: 520 }}>
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-homeClay flex items-center justify-center text-white font-black text-sm">
+                  +
+                </div>
+                <div>
+                  <div className="text-white font-bold text-sm">AI Coach</div>
+                  <div className="text-white/50 text-[10px] font-semibold tracking-wide">HERE TO ASSIST YOU</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-semibold">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                Online
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-5 space-y-4" style={{ maxHeight: 420 }}>
+              {messages.length === 0 && (
+                <div className="bg-white/10 rounded-2xl p-4 text-white text-sm max-w-[85%]">
+                  Hi! I&apos;m your AI Coach — here to assist you. What can I help you with?
+                </div>
+              )}
+              {messages.map((msg, i) => (
+                <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                  <div
+                    className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
+                      msg.role === "user"
+                        ? "bg-homeClay text-white font-medium"
+                        : "bg-white/10 text-white"
+                    }`}
+                  >
+                    {msg.content}
+                  </div>
+                </div>
+              ))}
+              {sending && (
+                <div className="flex justify-start">
+                  <div className="bg-white/10 rounded-2xl px-4 py-3 text-white/60 text-sm">
+                    <span className="animate-pulse">Thinking…</span>
+                  </div>
+                </div>
+              )}
+              <div ref={bottomRef} />
+            </div>
+
+            {activity.hint_chips?.length > 0 && messages.length === 0 && (
+              <div className="px-5 py-2 flex flex-wrap gap-2 border-t border-white/10">
+                {activity.hint_chips.map((chip) => (
+                  <button
+                    key={chip}
+                    type="button"
+                    onClick={() => sendMessage(chip)}
+                    className="px-3 py-1 rounded-full border border-white/20 text-white/70 text-xs font-semibold hover:border-white/40 hover:text-white transition"
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="px-4 py-3 border-t border-white/10">
+              {error && <p className="text-red-400 text-xs mb-2">{error}</p>}
+              <div className="flex gap-2 items-end">
+                <textarea
+                  ref={textareaRef}
+                  rows={2}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onPaste={(e) => e.preventDefault()}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      sendMessage();
+                    }
+                  }}
+                  placeholder="Type your prompt… (pasting is disabled)"
+                  className="flex-1 bg-white/10 text-white placeholder-white/40 rounded-xl px-4 py-2.5 text-sm resize-none outline-none focus:ring-1 focus:ring-homeClay/60 transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => sendMessage()}
+                  disabled={!input.trim() || sending}
+                  className="flex items-center gap-1.5 px-4 py-2.5 bg-homeClay text-white rounded-xl font-bold text-sm hover:bg-homeClay/90 transition disabled:opacity-50 shrink-0"
+                >
+                  <Send size={14} /> Send
+                </button>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
   );
 }
 
-// Circular progress indicator for score display
 function ScoreCircle({ value, size = 96 }: { value: number; size?: number }) {
   const r = (size - 12) / 2;
   const circ = 2 * Math.PI * r;

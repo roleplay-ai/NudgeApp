@@ -2,8 +2,8 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Input, Textarea, Select, Checkbox, Button, Toast, useToast } from "@/components/admin/Form";
-import type { PracticeActivity, PracticeRubric } from "@/lib/types";
-import { Trash2, Edit2, Plus, ChevronDown, ChevronUp, GripVertical, Lock } from "lucide-react";
+import type { PracticeActivity } from "@/lib/types";
+import { Trash2, Edit2, Plus, Lock } from "lucide-react";
 
 const DIFFICULTY_OPTIONS = ["Easy", "Medium", "Hard"];
 const CATEGORY_OPTIONS = [
@@ -17,22 +17,32 @@ const CATEGORY_OPTIONS = [
   "Document Search",
 ];
 
-const DEFAULT_ASSESSMENT_PROMPT = `You are an expert prompt engineering assessor. Review the conversation between a user and an AI assistant and score the user's prompt engineering skills.
+// This suffix is always appended at runtime — shown here so admin knows what the AI will receive.
+const ASSESSMENT_JSON_SUFFIX = `
 
-For each rubric criterion provided, give a score and a 1-2 sentence feedback. Be honest but constructive.
-
-Return ONLY valid JSON in this exact format:
+---
+Assess ALL of the user's prompts combined as a single body of work.
+Return ONLY valid JSON — no other text before or after:
 {
   "scores": [
     {
-      "rubric_id": "<rubric id>",
-      "score": <number>,
-      "feedback": "<feedback text>"
+      "rubric_name": "<exact criterion name from your rubric above>",
+      "score": <points awarded>,
+      "max_score": <maximum points for this criterion>,
+      "feedback": "<1-2 sentence feedback>"
     }
   ]
-}
+}`;
 
-Do not include any text outside the JSON.`;
+const DEFAULT_ASSESSMENT_PROMPT = `You are an expert prompt engineering assessor. Review the user's prompts and score them as a combined body of work.
+
+Rubric criteria:
+1. Prompt Clarity (25 pts) — Is the intent unambiguous and easy to parse?
+2. Specificity (25 pts) — Does the user specify context, constraints, and expected output format?
+3. Structure (25 pts) — Is the prompt logically organised with a clear flow?
+4. Effectiveness (25 pts) — Would this prompt reliably produce a high-quality AI response?
+
+Be honest but constructive in your feedback.`;
 
 function emptyActivity(): Partial<PracticeActivity> {
   return {
@@ -52,40 +62,17 @@ function emptyActivity(): Partial<PracticeActivity> {
   };
 }
 
-function emptyRubric(): Partial<PracticeRubric> {
-  return { name: "", description: "", max_score: 25 };
-}
-
 export default function PracticeAdmin() {
   const supabase = createClient();
   const toast = useToast();
 
   const [activities, setActivities] = useState<PracticeActivity[]>([]);
   const [editing, setEditing] = useState<Partial<PracticeActivity> | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-
-  // Rubrics per activity
-  const [rubricsByActivity, setRubricsByActivity] = useState<Record<string, PracticeRubric[]>>({});
-  const [editingRubric, setEditingRubric] = useState<(Partial<PracticeRubric> & { activityId: string }) | null>(null);
-
-  // Hint chips editing (comma separated)
   const [hintChipsStr, setHintChipsStr] = useState("");
 
   async function load() {
-    const { data } = await supabase
-      .from("practice_activities")
-      .select("*")
-      .order("order_index");
+    const { data } = await supabase.from("practice_activities").select("*").order("order_index");
     setActivities((data as PracticeActivity[]) || []);
-  }
-
-  async function loadRubrics(activityId: string) {
-    const { data } = await supabase
-      .from("practice_rubrics")
-      .select("*")
-      .eq("activity_id", activityId)
-      .order("created_at");
-    setRubricsByActivity((prev) => ({ ...prev, [activityId]: (data as PracticeRubric[]) || [] }));
   }
 
   useEffect(() => { load(); }, []);
@@ -98,10 +85,7 @@ export default function PracticeAdmin() {
 
   async function save() {
     if (!editing?.name) { toast.show("Name is required", "error"); return; }
-    const chips = hintChipsStr
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
+    const chips = hintChipsStr.split(",").map((s) => s.trim()).filter(Boolean);
     const payload: any = { ...editing, hint_chips: chips };
     delete payload.practice_rubrics;
 
@@ -117,40 +101,10 @@ export default function PracticeAdmin() {
   }
 
   async function remove(id: string) {
-    if (!confirm("Delete this activity and all its rubrics and sessions?")) return;
+    if (!confirm("Delete this activity and all its sessions?")) return;
     const { error } = await supabase.from("practice_activities").delete().eq("id", id);
     if (error) toast.show(error.message, "error");
     else { toast.show("Deleted"); load(); }
-  }
-
-  function toggleExpand(id: string) {
-    if (expandedId === id) {
-      setExpandedId(null);
-    } else {
-      setExpandedId(id);
-      if (!rubricsByActivity[id]) loadRubrics(id);
-    }
-  }
-
-  async function saveRubric() {
-    if (!editingRubric?.name) { toast.show("Rubric name required", "error"); return; }
-    const { activityId, ...payload } = editingRubric as any;
-    if (payload.id) {
-      const { error } = await supabase.from("practice_rubrics").update(payload).eq("id", payload.id);
-      if (error) toast.show(error.message, "error");
-      else { toast.show("Rubric saved"); setEditingRubric(null); loadRubrics(activityId); }
-    } else {
-      const { error } = await supabase.from("practice_rubrics").insert({ ...payload, activity_id: activityId });
-      if (error) toast.show(error.message, "error");
-      else { toast.show("Rubric added"); setEditingRubric(null); loadRubrics(activityId); }
-    }
-  }
-
-  async function removeRubric(rubricId: string, activityId: string) {
-    if (!confirm("Delete this rubric criterion?")) return;
-    const { error } = await supabase.from("practice_rubrics").delete().eq("id", rubricId);
-    if (error) toast.show(error.message, "error");
-    else { toast.show("Deleted"); loadRubrics(activityId); }
   }
 
   return (
@@ -161,7 +115,7 @@ export default function PracticeAdmin() {
         <Button onClick={() => startEdit()}><Plus size={14} className="inline mr-1" />Add activity</Button>
       </div>
       <p className="text-sm text-muted mb-6">
-        Create prompt-engineering practice activities. Each activity has rubric criteria that the AI uses to score users&apos; conversations.
+        Create prompt-engineering practice activities. Define the rubric criteria directly inside the assessment prompt — the AI will score users against whatever criteria you describe there.
       </p>
 
       {/* Edit form */}
@@ -171,7 +125,8 @@ export default function PracticeAdmin() {
 
           <div className="grid grid-cols-2 gap-3">
             <Input label="Name" value={editing.name || ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
-            <Input label="Category" value={editing.category || ""} onChange={(e) => setEditing({ ...editing, category: e.target.value })}
+            <Input label="Category" value={editing.category || ""}
+              onChange={(e) => setEditing({ ...editing, category: e.target.value })}
               placeholder="e.g. Prompt Engineering" />
           </div>
 
@@ -203,10 +158,20 @@ export default function PracticeAdmin() {
             onChange={(e) => setHintChipsStr(e.target.value)}
             placeholder="Set a clear goal, Specify output format, List constraints" />
 
-          <Textarea label="Assessment prompt (system prompt used to evaluate user conversation)"
-            value={editing.assessment_prompt || DEFAULT_ASSESSMENT_PROMPT}
-            onChange={(e) => setEditing({ ...editing, assessment_prompt: e.target.value })}
-            rows={10} />
+          {/* Assessment prompt — editable part */}
+          <div>
+            <Textarea
+              label="Assessment prompt — define your rubric criteria here"
+              value={editing.assessment_prompt || DEFAULT_ASSESSMENT_PROMPT}
+              onChange={(e) => setEditing({ ...editing, assessment_prompt: e.target.value })}
+              rows={12}
+            />
+            {/* Fixed JSON suffix — read-only so admin can see exactly what gets sent to the AI */}
+            <div className="mt-1 rounded-xl border border-dashed border-nborder bg-gray-50 p-3">
+              <p className="text-[10px] font-black tracking-widest text-muted mb-1.5">ALWAYS APPENDED — NOT EDITABLE</p>
+              <pre className="text-xs text-muted whitespace-pre-wrap font-mono leading-relaxed">{ASSESSMENT_JSON_SUFFIX.trimStart()}</pre>
+            </div>
+          </div>
 
           <div className="flex gap-6">
             <Checkbox label="Published (visible to users)"
@@ -228,7 +193,6 @@ export default function PracticeAdmin() {
       <div className="space-y-3">
         {activities.map((activity) => (
           <div key={activity.id} className="bg-white rounded-xl border border-nborder overflow-hidden">
-            {/* Activity row */}
             <div className="p-4 flex items-center gap-4">
               <div
                 className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg shrink-0"
@@ -253,13 +217,6 @@ export default function PracticeAdmin() {
                 </div>
               </div>
               <div className="flex gap-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => toggleExpand(activity.id)}
-                  className="flex items-center gap-1 text-xs font-semibold text-shadow border border-nborder px-3 py-1.5 rounded-full hover:bg-chiffon transition"
-                >
-                  Rubrics {expandedId === activity.id ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                </button>
                 <button type="button" onClick={() => startEdit({ ...activity })}
                   className="p-2 rounded-full hover:bg-chiffon transition text-muted">
                   <Edit2 size={14} />
@@ -270,68 +227,6 @@ export default function PracticeAdmin() {
                 </button>
               </div>
             </div>
-
-            {/* Rubrics panel */}
-            {expandedId === activity.id && (
-              <div className="border-t border-nborder bg-gray-50 p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold">Rubric criteria</span>
-                  <Button onClick={() => setEditingRubric({ ...emptyRubric(), activityId: activity.id } as any)}>
-                    <Plus size={12} className="inline mr-1" />Add criterion
-                  </Button>
-                </div>
-
-                {/* Rubric edit form */}
-                {editingRubric?.activityId === activity.id && (
-                  <div className="bg-white rounded-xl p-4 border-2 border-amber space-y-3">
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="col-span-2">
-                        <Input label="Criterion name (e.g. Prompt clarity)"
-                          value={editingRubric.name || ""}
-                          onChange={(e) => setEditingRubric({ ...editingRubric, name: e.target.value })} />
-                      </div>
-                      <Input label="Max score" type="number" value={editingRubric.max_score ?? 25}
-                        onChange={(e) => setEditingRubric({ ...editingRubric, max_score: parseInt(e.target.value) || 25 })} />
-                    </div>
-                    <Textarea label="Description (shown to users as grading criteria)"
-                      value={editingRubric.description || ""}
-                      onChange={(e) => setEditingRubric({ ...editingRubric, description: e.target.value })} />
-                    <div className="flex gap-2">
-                      <Button onClick={saveRubric}>Save criterion</Button>
-                      <Button variant="ghost" onClick={() => setEditingRubric(null)}>Cancel</Button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Rubric list */}
-                <div className="space-y-2">
-                  {(rubricsByActivity[activity.id] || []).map((rubric) => (
-                    <div key={rubric.id} className="bg-white rounded-lg border border-nborder p-3 flex items-start gap-3">
-                      <GripVertical size={14} className="text-muted mt-1 shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-sm">{rubric.name} <span className="text-muted font-normal">/{rubric.max_score}</span></div>
-                        {rubric.description && <div className="text-xs text-muted mt-0.5">{rubric.description}</div>}
-                      </div>
-                      <div className="flex gap-1 shrink-0">
-                        <button type="button"
-                          onClick={() => setEditingRubric({ ...rubric, activityId: activity.id })}
-                          className="p-1.5 rounded-full hover:bg-chiffon transition text-muted">
-                          <Edit2 size={12} />
-                        </button>
-                        <button type="button"
-                          onClick={() => removeRubric(rubric.id, activity.id)}
-                          className="p-1.5 rounded-full hover:bg-fuchsia/10 transition text-fuchsia">
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                  {(rubricsByActivity[activity.id] || []).length === 0 && !editingRubric && (
-                    <p className="text-xs text-muted text-center py-4">No rubric criteria yet. Add one above.</p>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
         ))}
         {activities.length === 0 && !editing && (
