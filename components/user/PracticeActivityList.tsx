@@ -90,7 +90,7 @@ export default function PracticeActivityList({
           const pct = scorePercent(session);
           const isDone = !!session;
           const isLocked = activity.is_locked && !isLoggedIn;
-          const href = isLoggedIn ? `/practice/${activity.id}` : "/login";
+          const href = isLocked ? "/login" : `/practice/${activity.id}`;
 
           const inner = (
             <div
