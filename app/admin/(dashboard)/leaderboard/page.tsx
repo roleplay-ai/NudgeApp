@@ -6,8 +6,6 @@ export const dynamic = "force-dynamic";
 
 type Row = {
   id: string;
-  email: string;
-  full_name: string | null;
   display_name: string | null;
   username: string | null;
   xp: number;
@@ -26,11 +24,19 @@ export default async function LeaderboardPage({
 
   const { data: rows, error } = await admin
     .from("profiles")
-    .select("id, email, full_name, display_name, username, xp, practice_xp")
+    .select("id, display_name, username, xp, practice_xp")
     .order(type === "practice" ? "practice_xp" : "xp", { ascending: false })
     .limit(100);
 
   const users: Row[] = (rows || []) as Row[];
+
+  function displayName(u: Row) {
+    return u.display_name || u.username || "Unknown";
+  }
+
+  function initials(u: Row) {
+    return displayName(u).slice(0, 2).toUpperCase();
+  }
 
   return (
     <div>
@@ -43,9 +49,7 @@ export default async function LeaderboardPage({
           <Link
             href="/admin/leaderboard?type=total"
             className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition ${
-              type === "total"
-                ? "bg-shadow text-white"
-                : "text-muted hover:text-shadow"
+              type === "total" ? "bg-shadow text-white" : "text-muted hover:text-shadow"
             }`}
           >
             <Zap size={13} /> Total XP
@@ -53,9 +57,7 @@ export default async function LeaderboardPage({
           <Link
             href="/admin/leaderboard?type=practice"
             className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition ${
-              type === "practice"
-                ? "bg-homeClay text-white"
-                : "text-muted hover:text-shadow"
+              type === "practice" ? "bg-homeClay text-white" : "text-muted hover:text-shadow"
             }`}
           >
             <Trophy size={13} /> Practice XP
@@ -72,43 +74,37 @@ export default async function LeaderboardPage({
       {/* Top 3 podium */}
       {users.length >= 3 && (
         <div className="grid grid-cols-3 gap-4 mb-8">
-          {[users[1], users[0], users[2]].map((u, podiumIdx) => {
+          {([users[1], users[0], users[2]] as Row[]).map((u, podiumIdx) => {
             const rank = podiumIdx === 1 ? 1 : podiumIdx === 0 ? 2 : 3;
             const xpValue = type === "practice" ? u.practice_xp : u.xp;
-            const name = u.display_name || u.username || u.full_name || u.email;
-            const initials = name.slice(0, 2).toUpperCase();
             const isFirst = rank === 1;
             return (
               <div
                 key={u.id}
                 className={`flex flex-col items-center rounded-2xl p-5 border text-center ${
-                  isFirst
-                    ? "bg-amber/10 border-amber/30 -mt-4 pb-9"
-                    : "bg-white border-nborder"
+                  isFirst ? "bg-amber/10 border-amber/30 -mt-4 pb-9" : "bg-white border-nborder"
                 }`}
               >
                 <div
                   className="w-14 h-14 rounded-full flex items-center justify-center text-white font-black text-xl mb-2"
                   style={{ backgroundColor: MEDAL_COLORS[rank - 1] }}
                 >
-                  {initials}
+                  {initials(u)}
                 </div>
-                {rank === 1 && (
-                  <Medal size={18} className="text-amber mb-1" />
-                )}
+                {rank === 1 && <Medal size={18} className="text-amber mb-1" />}
                 <div className="font-extrabold text-homeInk text-sm truncate max-w-full">
-                  {name}
+                  {displayName(u)}
                 </div>
-                <div className="text-xs text-muted mt-0.5 truncate max-w-full">{u.email}</div>
+                {u.username && u.display_name && (
+                  <div className="text-xs text-muted mt-0.5 truncate max-w-full">@{u.username}</div>
+                )}
                 <div
                   className="mt-3 font-black text-lg tabular-nums"
                   style={{ color: type === "practice" ? "#C07B3A" : "#1A1A2E" }}
                 >
                   {xpValue.toLocaleString()} XP
                 </div>
-                <div className="text-[10px] font-bold tracking-widest text-muted mt-0.5">
-                  #{rank}
-                </div>
+                <div className="text-[10px] font-bold tracking-widest text-muted mt-0.5">#{rank}</div>
               </div>
             );
           })}
@@ -133,15 +129,15 @@ export default async function LeaderboardPage({
           <tbody>
             {users.map((u, i) => {
               const xpValue = type === "practice" ? u.practice_xp : u.xp;
-              const name = u.display_name || u.username || u.full_name || u.email;
-              const initials = name.slice(0, 2).toUpperCase();
               const medalColor = i < 3 ? MEDAL_COLORS[i] : null;
               return (
                 <tr key={u.id} className="border-b border-nborder last:border-0 hover:bg-gray-50 transition">
                   <td className="px-5 py-3.5 tabular-nums font-bold text-muted text-center">
                     {i < 3 ? (
-                      <span className="inline-flex w-6 h-6 rounded-full items-center justify-center text-white text-[10px] font-black"
-                        style={{ backgroundColor: medalColor! }}>
+                      <span
+                        className="inline-flex w-6 h-6 rounded-full items-center justify-center text-white text-[10px] font-black"
+                        style={{ backgroundColor: medalColor! }}
+                      >
                         {i + 1}
                       </span>
                     ) : (
@@ -154,11 +150,13 @@ export default async function LeaderboardPage({
                         className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black shrink-0"
                         style={{ backgroundColor: medalColor ?? "#6B7280" }}
                       >
-                        {initials}
+                        {initials(u)}
                       </div>
                       <div className="min-w-0">
-                        <div className="font-semibold text-homeInk truncate">{name}</div>
-                        <div className="text-xs text-muted truncate">{u.email}</div>
+                        <div className="font-semibold text-homeInk truncate">{displayName(u)}</div>
+                        {u.username && (
+                          <div className="text-xs text-muted truncate">@{u.username}</div>
+                        )}
                       </div>
                     </div>
                   </td>
