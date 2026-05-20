@@ -23,7 +23,7 @@ export default async function ModulePage({ params }: { params: Promise<{ id: str
     return (
       <div className="text-center py-20">
         <h2 className="text-xl font-bold text-shadow mb-2">{(mod as Module).title}</h2>
-        <p className="text-muted mb-6">This module doesn't have any cards yet.</p>
+        <p className="text-muted mb-6">This module doesn&apos;t have any cards yet.</p>
         <Link href="/learn" className="text-dodger underline">Back to Learn</Link>
       </div>
     );

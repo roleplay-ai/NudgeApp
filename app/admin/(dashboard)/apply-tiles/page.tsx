@@ -60,10 +60,12 @@ export default function ApplyTilesAdmin() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (editing) setPlatformsJson(platformsToJson(editing));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing?.id]);
 
   async function save() {
@@ -211,7 +213,10 @@ export default function ApplyTilesAdmin() {
               className="w-10 h-10 text-white font-extrabold rounded-lg flex items-center justify-center flex-shrink-0 text-sm"
               style={{ background: t.icon_color || "#623CEA" }}
             >
-              {t.icon_url ? <img src={t.icon_url} alt="" className="w-full h-full object-cover rounded-lg" /> : t.title[0]}
+              {t.icon_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={t.icon_url} alt="" className="w-full h-full object-cover rounded-lg" />
+              ) : t.title[0]}
             </div>
             <div className="flex-1 min-w-0">
               <div className="font-bold text-sm">{t.title}</div>
