@@ -373,6 +373,65 @@ export type PointTransaction = {
   awarded_at: string;
 };
 
+// --- Practice ---
+
+export type PracticeActivity = {
+  id: string;
+  name: string;
+  description: string | null;
+  category: string;
+  difficulty: "Easy" | "Medium" | "Hard";
+  time_minutes: number;
+  xp_reward: number;
+  icon: string;
+  color: string;
+  assessment_prompt: string | null;
+  hint_chips: string[];
+  is_published: boolean;
+  is_locked: boolean;
+  order_index: number;
+  created_at: string;
+  practice_rubrics?: PracticeRubric[];
+};
+
+export type PracticeRubric = {
+  id: string;
+  activity_id: string;
+  name: string;
+  description: string | null;
+  max_score: number;
+};
+
+export type PracticeSession = {
+  id: string;
+  user_id: string;
+  activity_id: string;
+  submitted_at: string | null;
+  total_score: number | null;
+  max_possible: number | null;
+  messages_count: number;
+  created_at: string;
+};
+
+export type PracticeMessage = {
+  id: string;
+  session_id: string;
+  role: "user" | "assistant";
+  content: string;
+  created_at: string;
+};
+
+export type PracticeScore = {
+  id: string;
+  session_id: string;
+  rubric_id: string | null;
+  rubric_name: string | null;
+  max_score: number | null;
+  score: number;
+  feedback: string | null;
+  created_at: string;
+};
+
 // --- Coupons ---
 
 export type Coupon = {

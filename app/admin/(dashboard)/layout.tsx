@@ -47,6 +47,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     { href: "/admin/resources", label: "Resources" },
     { href: "/admin/worlds", label: "Worlds & Modules" },
     { href: "/admin/quizzes", label: "Quizzes" },
+    { href: "/admin/practice", label: "Practice activities" },
+    { href: "/admin/leaderboard", label: "Leaderboard" },
     { href: "/admin/apply", label: "Apply videos" },
     { href: "/admin/apply-tiles", label: "Apply tiles" },
     { href: "/admin/points", label: "Points rules" },
