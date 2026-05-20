@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "generate:pwa-icons": "node scripts/gen-pwa-icons.mjs"
+    "generate:pwa-icons": "node scripts/gen-pwa-icons.mjs",
+    "load-test:practice": "node scripts/load-test-practice-chat.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.96.0",
