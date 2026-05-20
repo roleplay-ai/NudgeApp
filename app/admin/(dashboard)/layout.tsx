@@ -21,7 +21,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <div className="text-center max-w-md">
           <h1 className="text-2xl font-extrabold mb-3 text-white">Admin only</h1>
           <p className="text-white/60 text-sm mb-6">
-            Your account doesn't have admin access. Ask the owner to set your role to{" "}
+            Your account doesn&apos;t have admin access. Ask the owner to set your role to{" "}
             <code className="bg-white/10 px-1 rounded text-amber">admin</code> in Supabase.
           </p>
           <Link href="/" className="inline-block bg-amber text-shadow font-bold px-5 py-2.5 rounded-full">

@@ -19,7 +19,7 @@ export default function GlossaryAdmin() {
     const { data } = await supabase.from("glossary_terms").select("*").order("term");
     setList(data || []);
   }
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function save() {
     if (!editing?.term || !editing?.definition) { toast.show("Term and definition required", "error"); return; }
