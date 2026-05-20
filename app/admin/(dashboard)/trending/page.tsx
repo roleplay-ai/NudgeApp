@@ -67,7 +67,7 @@ export default function TrendingAdmin() {
         <h1 className="text-3xl font-extrabold">Trending Now</h1>
         <Button onClick={() => setEditing(empty())}><Plus size={14} className="inline mr-1" /> Add trend</Button>
       </div>
-      <p className="text-sm text-muted mb-6">Hero card on home. Only one can be active at a time. Use "Activate" to switch.</p>
+      <p className="text-sm text-muted mb-6">Hero card on home. Only one can be active at a time. Use &quot;Activate&quot; to switch.</p>
 
       {editing && (
         <div className="bg-white rounded-2xl p-6 shadow-sm mb-8 space-y-4 border-2 border-amber">

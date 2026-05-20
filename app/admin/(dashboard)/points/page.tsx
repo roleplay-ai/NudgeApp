@@ -116,7 +116,7 @@ export default function PointsAdmin() {
 
       <p className="text-sm text-muted mb-6 max-w-2xl">
         Default XP awarded when a user completes each type of content. Per-item overrides on a
-        specific module / video / news / apply video take priority — leave the item's{" "}
+        specific module / video / news / apply video take priority — leave the item&apos;s{" "}
         <span className="font-mono text-shadow">points_award</span> field empty to fall back to
         these defaults.
       </p>
