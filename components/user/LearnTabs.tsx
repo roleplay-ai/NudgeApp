@@ -551,6 +551,7 @@ function ResourceLogo({
   return (
     <div className={tileClass}>
       {logoSrc ? (
+        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={logoSrc}
           alt=""
