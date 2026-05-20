@@ -68,9 +68,6 @@ export default async function LeaderboardPage({
           </p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          <Suspense>
-            <CompanyFilter companies={companies} />
-          </Suspense>
           <Link
             href={companyId ? `/admin/leaderboard/choose-company?type=${type}&company=${companyId}` : `/admin/leaderboard/choose-company?type=${type}`}
             className="h-9 inline-flex items-center rounded-lg border border-nborder bg-white px-3 text-sm font-extrabold text-homeInk hover:bg-gray-50 transition"

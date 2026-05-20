@@ -12,7 +12,7 @@ export default function ChooseCompanyClient({ companies }: { companies: Company[
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const type = searchParams.get("type") === "practice" ? "practice" : "total";
+  const type = searchParams?.get("type") === "practice" ? "practice" : "total";
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();

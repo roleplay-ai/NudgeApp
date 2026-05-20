@@ -34,7 +34,7 @@ export function LoginPageClient() {
     }
 
     // Show error from OAuth callback
-    const oauthError = searchParams.get("error");
+    const oauthError = searchParams?.get("error");
     if (oauthError === "auth_failed") {
       setErr("Google sign-in failed. Please try again.");
     }
