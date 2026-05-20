@@ -41,8 +41,8 @@ export default function ResetPasswordPage() {
       setErr("Passwords do not match.");
       return;
     }
-    if (password.length < 8) {
-      setErr("Password must be at least 8 characters.");
+    if (password.length < 6) {
+      setErr("Password must be at least 6 characters.");
       return;
     }
 
@@ -115,7 +115,8 @@ export default function ResetPasswordPage() {
               type={showPassword ? "text" : "password"}
               required
               autoComplete="new-password"
-              placeholder="New password (min. 8 characters)"
+              minLength={6}
+              placeholder="New password (min. 6 characters)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full rounded-xl border border-white/10 bg-white/10 px-4 py-3 pr-11 text-sm text-[#fdf9f0] outline-none transition placeholder:text-white/45 focus:border-homeClay"
@@ -133,8 +134,9 @@ export default function ResetPasswordPage() {
           <input
             type={showPassword ? "text" : "password"}
             required
+            minLength={6}
             autoComplete="new-password"
-            placeholder="Confirm new password"
+            placeholder="Confirm new password (min. 6 characters)"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             className="w-full rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-[#fdf9f0] outline-none transition placeholder:text-white/45 focus:border-homeClay"

@@ -14,7 +14,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -33,8 +33,8 @@ export default function SignupPage() {
       setErr("Passwords do not match.");
       return;
     }
-    if (password.length < 8) {
-      setErr("Password must be at least 8 characters.");
+    if (password.length < 6) {
+      setErr("Password must be at least 6 characters.");
       return;
     }
 
@@ -221,8 +221,9 @@ export default function SignupPage() {
             <input
               type={showPassword ? "text" : "password"}
               required
+              minLength={6}
               autoComplete="new-password"
-              placeholder="Password (min. 8 characters)"
+              placeholder="Password (min. 6 characters)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full rounded-xl border border-white/10 bg-white/10 px-4 py-3 pr-11 text-sm text-[#fdf9f0] outline-none transition placeholder:text-white/45 focus:border-homeClay"
@@ -240,8 +241,9 @@ export default function SignupPage() {
           <input
             type={showPassword ? "text" : "password"}
             required
+            minLength={6}
             autoComplete="new-password"
-            placeholder="Confirm password"
+            placeholder="Confirm password (min. 6 characters)"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             className="w-full rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-[#fdf9f0] outline-none transition placeholder:text-white/45 focus:border-homeClay"

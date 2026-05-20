@@ -478,8 +478,7 @@ export default function HomeContent({
         </section>
       )}
 
-      {/* AI Playbook banner */}
-      <PlaybookBanner isLoggedIn={isLoggedIn} />
+
 
       {/* Discovery cards */}
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-5 pt-2">
@@ -508,6 +507,8 @@ export default function HomeContent({
           accent="purple"
         />
       </section>
+      {/* AI Playbook banner */}
+      <PlaybookBanner isLoggedIn={isLoggedIn} />
 
       <footer className="pt-8 mt-4 border-t border-homeInk/10">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-[13px] text-homeBodyMuted">

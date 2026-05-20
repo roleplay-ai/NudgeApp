@@ -1,6 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { Trophy, Zap, Medal } from "lucide-react";
+import CompanyFilter from "./CompanyFilter";
+import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
 
@@ -12,23 +14,36 @@ type Row = {
   practice_xp: number;
 };
 
+type Company = { id: string; name: string };
+
 const MEDAL_COLORS = ["#F59E0B", "#9CA3AF", "#B45309"];
 
 export default async function LeaderboardPage({
   searchParams,
 }: {
-  searchParams: { type?: string };
+  searchParams: { type?: string; company?: string };
 }) {
   const type = searchParams.type === "practice" ? "practice" : "total";
+  const companyId = searchParams.company ?? null;
   const admin = createAdminClient();
 
-  const { data: rows, error } = await admin
-    .from("profiles")
-    .select("id, display_name, username, xp, practice_xp")
-    .order(type === "practice" ? "practice_xp" : "xp", { ascending: false })
-    .limit(100);
+  const [profilesRes, companiesRes] = await Promise.all([
+    (() => {
+      let q = admin
+        .from("profiles")
+        .select("id, display_name, username, xp, practice_xp")
+        .order(type === "practice" ? "practice_xp" : "xp", { ascending: false })
+        .limit(100);
+      if (companyId) q = q.eq("company_id", companyId);
+      return q;
+    })(),
+    admin.from("companies").select("id, name").order("name"),
+  ]);
 
+  const { data: rows, error } = profilesRes;
+  const companies: Company[] = (companiesRes.data ?? []) as Company[];
   const users: Row[] = (rows || []) as Row[];
+  const selectedCompany = companies.find((c) => c.id === companyId) ?? null;
 
   function displayName(u: Row) {
     return u.display_name || u.username || "Unknown";
@@ -38,30 +53,42 @@ export default async function LeaderboardPage({
     return displayName(u).slice(0, 2).toUpperCase();
   }
 
+  const typeParam = (t: "total" | "practice") =>
+    companyId ? `/admin/leaderboard?type=${t}&company=${companyId}` : `/admin/leaderboard?type=${t}`;
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
         <div>
           <h1 className="text-3xl font-extrabold">Leaderboard</h1>
-          <p className="text-sm text-muted mt-1">Top 100 users ranked by XP.</p>
+          <p className="text-sm text-muted mt-1">
+            {selectedCompany
+              ? `Top 100 users from ${selectedCompany.name} ranked by XP.`
+              : "Top 100 users ranked by XP."}
+          </p>
         </div>
-        <div className="flex items-center gap-2 bg-white border border-nborder rounded-xl p-1">
-          <Link
-            href="/admin/leaderboard?type=total"
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition ${
-              type === "total" ? "bg-shadow text-white" : "text-muted hover:text-shadow"
-            }`}
-          >
-            <Zap size={13} /> Total XP
-          </Link>
-          <Link
-            href="/admin/leaderboard?type=practice"
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition ${
-              type === "practice" ? "bg-homeClay text-white" : "text-muted hover:text-shadow"
-            }`}
-          >
-            <Trophy size={13} /> Practice XP
-          </Link>
+        <div className="flex items-center gap-3 flex-wrap">
+          <Suspense>
+            <CompanyFilter companies={companies} />
+          </Suspense>
+          <div className="flex items-center gap-2 bg-white border border-nborder rounded-xl p-1">
+            <Link
+              href={typeParam("total")}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition ${
+                type === "total" ? "bg-shadow text-white" : "text-muted hover:text-shadow"
+              }`}
+            >
+              <Zap size={13} /> Total XP
+            </Link>
+            <Link
+              href={typeParam("practice")}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition ${
+                type === "practice" ? "bg-homeClay text-white" : "text-muted hover:text-shadow"
+              }`}
+            >
+              <Trophy size={13} /> Practice XP
+            </Link>
+          </div>
         </div>
       </div>
 
