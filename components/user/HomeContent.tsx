@@ -1319,7 +1319,7 @@ function PlaybookBanner({ isLoggedIn }: { isLoggedIn: boolean }) {
               Get your hands on the AI Playbook
             </h3>
             <p className="text-[12px] leading-relaxed m-0 mt-0.5 line-clamp-1" style={{ color: "rgba(255,255,255,0.5)" }}>
-              Frameworks to apply AI at work — move from random use to confident AI application.
+              Frameworks to apply AI at work — move to confident AI application.
             </p>
           </div>
         </div>

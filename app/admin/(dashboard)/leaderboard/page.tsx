@@ -71,6 +71,12 @@ export default async function LeaderboardPage({
           <Suspense>
             <CompanyFilter companies={companies} />
           </Suspense>
+          <Link
+            href={companyId ? `/admin/leaderboard/choose-company?type=${type}&company=${companyId}` : `/admin/leaderboard/choose-company?type=${type}`}
+            className="h-9 inline-flex items-center rounded-lg border border-nborder bg-white px-3 text-sm font-extrabold text-homeInk hover:bg-gray-50 transition"
+          >
+            Browse
+          </Link>
           <div className="flex items-center gap-2 bg-white border border-nborder rounded-xl p-1">
             <Link
               href={typeParam("total")}
