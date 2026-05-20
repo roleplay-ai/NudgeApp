@@ -68,7 +68,7 @@ export function LoginPageClient() {
     // Mark this as an active session so we can detect browser-close
     sessionStorage.setItem(SESSION_ACTIVE_KEY, "1");
 
-    const next = searchParams.get("next") ?? "/";
+    const next = searchParams?.get("next") ?? "/";
     router.push(next);
     router.refresh();
   }
@@ -77,7 +77,7 @@ export function LoginPageClient() {
     setGoogleLoading(true);
     setErr(null);
 
-    const nextPath = searchParams.get("next") ?? "/";
+    const nextPath = searchParams?.get("next") ?? "/";
     setOAuthNextCookie(nextPath);
 
     const supabase = createClient();

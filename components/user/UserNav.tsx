@@ -142,7 +142,7 @@ export default function UserNav({
         <nav className="flex flex-col gap-1 flex-1 min-h-0">
           {items.map((it) => {
             const Ic = it.icon;
-            const active = path === it.href || (it.href !== "/" && path.startsWith(it.href));
+            const active = path === it.href || (it.href !== "/" && !!path?.startsWith(it.href));
             return (
               <Link
                 key={it.href}
@@ -225,7 +225,7 @@ export default function UserNav({
           <div className="grid grid-cols-6 gap-0.5">
             {items.filter((it) => it.href !== "/tools" && it.href !== "/insights").map((it) => {
               const Ic = it.icon;
-              const active = path === it.href || (it.href !== "/" && path.startsWith(it.href));
+              const active = path === it.href || (it.href !== "/" && !!path?.startsWith(it.href));
               return (
                 <Link
                   key={it.href}
