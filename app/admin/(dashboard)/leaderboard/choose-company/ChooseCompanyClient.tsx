@@ -12,7 +12,8 @@ export default function ChooseCompanyClient({ companies }: { companies: Company[
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const type = searchParams?.get("type") === "practice" ? "practice" : "total";
+  const rawType = searchParams?.get("type");
+  const type = rawType === "practice" ? "practice" : rawType === "play" ? "play" : "total";
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -42,7 +43,7 @@ export default function ChooseCompanyClient({ companies }: { companies: Company[
         </div>
 
         <Link
-          href={type === "practice" ? "/admin/leaderboard?type=practice" : "/admin/leaderboard"}
+          href={type !== "total" ? `/admin/leaderboard?type=${type}` : "/admin/leaderboard"}
           className="inline-flex items-center gap-2 rounded-xl border border-nborder bg-white px-4 py-2 text-sm font-bold text-homeInk hover:bg-gray-50 transition"
         >
           <ArrowLeft size={16} /> Back to leaderboard

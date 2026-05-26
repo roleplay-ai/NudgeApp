@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { Trophy, Zap, Medal } from "lucide-react";
+import { Trophy, Zap, Medal, Gamepad2 } from "lucide-react";
 import CompanyFilter from "./CompanyFilter";
 import { Suspense } from "react";
 
@@ -12,27 +12,35 @@ type Row = {
   username: string | null;
   xp: number;
   practice_xp: number;
+  play_xp: number;
 };
 
 type Company = { id: string; name: string };
 
 const MEDAL_COLORS = ["#F59E0B", "#9CA3AF", "#B45309"];
 
+type LeaderboardType = "total" | "practice" | "play";
+
 export default async function LeaderboardPage({
   searchParams,
 }: {
   searchParams: { type?: string; company?: string };
 }) {
-  const type = searchParams.type === "practice" ? "practice" : "total";
+  const rawType = searchParams.type;
+  const type: LeaderboardType =
+    rawType === "practice" ? "practice" : rawType === "play" ? "play" : "total";
   const companyId = searchParams.company ?? null;
   const admin = createAdminClient();
+
+  const sortCol =
+    type === "practice" ? "practice_xp" : type === "play" ? "play_xp" : "xp";
 
   const [profilesRes, companiesRes] = await Promise.all([
     (() => {
       let q = admin
         .from("profiles")
-        .select("id, display_name, username, xp, practice_xp")
-        .order(type === "practice" ? "practice_xp" : "xp", { ascending: false })
+        .select("id, display_name, username, xp, practice_xp, play_xp")
+        .order(sortCol, { ascending: false })
         .limit(100);
       if (companyId) q = q.eq("company_id", companyId);
       return q;
@@ -53,8 +61,23 @@ export default async function LeaderboardPage({
     return displayName(u).slice(0, 2).toUpperCase();
   }
 
-  const typeParam = (t: "total" | "practice") =>
-    companyId ? `/admin/leaderboard?type=${t}&company=${companyId}` : `/admin/leaderboard?type=${t}`;
+  function primaryXp(u: Row) {
+    if (type === "practice") return u.practice_xp;
+    if (type === "play") return u.play_xp;
+    return u.xp;
+  }
+
+  function typeParam(t: LeaderboardType) {
+    return companyId
+      ? `/admin/leaderboard?type=${t}&company=${companyId}`
+      : `/admin/leaderboard?type=${t}`;
+  }
+
+  const primaryLabel =
+    type === "practice" ? "Practice Points" : type === "play" ? "Play Points" : "Total Points";
+
+  const primaryColor =
+    type === "practice" ? "#C07B3A" : "#1A1A2E";
 
   return (
     <div>
@@ -63,13 +86,20 @@ export default async function LeaderboardPage({
           <h1 className="text-3xl font-extrabold">Leaderboard</h1>
           <p className="text-sm text-muted mt-1">
             {selectedCompany
-              ? `Top 100 users from ${selectedCompany.name} ranked by XP.`
-              : "Top 100 users ranked by XP."}
+              ? `Top 100 users from ${selectedCompany.name} ranked by ${primaryLabel}.`
+              : `Top 100 users ranked by ${primaryLabel}.`}
           </p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
+          <Suspense>
+            <CompanyFilter companies={companies} />
+          </Suspense>
           <Link
-            href={companyId ? `/admin/leaderboard/choose-company?type=${type}&company=${companyId}` : `/admin/leaderboard/choose-company?type=${type}`}
+            href={
+              companyId
+                ? `/admin/leaderboard/choose-company?type=${type}&company=${companyId}`
+                : `/admin/leaderboard/choose-company?type=${type}`
+            }
             className="h-9 inline-flex items-center rounded-lg border border-nborder bg-white px-3 text-sm font-extrabold text-homeInk hover:bg-gray-50 transition"
           >
             Browse
@@ -81,7 +111,7 @@ export default async function LeaderboardPage({
                 type === "total" ? "bg-shadow text-white" : "text-muted hover:text-shadow"
               }`}
             >
-              <Zap size={13} /> Total XP
+              <Zap size={13} /> Total Points
             </Link>
             <Link
               href={typeParam("practice")}
@@ -89,7 +119,15 @@ export default async function LeaderboardPage({
                 type === "practice" ? "bg-homeClay text-white" : "text-muted hover:text-shadow"
               }`}
             >
-              <Trophy size={13} /> Practice XP
+              <Trophy size={13} /> Practice Points
+            </Link>
+            <Link
+              href={typeParam("play")}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition ${
+                type === "play" ? "bg-shadow text-white" : "text-muted hover:text-shadow"
+              }`}
+            >
+              <Gamepad2 size={13} /> Play Points
             </Link>
           </div>
         </div>
@@ -106,7 +144,6 @@ export default async function LeaderboardPage({
         <div className="grid grid-cols-3 gap-4 mb-8">
           {([users[1], users[0], users[2]] as Row[]).map((u, podiumIdx) => {
             const rank = podiumIdx === 1 ? 1 : podiumIdx === 0 ? 2 : 3;
-            const xpValue = type === "practice" ? u.practice_xp : u.xp;
             const isFirst = rank === 1;
             return (
               <div
@@ -126,15 +163,29 @@ export default async function LeaderboardPage({
                   {displayName(u)}
                 </div>
                 {u.username && u.display_name && (
-                  <div className="text-xs text-muted mt-0.5 truncate max-w-full">@{u.username}</div>
+                  <div className="text-xs text-muted mt-0.5 truncate max-w-full">
+                    @{u.username}
+                  </div>
                 )}
                 <div
                   className="mt-3 font-black text-lg tabular-nums"
-                  style={{ color: type === "practice" ? "#C07B3A" : "#1A1A2E" }}
+                  style={{ color: primaryColor }}
                 >
-                  {xpValue.toLocaleString()} XP
+                  {primaryXp(u).toLocaleString()} pts
                 </div>
-                <div className="text-[10px] font-bold tracking-widest text-muted mt-0.5">#{rank}</div>
+                {type === "total" && (
+                  <div className="flex gap-3 mt-1">
+                    <span className="text-[11px] text-muted tabular-nums">
+                      P {u.practice_xp.toLocaleString()}
+                    </span>
+                    <span className="text-[11px] text-muted tabular-nums">
+                      Q {u.play_xp.toLocaleString()}
+                    </span>
+                  </div>
+                )}
+                <div className="text-[10px] font-bold tracking-widest text-muted mt-0.5">
+                  #{rank}
+                </div>
               </div>
             );
           })}
@@ -146,22 +197,61 @@ export default async function LeaderboardPage({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-nborder">
-              <th className="text-left px-5 py-3 text-xs font-black tracking-widest text-muted w-12">#</th>
-              <th className="text-left px-4 py-3 text-xs font-black tracking-widest text-muted">User</th>
-              <th className="text-right px-5 py-3 text-xs font-black tracking-widest text-muted">
-                {type === "practice" ? "Practice XP" : "Total XP"}
+              <th className="text-left px-5 py-3 text-xs font-black tracking-widest text-muted w-12">
+                #
               </th>
+              <th className="text-left px-4 py-3 text-xs font-black tracking-widest text-muted">
+                User
+              </th>
+              {type === "total" && (
+                <>
+                  <th className="text-right px-5 py-3 text-xs font-black tracking-widest text-muted">
+                    Total Points
+                  </th>
+                  <th className="text-right px-5 py-3 text-xs font-black tracking-widest text-muted">
+                    Practice Points
+                  </th>
+                  <th className="text-right px-5 py-3 text-xs font-black tracking-widest text-muted">
+                    Play Points
+                  </th>
+                </>
+              )}
               {type === "practice" && (
-                <th className="text-right px-5 py-3 text-xs font-black tracking-widest text-muted">Total XP</th>
+                <>
+                  <th className="text-right px-5 py-3 text-xs font-black tracking-widest text-muted">
+                    Practice Points
+                  </th>
+                  <th className="text-right px-5 py-3 text-xs font-black tracking-widest text-muted">
+                    Play Points
+                  </th>
+                  <th className="text-right px-5 py-3 text-xs font-black tracking-widest text-muted">
+                    Total Points
+                  </th>
+                </>
+              )}
+              {type === "play" && (
+                <>
+                  <th className="text-right px-5 py-3 text-xs font-black tracking-widest text-muted">
+                    Play Points
+                  </th>
+                  <th className="text-right px-5 py-3 text-xs font-black tracking-widest text-muted">
+                    Practice Points
+                  </th>
+                  <th className="text-right px-5 py-3 text-xs font-black tracking-widest text-muted">
+                    Total Points
+                  </th>
+                </>
               )}
             </tr>
           </thead>
           <tbody>
             {users.map((u, i) => {
-              const xpValue = type === "practice" ? u.practice_xp : u.xp;
               const medalColor = i < 3 ? MEDAL_COLORS[i] : null;
               return (
-                <tr key={u.id} className="border-b border-nborder last:border-0 hover:bg-gray-50 transition">
+                <tr
+                  key={u.id}
+                  className="border-b border-nborder last:border-0 hover:bg-gray-50 transition"
+                >
                   <td className="px-5 py-3.5 tabular-nums font-bold text-muted text-center">
                     {i < 3 ? (
                       <span
@@ -183,27 +273,60 @@ export default async function LeaderboardPage({
                         {initials(u)}
                       </div>
                       <div className="min-w-0">
-                        <div className="font-semibold text-homeInk truncate">{displayName(u)}</div>
+                        <div className="font-semibold text-homeInk truncate">
+                          {displayName(u)}
+                        </div>
                         {u.username && (
                           <div className="text-xs text-muted truncate">@{u.username}</div>
                         )}
                       </div>
                     </div>
                   </td>
-                  <td className="px-5 py-3.5 text-right tabular-nums font-bold text-homeInk">
-                    {xpValue.toLocaleString()}
-                  </td>
+                  {type === "total" && (
+                    <>
+                      <td className="px-5 py-3.5 text-right tabular-nums font-bold text-homeInk">
+                        {u.xp.toLocaleString()}
+                      </td>
+                      <td className="px-5 py-3.5 text-right tabular-nums text-muted">
+                        {u.practice_xp.toLocaleString()}
+                      </td>
+                      <td className="px-5 py-3.5 text-right tabular-nums text-muted">
+                        {u.play_xp.toLocaleString()}
+                      </td>
+                    </>
+                  )}
                   {type === "practice" && (
-                    <td className="px-5 py-3.5 text-right tabular-nums text-muted">
-                      {u.xp.toLocaleString()}
-                    </td>
+                    <>
+                      <td className="px-5 py-3.5 text-right tabular-nums font-bold text-homeInk">
+                        {u.practice_xp.toLocaleString()}
+                      </td>
+                      <td className="px-5 py-3.5 text-right tabular-nums text-muted">
+                        {u.play_xp.toLocaleString()}
+                      </td>
+                      <td className="px-5 py-3.5 text-right tabular-nums text-muted">
+                        {u.xp.toLocaleString()}
+                      </td>
+                    </>
+                  )}
+                  {type === "play" && (
+                    <>
+                      <td className="px-5 py-3.5 text-right tabular-nums font-bold text-homeInk">
+                        {u.play_xp.toLocaleString()}
+                      </td>
+                      <td className="px-5 py-3.5 text-right tabular-nums text-muted">
+                        {u.practice_xp.toLocaleString()}
+                      </td>
+                      <td className="px-5 py-3.5 text-right tabular-nums text-muted">
+                        {u.xp.toLocaleString()}
+                      </td>
+                    </>
                   )}
                 </tr>
               );
             })}
             {users.length === 0 && (
               <tr>
-                <td colSpan={4} className="text-center py-12 text-muted text-sm">
+                <td colSpan={5} className="text-center py-12 text-muted text-sm">
                   No users yet.
                 </td>
               </tr>
