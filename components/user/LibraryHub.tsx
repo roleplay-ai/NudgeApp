@@ -36,6 +36,7 @@ function ResourceLogo({
   return (
     <div className={tileClass}>
       {logoSrc ? (
+        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={logoSrc}
           alt=""
@@ -239,6 +240,7 @@ function VideoCarouselCard({
         >
           {thumb ? (
             <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={thumb} alt="" className="absolute inset-0 h-full w-full object-cover" />
               <div className="absolute inset-0 bg-black/40" aria-hidden />
             </>
@@ -283,6 +285,7 @@ function VideoCarouselCard({
       >
         {thumb ? (
           <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={thumb} alt="" className="absolute inset-0 h-full w-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-black/25" aria-hidden />
           </>

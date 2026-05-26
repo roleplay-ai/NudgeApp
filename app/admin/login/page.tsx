@@ -82,7 +82,7 @@ export default function AdminLoginPage() {
         </form>
 
         <p className="text-white/30 text-xs text-center mt-8">
-          Only users with role = 'admin' can access this panel.
+          Only users with role = &apos;admin&apos; can access this panel.
         </p>
       </div>
     </div>

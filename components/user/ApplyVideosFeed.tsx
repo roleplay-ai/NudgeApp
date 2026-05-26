@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Check, Film, Lock, X } from "lucide-react";
+import { Check, CheckCircle, Film, Lock, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { ApplyVideo } from "@/lib/types";
 import { youtubeEmbedSrc } from "@/lib/youtubeEmbed";
@@ -103,7 +103,15 @@ function parseApplyVideoDescription(description: string | null | undefined) {
   return { tagline, whatBody, platformNames };
 }
 
-export function ApplyVideoDetailModal({ video, onClose }: { video: ApplyVideo; onClose: () => void }) {
+export function ApplyVideoDetailModal({
+  video,
+  onClose,
+  onComplete,
+}: {
+  video: ApplyVideo;
+  onClose: () => void;
+  onComplete?: (videoId: string) => void;
+}) {
   const group = (video.group_name || "Features").trim();
   const accent = GROUP_ACCENT[group] || "#A855F7";
   const cat = formatCategoryLabel(video.category_tag);
@@ -135,6 +143,7 @@ export function ApplyVideoDetailModal({ video, onClose }: { video: ApplyVideo; o
         console.error("[ApplyVideoDetailModal] award_points failed:", result.error);
       }
       router.refresh();
+      onComplete?.(video.id);
     } finally {
       setAwarding(false);
     }
@@ -268,15 +277,24 @@ export default function ApplyVideosFeed({
   videos,
   variant = "light",
   isLoggedIn = false,
+  initialCompletedIds = [],
 }: {
   videos: ApplyVideo[];
   variant?: "light" | "dark";
   /** Signed-in viewers bypass the lock on individual apply videos. */
   isLoggedIn?: boolean;
+  initialCompletedIds?: string[];
 }) {
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
   const [modalVideo, setModalVideo] = useState<ApplyVideo | null>(null);
   const [groupFilter, setGroupFilter] = useState<string>("All");
+  const [completedIds, setCompletedIds] = useState<Set<string>>(
+    () => new Set(initialCompletedIds)
+  );
+
+  function handleVideoComplete(videoId: string) {
+    setCompletedIds((prev) => new Set([...prev, videoId]));
+  }
 
   const registerRef = useCallback((id: string, el: HTMLVideoElement | null) => {
     if (el) videoRefs.current.set(id, el);
@@ -344,13 +362,14 @@ export default function ApplyVideosFeed({
             const cat = (v.category_tag || "Feature").trim();
             const durationLabel = v.duration?.trim() || "0:30";
             const locked = v.is_locked && !isLoggedIn;
+            const isDone = isLoggedIn && completedIds.has(v.id);
             return (
               <button
                 key={v.id}
                 type="button"
                 disabled={locked}
                 onClick={locked ? undefined : () => setModalVideo(v)}
-                className={`text-left w-full overflow-hidden rounded-[18px] border border-black/[0.06] bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)] flex flex-col transition-[opacity,transform] duration-150 ${locked ? "opacity-60 cursor-default" : "cursor-pointer hover:-translate-y-0.5"}`}
+                className={`text-left w-full overflow-hidden rounded-[18px] border bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)] flex flex-col transition-[opacity,transform] duration-150 ${locked ? "opacity-60 cursor-default border-black/[0.06]" : isDone ? "cursor-pointer hover:-translate-y-0.5 border-green-200" : "cursor-pointer hover:-translate-y-0.5 border-black/[0.06]"}`}
               >
                 <div
                   className="relative h-[132px] w-full shrink-0 overflow-hidden"
@@ -388,6 +407,12 @@ export default function ApplyVideosFeed({
                       {durationLabel}
                     </div>
                   )}
+                  {isDone && (
+                    <div className="absolute top-2 left-2 flex items-center gap-1 text-[10px] font-black tracking-wide px-2 py-1 rounded-full bg-green-500/90 text-white">
+                      <CheckCircle size={10} strokeWidth={3} />
+                      WATCHED
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex flex-col gap-1.5 px-3.5 pt-3 pb-3.5 bg-white flex-1">
@@ -414,7 +439,13 @@ export default function ApplyVideosFeed({
         </div>
         )}
 
-        {modalVideo ? <ApplyVideoDetailModal video={modalVideo} onClose={() => setModalVideo(null)} /> : null}
+        {modalVideo ? (
+          <ApplyVideoDetailModal
+            video={modalVideo}
+            onClose={() => setModalVideo(null)}
+            onComplete={handleVideoComplete}
+          />
+        ) : null}
       </>
     );
   }

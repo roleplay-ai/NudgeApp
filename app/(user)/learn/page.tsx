@@ -24,6 +24,15 @@ export default async function LearnPage({
     supabase.auth.getUser(),
   ]);
 
+  let completedModuleIds: string[] = [];
+  if (user) {
+    const { data: txns } = await supabase
+      .from("point_transactions")
+      .select("source_id")
+      .eq("source_type", "module");
+    completedModuleIds = (txns || []).map((t) => t.source_id as string);
+  }
+
   return (
     <div>
       {/* Page header with brand color accents */}
@@ -49,6 +58,7 @@ export default async function LearnPage({
         resources={(resources || []) as Resource[]}
         initialTab={searchParams?.tab}
         isLoggedIn={!!user}
+        initialCompletedModuleIds={completedModuleIds}
       />
     </div>
   );

@@ -37,6 +37,7 @@ export default function ApplyVideosAdmin() {
   }
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function saveVideo() {
@@ -248,6 +249,7 @@ export default function ApplyVideosAdmin() {
           <div key={v.id} className="bg-white rounded-xl p-4 shadow-sm flex gap-3 items-center">
             <div className="text-xs font-bold text-muted w-6">{i + 1}</div>
             {v.thumbnail_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img src={v.thumbnail_url} alt="" className="w-20 h-14 rounded object-cover flex-shrink-0" />
             ) : (
               <div className="w-20 h-14 rounded bg-shadow flex items-center justify-center flex-shrink-0">

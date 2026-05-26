@@ -34,7 +34,7 @@ export function LoginPageClient() {
     }
 
     // Show error from OAuth callback
-    const oauthError = searchParams.get("error");
+    const oauthError = searchParams?.get("error");
     if (oauthError === "auth_failed") {
       setErr("Google sign-in failed. Please try again.");
     }
@@ -68,7 +68,7 @@ export function LoginPageClient() {
     // Mark this as an active session so we can detect browser-close
     sessionStorage.setItem(SESSION_ACTIVE_KEY, "1");
 
-    const next = searchParams.get("next") ?? "/";
+    const next = searchParams?.get("next") ?? "/";
     router.push(next);
     router.refresh();
   }
@@ -77,7 +77,7 @@ export function LoginPageClient() {
     setGoogleLoading(true);
     setErr(null);
 
-    const nextPath = searchParams.get("next") ?? "/";
+    const nextPath = searchParams?.get("next") ?? "/";
     setOAuthNextCookie(nextPath);
 
     const supabase = createClient();
@@ -102,114 +102,119 @@ export function LoginPageClient() {
 
   return (
     <div className="dark-auth-form min-h-screen flex items-center justify-center px-5 bg-homeSidebar text-white">
-      <div className="w-full max-w-sm">
-        {/* Brand */}
-        <div className="mb-8 text-center">
+      <div className="w-full max-w-md">
+        <div className="mb-6 text-center">
           <div className="text-[10px] font-bold tracking-[2px] text-homeClay mb-1 break-all">
             {SITE_BRAND_MARK}
           </div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">
+          <h1 className="text-3xl sm:text-[34px] leading-tight font-extrabold text-white tracking-tight">
             Welcome back
           </h1>
-          <p className="text-white/45 text-sm mt-1">
+          <p className="text-white/50 text-sm mt-1">
             Sign in to continue your AI learning journey
           </p>
         </div>
 
-        {/* Google sign-in */}
-        <button
-          type="button"
-          onClick={handleGoogleLogin}
-          disabled={googleLoading || loading}
-          className="w-full flex items-center justify-center gap-3 bg-white text-[#1c1c1c] font-semibold rounded-xl px-4 py-3 text-sm hover:bg-white/90 transition disabled:opacity-60 mb-4"
-        >
-          {googleLoading ? (
-            <Loader2 size={18} className="animate-spin" />
-          ) : (
-            <GoogleIcon />
-          )}
-          Continue with Google
-        </button>
-
-        {/* Divider */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="flex-1 h-px bg-white/10" />
-          <span className="text-white/30 text-xs font-medium">or sign in with email</span>
-          <div className="flex-1 h-px bg-white/10" />
-        </div>
-
-        {/* Email / password form */}
-        <form onSubmit={handleLogin} className="space-y-3">
-          <input
-            type="email"
-            required
-            autoComplete="email"
-            placeholder="Email address"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-[#fdf9f0] outline-none transition placeholder:text-white/45 focus:border-homeClay"
-          />
-
+        <div className="rounded-3xl border border-white/10 bg-white/[0.06] shadow-[0_0_0_1px_rgba(192,123,58,0.06),0_24px_60px_rgba(0,0,0,0.45)] backdrop-blur px-5 py-6 sm:px-7">
+          <div className="pointer-events-none absolute inset-0 rounded-3xl opacity-70 [background:radial-gradient(900px_450px_at_50%_-100px,rgba(192,123,58,0.16),transparent_55%)]" />
           <div className="relative">
-            <input
-              type={showPassword ? "text" : "password"}
-              required
-              minLength={6}
-              autoComplete="current-password"
-              placeholder="Password (min. 6 characters)"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-white/10 px-4 py-3 pr-11 text-sm text-[#fdf9f0] outline-none transition placeholder:text-white/45 focus:border-homeClay"
-            />
+
+            {/* Google sign-in */}
             <button
               type="button"
-              onClick={() => setShowPassword((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition"
-              tabIndex={-1}
+              onClick={handleGoogleLogin}
+              disabled={googleLoading || loading}
+              className="w-full flex items-center justify-center gap-3 bg-white text-[#1c1c1c] font-semibold rounded-2xl px-4 py-3 text-sm hover:bg-white/90 transition disabled:opacity-60"
             >
-              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              {googleLoading ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <GoogleIcon />
+              )}
+              Continue with Google
             </button>
-          </div>
 
-          {/* Remember me + Forgot password row */}
-          <div className="flex items-center justify-between pt-0.5">
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 rounded border-white/20 bg-white/10 accent-homeClay cursor-pointer"
-              />
-              <span className="text-white/55 text-xs">Remember me</span>
-            </label>
-            <Link
-              href="/forgot-password"
-              className="text-xs text-homeClay hover:text-amber transition no-underline"
-            >
-              Forgot password?
-            </Link>
-          </div>
-
-          {err && (
-            <div className="text-fuchsia text-xs bg-fuchsia/10 rounded-lg px-3 py-2">
-              {err}
+            {/* Divider */}
+            <div className="flex items-center gap-3 my-5">
+              <div className="flex-1 h-px bg-white/10" />
+              <span className="text-white/30 text-xs font-medium">or sign in with email</span>
+              <div className="flex-1 h-px bg-white/10" />
             </div>
-          )}
 
-          <button
-            type="submit"
-            disabled={loading || googleLoading}
-            className="w-full bg-homeClay text-white font-bold py-3 rounded-full disabled:opacity-50 hover:opacity-90 transition mt-1"
-          >
-            {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <Loader2 size={16} className="animate-spin" /> Signing in…
-              </span>
-            ) : (
-              "Sign in"
-            )}
-          </button>
-        </form>
+            {/* Email / password form */}
+            <form onSubmit={handleLogin} className="space-y-3">
+              <input
+                type="email"
+                required
+                autoComplete="email"
+                placeholder="Email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-[#fdf9f0] outline-none transition placeholder:text-white/45 focus:border-homeClay focus:ring-4 focus:ring-homeClay/10"
+              />
+
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  minLength={6}
+                  autoComplete="current-password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 pr-11 text-sm text-[#fdf9f0] outline-none transition placeholder:text-white/45 focus:border-homeClay focus:ring-4 focus:ring-homeClay/10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+
+              {/* Remember me + Forgot password row */}
+              <div className="flex items-center justify-between pt-0.5">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded border-white/20 bg-white/10 accent-homeClay cursor-pointer"
+                  />
+                  <span className="text-white/55 text-xs">Remember me</span>
+                </label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-homeClay hover:text-amber transition no-underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+
+              {err && (
+                <div className="text-fuchsia text-xs bg-fuchsia/10 border border-fuchsia/20 rounded-xl px-3 py-2">
+                  {err}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading || googleLoading}
+                className="w-full bg-homeClay text-white font-extrabold py-3.5 rounded-2xl disabled:opacity-50 hover:opacity-90 transition mt-1 shadow-[0_10px_30px_rgba(192,123,58,0.22)]"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 size={16} className="animate-spin" /> Signing in…
+                  </span>
+                ) : (
+                  "Sign in"
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
 
         {/* Sign up link */}
         <p className="text-center text-white/40 text-xs mt-6">

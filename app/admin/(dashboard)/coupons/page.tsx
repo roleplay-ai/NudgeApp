@@ -27,7 +27,7 @@ export default function CouponsAdmin() {
     setList((data || []) as Coupon[]);
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function save() {
     if (!editing?.code?.trim()) {

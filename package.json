@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "generate:pwa-icons": "node scripts/gen-pwa-icons.mjs"
+    "generate:pwa-icons": "node scripts/gen-pwa-icons.mjs",
+    "load-test:practice": "node scripts/load-test-practice-chat.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.96.0",
@@ -24,6 +25,8 @@
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "14.2.16",
     "postcss": "^8.4.47",
     "sharp": "^0.34.5",
     "tailwindcss": "^3.4.13",

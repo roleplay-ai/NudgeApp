@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   BookMarked,
   BookOpen,
+  CheckCircle,
   ChevronRight,
   Clock,
   ExternalLink,
@@ -42,6 +43,7 @@ export default function LearnTabs({
   resources,
   initialTab,
   isLoggedIn = false,
+  initialCompletedModuleIds = [],
 }: {
   worlds: World[];
   modules: Module[];
@@ -50,6 +52,7 @@ export default function LearnTabs({
   initialTab?: string | null;
   /** Signed-in viewers bypass the lock on individual modules. */
   isLoggedIn?: boolean;
+  initialCompletedModuleIds?: string[];
 }) {
   const [view, setView] = useState<"worlds" | "glossary" | "resources">(() =>
     parseLearnTab(initialTab)
@@ -91,7 +94,14 @@ export default function LearnTabs({
         </div>
       </div>
 
-      {view === "worlds" && <WorldsView worlds={worlds} modules={modules} isLoggedIn={isLoggedIn} />}
+      {view === "worlds" && (
+        <WorldsView
+          worlds={worlds}
+          modules={modules}
+          isLoggedIn={isLoggedIn}
+          initialCompletedModuleIds={initialCompletedModuleIds}
+        />
+      )}
       {view === "glossary" && <GlossaryView glossary={glossary} />}
       {view === "resources" && <ResourcesView resources={resources} />}
     </>
@@ -104,10 +114,12 @@ function WorldsView({
   worlds,
   modules,
   isLoggedIn,
+  initialCompletedModuleIds = [],
 }: {
   worlds: World[];
   modules: Module[];
   isLoggedIn: boolean;
+  initialCompletedModuleIds?: string[];
 }) {
   const [openId, setOpenId] = useState<string | null>(worlds[0]?.id || null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
@@ -115,6 +127,9 @@ function WorldsView({
     module: Module;
     screens: ModuleScreen[];
   } | null>(null);
+  const [completedModuleIds, setCompletedModuleIds] = useState<Set<string>>(
+    () => new Set(initialCompletedModuleIds)
+  );
 
   async function handleOpenModule(m: Module) {
     const parentWorld = worlds.find((w) => w.id === m.world_id);
@@ -125,6 +140,10 @@ function WorldsView({
     const data = await getModuleWithScreens(m.id);
     setLoadingId(null);
     if (data) setPlayerData(data);
+  }
+
+  function handleModuleComplete(moduleId: string) {
+    setCompletedModuleIds((prev) => new Set([...prev, moduleId]));
   }
 
   return (
@@ -198,6 +217,7 @@ function WorldsView({
                   {wMods.map((m, idx) => {
                     const locked = m.is_locked && !isLoggedIn;
                     const loading = loadingId === m.id;
+                    const isDone = isLoggedIn && completedModuleIds.has(m.id);
                     return (
                       <button
                         key={m.id}
@@ -207,16 +227,24 @@ function WorldsView({
                         className={`w-full flex gap-3 items-start py-3 rounded-xl px-2 -mx-2 text-left transition group
                           ${locked ? "cursor-not-allowed opacity-55" : loading ? "cursor-wait" : "hover:bg-white/80 cursor-pointer"}`}
                       >
-                        {/* Badge: number or lock */}
+                        {/* Badge: number, lock, or done checkmark */}
                         <div
                           className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 text-[11px] font-black transition-transform"
                           style={
                             locked
                               ? { background: "rgba(34,29,35,0.07)", color: "#9e8e7a", border: "1.5px solid rgba(34,29,35,0.12)" }
+                              : isDone
+                              ? { background: "rgba(34,197,94,0.12)", color: "#16a34a", border: "1.5px solid rgba(34,197,94,0.35)" }
                               : { background: `${w.color}18`, color: w.color, border: `1.5px solid ${w.color}35` }
                           }
                         >
-                          {locked ? <Lock size={12} strokeWidth={2.5} /> : idx + 1}
+                          {locked ? (
+                            <Lock size={12} strokeWidth={2.5} />
+                          ) : isDone ? (
+                            <CheckCircle size={14} strokeWidth={2.5} />
+                          ) : (
+                            idx + 1
+                          )}
                         </div>
 
                         <div className="flex-1 min-w-0">
@@ -229,6 +257,12 @@ function WorldsView({
                             {locked && (
                               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-shadow/8 text-muted border border-shadow/10 uppercase tracking-wide">
                                 Locked
+                              </span>
+                            )}
+                            {isDone && !locked && (
+                              <span className="flex items-center gap-1 text-[9px] font-black tracking-wide px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 border border-green-200">
+                                <CheckCircle size={8} strokeWidth={3} />
+                                COMPLETED
                               </span>
                             )}
                           </div>
@@ -256,7 +290,7 @@ function WorldsView({
                         ) : (
                           <ChevronRight
                             size={14}
-                            className="text-muted/50 shrink-0 mt-1 group-hover:text-shadow group-hover:translate-x-0.5 transition"
+                            className={`shrink-0 mt-1 group-hover:translate-x-0.5 transition ${isDone ? "text-green-400 group-hover:text-green-600" : "text-muted/50 group-hover:text-shadow"}`}
                           />
                         )}
                       </button>
@@ -293,6 +327,7 @@ function WorldsView({
           module={playerData.module}
           screens={playerData.screens}
           onClose={() => setPlayerData(null)}
+          onComplete={handleModuleComplete}
         />
       )}
     </>
@@ -516,6 +551,7 @@ function ResourceLogo({
   return (
     <div className={tileClass}>
       {logoSrc ? (
+        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={logoSrc}
           alt=""

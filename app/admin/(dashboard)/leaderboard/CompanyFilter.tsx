@@ -9,7 +9,7 @@ export default function CompanyFilter({ companies }: { companies: Company[] }) {
   const searchParams = useSearchParams();
 
   function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
     if (e.target.value) {
       params.set("company", e.target.value);
     } else {
@@ -20,7 +20,7 @@ export default function CompanyFilter({ companies }: { companies: Company[] }) {
 
   return (
     <select
-      defaultValue={searchParams.get("company") ?? ""}
+      defaultValue={searchParams?.get("company") ?? ""}
       onChange={handleChange}
       className="h-9 rounded-lg border border-nborder bg-white px-3 text-sm font-semibold text-homeInk focus:outline-none focus:ring-2 focus:ring-shadow/30"
     >

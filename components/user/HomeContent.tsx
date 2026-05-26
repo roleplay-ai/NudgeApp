@@ -902,6 +902,7 @@ function ApplyVideosCarousel({
                 >
                   {thumb ? (
                     <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={thumb} alt="" className="absolute inset-0 h-full w-full object-cover" />
                       <div
                         className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-black/25"
@@ -1034,6 +1035,7 @@ function ProductsCarousel({ products }: { products: ProductOfDay[] }) {
                     }}
                   >
                     {p.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img src={p.image_url} alt="" className="w-full h-full object-cover" />
                     ) : (
                       <span className="text-[19px] leading-none drop-shadow-sm" aria-hidden>
@@ -1160,6 +1162,7 @@ function WatchWeekThumb({ video, isLoggedIn }: { video: WatchVideo; isLoggedIn: 
         >
           {thumb ? (
             <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={thumb} alt="" className="absolute inset-0 h-full w-full object-cover" />
               <div className="pointer-events-none absolute inset-0 bg-black/40" />
             </>
@@ -1195,6 +1198,7 @@ function WatchWeekThumb({ video, isLoggedIn }: { video: WatchVideo; isLoggedIn: 
       >
         {thumb ? (
           <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={thumb} alt="" className="absolute inset-0 h-full w-full object-cover" />
             <div className="pointer-events-none absolute inset-0 bg-black/15 transition-colors group-hover:bg-black/25" />
           </>
@@ -1319,7 +1323,7 @@ function PlaybookBanner({ isLoggedIn }: { isLoggedIn: boolean }) {
               Get your hands on the AI Playbook
             </h3>
             <p className="text-[12px] leading-relaxed m-0 mt-0.5 line-clamp-1" style={{ color: "rgba(255,255,255,0.5)" }}>
-              Frameworks to apply AI at work — move from random use to confident AI application.
+              Frameworks to apply AI at work — move to confident AI application.
             </p>
           </div>
         </div>

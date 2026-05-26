@@ -13,6 +13,7 @@ interface Props {
   module: Module;
   screens: ModuleScreen[];
   onClose?: () => void;
+  onComplete?: (moduleId: string) => void;
 }
 
 // Per screen-type accent palette
@@ -25,7 +26,7 @@ const SCREEN_ACCENT: Record<string, { color: string; bg: string; label: string }
   unlocked: { color: "#FFCE00", bg: "rgba(255,206,0,0.10)",   label: "COMPLETE" },
 };
 
-export default function ModulePlayer({ module: mod, screens, onClose }: Props) {
+export default function ModulePlayer({ module: mod, screens, onClose, onComplete }: Props) {
   const [step, setStep] = useState(0);
   const [answer, setAnswer] = useState<number | null>(null);
   const [finishing, setFinishing] = useState(false);
@@ -51,6 +52,7 @@ export default function ModulePlayer({ module: mod, screens, onClose }: Props) {
             console.error("[ModulePlayer] award_points failed:", result.error);
           }
           router.refresh();
+          onComplete?.(mod.id);
         } finally {
           setFinishing(false);
         }
