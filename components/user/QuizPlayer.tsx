@@ -201,7 +201,7 @@ export default function QuizPlayer({ quiz, questions, isLoggedIn }: Props) {
   }
 
   function handleClose() {
-    router.push("/play");
+    router.push("/practice?tab=quiz");
   }
 
   function handleLoginToSave(pts: number) {
@@ -217,7 +217,7 @@ export default function QuizPlayer({ quiz, questions, isLoggedIn }: Props) {
         // localStorage unavailable
       }
     }
-    router.push("/login?redirect=/play");
+    router.push("/login?redirect=/practice%3Ftab%3Dquiz");
   }
 
   function onTouchStart(e: React.TouchEvent) {

@@ -199,5 +199,5 @@ function QuizCard({
   );
 
   if (locked) return card;
-  return <Link href={`/play/${quiz.id}`} className="no-underline">{card}</Link>;
+  return <Link href={`/practice/quiz/${quiz.id}`} className="no-underline">{card}</Link>;
 }
