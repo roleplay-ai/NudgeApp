@@ -1273,37 +1273,13 @@ function HomeDiscoveryCard({
   );
 }
 
-// ─── AI Playbook banner ────────────────────────────────────────────────────────
+// ─── Workshop banner ───────────────────────────────────────────────────────────
 
-const PLAYBOOK_URL = process.env.NEXT_PUBLIC_PLAYBOOK_URL || "";
-
-function PlaybookBanner({ isLoggedIn }: { isLoggedIn: boolean }) {
-  if (!isLoggedIn || !PLAYBOOK_URL) return null;
-
-  async function handleOpen(e: React.MouseEvent<HTMLAnchorElement>) {
-    if (!isLoggedIn) return;
-    e.preventDefault();
-    let url = PLAYBOOK_URL;
-    try {
-      const { createClient } = await import("@/lib/supabase/client");
-      const sbClient = createClient();
-      const { data: { session } } = await sbClient.auth.getSession();
-      if (session?.access_token && session?.refresh_token) {
-        url = `${PLAYBOOK_URL}#access_token=${session.access_token}&refresh_token=${session.refresh_token}&token_type=bearer`;
-      }
-    } catch {
-      // fall through to plain URL
-    }
-    window.open(url, "_blank", "noopener,noreferrer");
-  }
-
+function PlaybookBanner({ isLoggedIn: _isLoggedIn }: { isLoggedIn: boolean }) {
   return (
     <section>
-      <a
-        href={PLAYBOOK_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={handleOpen}
+      <Link
+        href="/workshop"
         className="group flex flex-col sm:flex-row items-start sm:items-center gap-4 rounded-2xl border border-amber/20 no-underline shadow-md hover:shadow-lg transition-shadow px-5 py-5 sm:py-4"
         style={{ backgroundImage: "linear-gradient(125deg, #221d23 60%, #2e2110 100%)" }}
       >
@@ -1313,17 +1289,17 @@ function PlaybookBanner({ isLoggedIn }: { isLoggedIn: boolean }) {
             style={{ background: "rgba(246,138,41,0.15)", border: "2px solid rgba(246,138,41,0.3)" }}
             aria-hidden
           >
-            📖
+            🛠️
           </div>
           <div className="min-w-0">
             <p className="text-[10px] font-bold tracking-[0.16em] uppercase m-0" style={{ color: "#F68A29" }}>
               AI Workshop
             </p>
             <h3 className="text-[15px] font-extrabold text-white leading-snug m-0">
-              Get your hands on the AI Playbook
+              Hands-on AI Workshop
             </h3>
             <p className="text-[12px] leading-relaxed m-0 mt-0.5 line-clamp-1" style={{ color: "rgba(255,255,255,0.5)" }}>
-              Frameworks to apply AI at work — move to confident AI application.
+              Build real skills through guided, hands-on AI exercises.
             </p>
           </div>
         </div>
@@ -1331,9 +1307,9 @@ function PlaybookBanner({ isLoggedIn }: { isLoggedIn: boolean }) {
           className="shrink-0 self-start sm:self-center inline-flex items-center rounded-full px-4 py-2 text-[11px] font-extrabold text-white group-hover:brightness-110 transition-[filter] shadow-[0_4px_14px_rgba(246,138,41,0.35)]"
           style={{ backgroundColor: "#F68A29" }}
         >
-          Open Playbook →
+          Go to Workshop →
         </span>
-      </a>
+      </Link>
     </section>
   );
 }

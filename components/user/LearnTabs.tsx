@@ -8,14 +8,16 @@ import {
   ChevronRight,
   Clock,
   ExternalLink,
+  Film,
   Loader2,
   Lock,
   Map,
   Search,
 } from "lucide-react";
-import type { World, Module, GlossaryTerm, Resource, ModuleScreen } from "@/lib/types";
+import type { World, Module, GlossaryTerm, Resource, ModuleScreen, ApplyVideo } from "@/lib/types";
 import { getModuleWithScreens } from "@/app/actions/getModule";
 import ModulePlayer from "@/components/user/ModulePlayer";
+import ApplyVideosFeed from "@/components/user/ApplyVideosFeed";
 import { DEFAULT_POINTS, useAwardOnClick } from "@/lib/useAwardOnClick";
 
 const LEVEL_STYLES: Record<string, string> = {
@@ -28,9 +30,9 @@ function resourceTitle(r: Resource & { name?: string }) {
   return r.title || (r as { name?: string }).name || "Untitled";
 }
 
-function parseLearnTab(tab: string | undefined | null): "worlds" | "glossary" | "resources" {
+function parseLearnTab(tab: string | undefined | null): "worlds" | "glossary" | "resources" | "videos" {
   const t = tab?.toLowerCase().trim();
-  if (t === "glossary" || t === "resources" || t === "worlds") return t;
+  if (t === "glossary" || t === "resources" || t === "worlds" || t === "videos") return t;
   return "worlds";
 }
 
@@ -41,20 +43,24 @@ export default function LearnTabs({
   modules,
   glossary,
   resources,
+  videos = [],
   initialTab,
   isLoggedIn = false,
   initialCompletedModuleIds = [],
+  initialCompletedVideoIds = [],
 }: {
   worlds: World[];
   modules: Module[];
   glossary: GlossaryTerm[];
   resources: Resource[];
+  videos?: ApplyVideo[];
   initialTab?: string | null;
   /** Signed-in viewers bypass the lock on individual modules. */
   isLoggedIn?: boolean;
   initialCompletedModuleIds?: string[];
+  initialCompletedVideoIds?: string[];
 }) {
-  const [view, setView] = useState<"worlds" | "glossary" | "resources">(() =>
+  const [view, setView] = useState<"worlds" | "glossary" | "resources" | "videos">(() =>
     parseLearnTab(initialTab)
   );
 
@@ -62,6 +68,7 @@ export default function LearnTabs({
     { id: "worlds" as const, label: "Worlds", icon: Map },
     { id: "glossary" as const, label: "Glossary", icon: BookOpen },
     { id: "resources" as const, label: "Resources", icon: BookMarked },
+    { id: "videos" as const, label: "Videos", icon: Film },
   ] as const;
 
   return (
@@ -69,7 +76,7 @@ export default function LearnTabs({
       {/* Tab switcher */}
       <div className="flex justify-center mb-7">
         <div
-          className="flex gap-1 rounded-xl p-1 max-w-xl w-full"
+          className="flex gap-1 rounded-xl p-1 max-w-2xl w-full"
           style={{
             background: "rgba(34,29,35,0.06)",
             border: "1px solid rgba(34,29,35,0.09)",
@@ -104,6 +111,14 @@ export default function LearnTabs({
       )}
       {view === "glossary" && <GlossaryView glossary={glossary} />}
       {view === "resources" && <ResourcesView resources={resources} />}
+      {view === "videos" && (
+        <ApplyVideosFeed
+          videos={videos}
+          variant="dark"
+          isLoggedIn={isLoggedIn}
+          initialCompletedIds={initialCompletedVideoIds}
+        />
+      )}
     </>
   );
 }

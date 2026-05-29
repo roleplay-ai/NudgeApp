@@ -8,6 +8,12 @@ export type Profile = {
   role: "user" | "admin";
   xp: number;
   streak: number;
+  company_id: string | null;
+};
+
+export type Company = {
+  id: string;
+  name: string;
 };
 
 // --- News ---
