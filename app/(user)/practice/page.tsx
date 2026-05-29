@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import type { Quiz, PracticeActivity, PracticeSession } from "@/lib/types";
 import QuizList from "@/components/user/QuizList";
 import PracticeActivityList from "@/components/user/PracticeActivityList";
-import PracticeBottomCards from "@/components/user/PracticeBottomCards";
 
 export const dynamic = "force-dynamic";
 
@@ -131,14 +130,11 @@ export default async function PracticePage({
       {/* Prompts tab */}
       {tab === "prompts" && (
         <>
+          {/* How it works card */}
           <div className="bg-homeInk rounded-2xl border border-homeInk/10 shadow-md px-5 pt-6 pb-6 md:px-8 md:pt-7 md:pb-7 mb-8">
             <div className="flex flex-wrap items-center gap-2 mb-3">
-              <span className="text-[10px] font-bold tracking-[0.2em] px-3 py-1.5 rounded-md bg-homeClay text-white">
-                HOW IT WORKS
-              </span>
-              <span className="text-[12px] text-homeWarmGray">
-                3 simple steps · ~10–25 min each
-              </span>
+              <span className="text-[10px] font-bold tracking-[0.2em] px-3 py-1.5 rounded-md bg-homeClay text-white">HOW IT WORKS</span>
+              <span className="text-[12px] text-homeWarmGray">3 simple steps · ~10–25 min each</span>
             </div>
             <h2 className="text-xl md:text-2xl font-extrabold text-white leading-tight tracking-tight mb-4">
               Real prompts. Honest feedback. Faster fluency.
@@ -170,7 +166,6 @@ export default async function PracticePage({
         </>
       )}
 
-      <PracticeBottomCards isLoggedIn={!!user} />
     </div>
   );
 }
