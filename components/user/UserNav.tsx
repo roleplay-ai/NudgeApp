@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Crosshair,
   Flame,
   GraduationCap,
+  Hammer,
   Home,
   Lightbulb,
   LogIn,
@@ -28,8 +28,8 @@ const items = [
   { href: "/", label: "Home", icon: Home },
   { href: "/learn", label: "Learn", icon: GraduationCap },
   { href: "/practice", label: "Practice", icon: Star },
-  { href: "/apply", label: "Apply", icon: Crosshair },
   { href: "/insights", label: "Insights", icon: Lightbulb },
+  { href: "/workshop", label: "Workshop", icon: Hammer },
 ];
 
 // Small avatar for the sidebar profile row and mobile bottom nav.
