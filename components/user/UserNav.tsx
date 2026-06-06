@@ -172,9 +172,9 @@ export default function UserNav({
               displayName={displayName}
               topPercent={topPercent}
             />
-          ) : (
+          ) : !path?.startsWith("/workshop") ? (
             <GuestAccountSidebarCard />
-          )}
+          ) : null}
 
           {isLoggedIn ? (
             <div className="space-y-1">
