@@ -29,7 +29,7 @@ const items = [
   { href: "/learn", label: "Learn", icon: GraduationCap },
   { href: "/practice", label: "Practice", icon: Star },
   { href: "/insights", label: "Insights", icon: Lightbulb },
-  { href: "/workshop", label: "Workshop", icon: Hammer },
+  { href: "/workshop", label: "AIStudio", icon: Hammer },
 ];
 
 // Small avatar for the sidebar profile row and mobile bottom nav.
