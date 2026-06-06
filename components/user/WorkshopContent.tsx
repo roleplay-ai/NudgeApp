@@ -20,37 +20,34 @@ interface Workflow {
 }
 
 const workflows: Workflow[] = [
-  { title: "Automate repeated Gmail tasks", desc: "Create a repeatable workflow for email drafts, follow-ups, and replies.", tool: "Claude", type: "Automation", level: "Intermediate", status: "In Progress", apps: ["Email", "Docs", "Gmail"], collection: "Claude Automation", isNew: true },
-  { title: "Create and edit folder documents", desc: "Build a workflow to create and revise docs directly from a shared folder.", tool: "Claude", type: "Automation", level: "Intermediate", status: "In Progress", apps: ["Folder", "Docs", "Edit"], collection: "Claude Automation", isNew: false },
-  { title: "Create a project brief", desc: "Build a structured brief from scattered notes and rough points.", tool: "ChatGPT", type: "Chat", level: "Beginner", status: "Not Started", apps: ["Docs", "Brief", "Notes"], collection: "ChatGPT for Work", isNew: false },
-  { title: "Analyze survey comments", desc: "Group open comments into themes and build a quick insight summary.", tool: "ChatGPT", type: "Chat", level: "Intermediate", status: "Not Started", apps: ["Sheets", "Insights", "Ideas"], collection: "ChatGPT for Work", isNew: true },
-  { title: "Schedule automated workflows", desc: "Build a recurring workflow that runs on a set schedule and sends updates.", tool: "Claude", type: "Automation", level: "Advanced", status: "Not Started", apps: ["Clock", "Email", "Docs", "Tasks"], collection: "Claude Automation", isNew: true },
-  { title: "Build apps with Artifacts", desc: "Create a lightweight tool or mini app for a repeatable team use case.", tool: "Claude", type: "Build", level: "Intermediate", status: "In Progress", apps: ["App", "Data", "Preview"], collection: "Claude Build", isNew: false },
-  { title: "Pick the right Claude model", desc: "Learn which model to use for quick work, reasoning, or heavy tasks.", tool: "Claude", type: "Chat", level: "Beginner", status: "In Progress", apps: ["Prompt", "Compare", "Decision"], collection: "Claude Essentials", isNew: false },
-  { title: "Turn raw data into dashboards", desc: "Build a dashboard workflow that converts spreadsheet data into chart ideas.", tool: "Claude", type: "Build", level: "Advanced", status: "Not Started", apps: ["Excel", "Charts", "Dashboard"], collection: "Claude Build", isNew: false },
-  { title: "Find action items from email", desc: "Build a faster way to extract tasks, owners, and next steps from inbox threads.", tool: "Claude", type: "Chat", level: "Intermediate", status: "Not Started", apps: ["Email", "Tasks", "Owners"], collection: "Claude Essentials", isNew: true },
-  { title: "Analyze Excel data", desc: "Turn spreadsheet questions into fast insights and chart suggestions.", tool: "Copilot", type: "Chat", level: "Intermediate", status: "Not Started", apps: ["Excel", "Charts", "Insights"], collection: "Copilot Office Work", isNew: false },
-  { title: "Draft a presentation in PowerPoint", desc: "Create a deck draft from a rough outline using Copilot.", tool: "Copilot", type: "Chat", level: "Beginner", status: "Not Started", apps: ["PPT", "Slides", "Docs"], collection: "Copilot Office Work", isNew: false },
-  { title: "Summarize Teams meetings", desc: "Build a quick meeting recap workflow with actions and decisions.", tool: "Copilot", type: "Automation", level: "Beginner", status: "Not Started", apps: ["Teams", "Tasks", "Docs"], collection: "Copilot Office Work", isNew: true },
-  { title: "Research faster with Deep Research", desc: "Build a structured research workflow from one broad business question.", tool: "Gemini", type: "Chat", level: "Intermediate", status: "Not Started", apps: ["Web", "Research", "Report"], collection: "Gemini Research", isNew: true },
-  { title: "Use NotebookLM for synthesis", desc: "Turn multiple source documents into grounded summaries and FAQs.", tool: "Gemini", type: "Chat", level: "Beginner", status: "Not Started", apps: ["Docs", "Notes", "FAQs"], collection: "Gemini Research", isNew: true },
-  { title: "Create a podcast-style summary", desc: "Build an audio-style summary flow from uploaded source material.", tool: "Gemini", type: "Build", level: "Beginner", status: "Not Started", apps: ["Audio", "Docs", "Summary"], collection: "Gemini Research", isNew: false },
-  { title: "Build a simple calculator", desc: "Create a lightweight work calculator using Canvas.", tool: "ChatGPT", type: "Build", level: "Intermediate", status: "Not Started", apps: ["Canvas", "Data", "Formula"], collection: "ChatGPT Build", isNew: false },
-  { title: "Use Projects for recurring work", desc: "Set up a reusable project space for a workstream you repeat often.", tool: "ChatGPT", type: "Automation", level: "Beginner", status: "Not Started", apps: ["Folder", "Prompt", "Memory"], collection: "ChatGPT for Work", isNew: false },
-  { title: "Create a visual campaign idea", desc: "Build a prompt workflow for campaign concepts and image directions.", tool: "All", type: "Build", level: "Intermediate", status: "Not Started", apps: ["Images", "Docs", "Ideas"], collection: "Cross Tool Workflows", isNew: false },
-  { title: "Write better prompts with RIEG", desc: "Build a simple prompting method using role, instructions, examples, and guardrails.", tool: "All", type: "Chat", level: "Beginner", status: "Not Started", apps: ["Prompt", "Examples", "Guardrails"], collection: "Cross Tool Workflows", isNew: false },
+  { title: "Connect your apps with Claude",                desc: "Connect Gmail, Calendar & Drive with Claude.",                                                                tool: "Claude", type: "Chat",       level: "Beginner",     status: "Not Started", apps: ["Drive", "Email"],          collection: "Claude Essentials", isNew: false },
+  { title: "Pick the Right Model and Thinking Level",     desc: "Match Claude's model and effort settings to the complexity of your task.",                                     tool: "Claude", type: "Chat",       level: "Beginner",     status: "Not Started", apps: ["Chat", "Docs", "PDF"],     collection: "Claude Essentials", isNew: false },
+  { title: "Save Time and Tokens with Projects",          desc: "Create a project, write custom instructions, upload reference files, and manage memory over time.",            tool: "Claude", type: "Chat",       level: "Intermediate", status: "Not Started", apps: ["Drive", "Docs", "PDF"],    collection: "Claude Essentials", isNew: true  },
+  { title: "Build automated workflows with Claude Skills",desc: "Use the skill creator to build, test, and invoke a custom automation from the chat bar.",                      tool: "Claude", type: "Automation", level: "Intermediate", status: "Not Started", apps: ["Docs", "Email", "Sheets"], collection: "Claude Automation", isNew: true  },
+  { title: "Automate Your Weekly Email Action Items",     desc: "Set up a weekly email check that categorises urgent and low-priority items automatically.",                    tool: "Claude", type: "Automation", level: "Intermediate", status: "Not Started", apps: ["Email", "Docs", "PDF"],    collection: "Claude Automation", isNew: false },
+  { title: "Auto-Generate a Monthly Sales MIS Deck",     desc: "Upload a reference deck and dataset to build a skill that produces a branded report on demand.",               tool: "Claude", type: "Automation", level: "Advanced",      status: "Not Started", apps: ["XLSX", "Sheets", "CSV"],   collection: "Claude Automation", isNew: false },
+  { title: "Add Specialist Domain Plugins",               desc: "Browse the plugin directory, activate a domain plugin, and run a skill using a slash command.",               tool: "Claude", type: "Chat",       level: "Intermediate", status: "Not Started", apps: ["Docs", "Email", "Sheets"], collection: "Claude Plugins",    isNew: false },
+  { title: "Build and Publish an Interactive App with Artifacts", desc: "Use the Artifacts canvas to build, test, and publish a live interactive tool anyone can use.",        tool: "Claude", type: "Build",      level: "Intermediate", status: "Not Started", apps: ["Forms", "Sheets", "Docs"], collection: "Claude Build",      isNew: false },
+  { title: "Set Up Claude Cowork on Your Desktop",        desc: "Configure Claude's local workspace so it can read, write, and manage files independently.",                   tool: "Claude", type: "Chat",       level: "Intermediate", status: "In Progress", apps: ["Docs", "Chat", "PDF"],     collection: "Claude Cowork",     isNew: false },
+  { title: "Edit Real Files with Claude Cowork",          desc: "Use Claude Cowork to create & edit documents in a folder.",                                                   tool: "Claude", type: "Automation", level: "Intermediate", status: "In Progress", apps: ["Docs", "PDF", "Email"],    collection: "Claude Cowork",     isNew: false },
+  { title: "Schedule Tasks to Run Automatically",         desc: "Set up a morning brief that pulls live calendar and email data every weekday at your chosen time.",           tool: "Claude", type: "Automation", level: "Advanced",      status: "Not Started", apps: ["Docs", "Email", "Sheets"], collection: "Claude Automation", isNew: false },
+  { title: "Control Your Laptop from Anywhere with Dispatch", desc: "Learn how Dispatch links your devices so a mobile command can rewrite a file on your computer.",          tool: "Claude", type: "Automation", level: "Advanced",      status: "Not Started", apps: ["Forms", "Sheets", "Docs"], collection: "Claude Dispatch",   isNew: true  },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const APP_ICONS: Record<string, string> = {
-  Email: "✉️", Docs: "📄", Gmail: "📨", Folder: "🗂", Edit: "✏️", Brief: "📋",
-  Notes: "📝", Sheets: "📊", Insights: "💡", Ideas: "💡", Clock: "⏰", Tasks: "✅",
-  App: "🧩", Data: "📊", Preview: "👁️", Prompt: "✨", Compare: "⚖️", Decision: "🧠",
-  Excel: "📈", Charts: "📊", Dashboard: "📉", Owners: "👤", PPT: "📽️", Slides: "🖼️",
-  Teams: "👥", Web: "🌐", Research: "🔎", Report: "📑", FAQs: "❓", Audio: "🎧",
-  Summary: "🔊", Canvas: "🧱", Formula: "➗", Memory: "🧠", Images: "🖼️",
-  Examples: "📚", Guardrails: "🛡️",
+  // Core
+  Email: "✉️", Docs: "📄", Sheets: "📊", Drive: "📁", PDF: "🔖",
+  Chat: "💬", Forms: "📝", XLSX: "📈", CSV: "📋",
+  // Legacy / other tools
+  Gmail: "📨", Folder: "🗂", Edit: "✏️", Brief: "📋", Notes: "📝",
+  Insights: "💡", Ideas: "💡", Clock: "⏰", Tasks: "✅", App: "🧩",
+  Data: "📊", Preview: "👁️", Prompt: "✨", Compare: "⚖️", Decision: "🧠",
+  Excel: "📈", Charts: "📊", Dashboard: "📉", Owners: "👤", PPT: "📽️",
+  Slides: "🖼️", Teams: "👥", Web: "🌐", Research: "🔎", Report: "📑",
+  FAQs: "❓", Audio: "🎧", Summary: "🔊", Canvas: "🧱", Formula: "➗",
+  Memory: "🧠", Images: "🖼️", Examples: "📚", Guardrails: "🛡️",
 };
 
 function appIcon(label: string) { return APP_ICONS[label] ?? "•"; }
@@ -421,9 +418,9 @@ export default function WorkshopContent(_props: {
               </div>
             </div>
             <div className={styles.statGrid}>
-              <div className={styles.stat}><div className={styles.statLabel}>Completed</div><div className={styles.statNum}>1</div></div>
-              <div className={styles.stat}><div className={styles.statLabel}>In progress</div><div className={styles.statNum}>3</div></div>
-              <div className={styles.stat}><div className={styles.statLabel}>New this week</div><div className={styles.statNum}>5</div></div>
+              <div className={styles.stat}><div className={styles.statLabel}>Completed</div><div className={styles.statNum}>{workflows.filter(w => w.status === "Completed").length}</div></div>
+              <div className={styles.stat}><div className={styles.statLabel}>In progress</div><div className={styles.statNum}>{workflows.filter(w => w.status === "In Progress").length}</div></div>
+              <div className={styles.stat}><div className={styles.statLabel}>New this week</div><div className={styles.statNum}>{workflows.filter(w => w.isNew).length}</div></div>
               <div className={styles.stat}><div className={styles.statLabel}>Available</div><div className={styles.statNum}>{workflows.length}</div></div>
             </div>
             <div className={styles.paceCallout}>
@@ -435,9 +432,9 @@ export default function WorkshopContent(_props: {
             <h3 className={styles.sideCardTitle}>This week in AI work</h3>
             <div className={styles.updates}>
               {[
-                { icon: "C", title: "Claude Skills starter pack added", sub: "3 new practice workflows" },
-                { icon: "G", title: "Gemini NotebookLM path is live",   sub: "Research and synthesis workflows" },
-                { icon: "M", title: "Copilot Office workflows updated",  sub: "Excel, PowerPoint, and Teams" },
+                { icon: "C", title: "Claude Dispatch path is live",           sub: "Control your laptop remotely" },
+                { icon: "C", title: "Claude Skills automation pack added",    sub: "3 new practice workflows" },
+                { icon: "C", title: "Claude Cowork desktop workflows updated", sub: "File editing & task scheduling" },
               ].map((u) => (
                 <div key={u.title} className={styles.update}>
                   <div className={styles.updateIcon}>{u.icon}</div>
