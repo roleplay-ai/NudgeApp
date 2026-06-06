@@ -13,13 +13,13 @@ export default function WorkshopContent(_props: {
     <div>
       <div className="flex items-center gap-2 mb-2">
         <span className="text-[10px] font-black tracking-[3px] text-norange bg-norange/10 px-2.5 py-1 rounded-full border border-norange/20">
-          WORKSHOP
+          AI STUDIO
         </span>
       </div>
       <h1 className="text-2xl md:text-3xl font-extrabold text-shadow mb-2 tracking-tight">
-        Your AI Practice{" "}
+        Your AI {" "}
         <span className="relative inline-block">
-          <span className="relative z-10">Arena</span>
+          <span className="relative z-10">Work Studio</span>
           <span className="absolute -bottom-0.5 left-0 right-0 h-2.5 bg-amber/30 rounded-sm -z-0" />
         </span>
       </h1>
@@ -28,7 +28,7 @@ export default function WorkshopContent(_props: {
       </p>
 
       <a
-        href="https://aiworkflow-nudgeable.vercel.app/signup"
+        href="https://aistudio.nudgeable.app/signup"
         target="_blank"
         rel="noopener noreferrer"
         className="group block max-w-lg mx-auto mt-8"
